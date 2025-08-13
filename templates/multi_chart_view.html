@@ -1,0 +1,658 @@
+{% extends "base.html" %}
+
+{% block title %}Multi-Chart View - {{ selected_lipids|length }} Selected Lipids{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chart-container {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        margin: 20px 0;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e9ecef;
+    }
+    
+    .chart-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f8f9fa;
+    }
+    
+    .chart-title {
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        font-size: 18px;
+        color: #2c3e50;
+        margin: 0;
+    }
+    
+    .chart-meta {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .meta-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .meta-label {
+        font-size: 11px;
+        color: #666;
+        text-transform: uppercase;
+        margin-bottom: 2px;
+    }
+    
+    .meta-value {
+        font-weight: bold;
+        color: #2c3e50;
+        font-size: 14px;
+    }
+    
+    .class-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    
+    .summary-panel {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 25px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        text-align: center;
+    }
+    
+    .back-button {
+        background: #6c757d;
+        border: none;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-block;
+        margin-bottom: 20px;
+        transition: background 0.2s ease;
+    }
+    
+    .back-button:hover {
+        background: #5a6268;
+        color: white;
+        text-decoration: none;
+    }
+    
+    .chart-image {
+        max-width: 100%;
+        height: auto;
+        border-radius: 5px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .loading-spinner {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+    }
+    
+    .error-message {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 10px 0;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .chart-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+        flex-wrap: wrap;
+    }
+    
+    .action-btn {
+        padding: 6px 12px;
+        border: 1px solid #dee2e6;
+        background: white;
+        color: #495057;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .action-btn:hover {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+    
+    .ions-info {
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        margin-top: 10px;
+        font-size: 13px;
+    }
+    
+    .export-panel {
+        background: #e9ecef;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+        text-center;
+    }
+    
+    @media (max-width: 768px) {
+        .chart-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .chart-meta {
+            width: 100%;
+            justify-content: space-between;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Back Button -->
+    <a href="{{ url_for('clean_dashboard') }}" class="back-button">
+        <i class="fas fa-arrow-left me-2"></i>Back to Lipid Selection
+    </a>
+    
+    <!-- Summary Panel -->
+    <div class="summary-panel">
+        <h1 class="mb-3">📊 Multi-Chart Analysis</h1>
+        <div class="row">
+            <div class="col-md-3">
+                <h3>{{ selected_lipids|length }}</h3>
+                <p class="mb-0">Selected Lipids</p>
+            </div>
+            <div class="col-md-3">
+                <h3>{{ class_summary|length }}</h3>
+                <p class="mb-0">Lipid Classes</p>
+            </div>
+            <div class="col-md-3">
+                <h3>{{ total_ions }}</h3>
+                <p class="mb-0">Total Ions</p>
+            </div>
+            <div class="col-md-3">
+                <h3>{{ charts_generated }}</h3>
+                <p class="mb-0">Charts Generated</p>
+            </div>
+        </div>
+        
+        <!-- Class Distribution -->
+        <div class="mt-3">
+            <strong>Classes:</strong>
+            {% for class_name, count in class_summary.items() %}
+                <span class="badge bg-light text-dark me-2">{{ class_name }}: {{ count }}</span>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Export Options -->
+    <div class="export-panel">
+        <h6>📥 Export Options</h6>
+        <div class="d-flex justify-content-center gap-3 mt-3">
+            <button class="btn btn-outline-primary btn-sm" onclick="exportAllCharts('png')">
+                <i class="fas fa-download me-1"></i>Export All as PNG
+            </button>
+            <button class="btn btn-outline-success btn-sm" onclick="exportData('csv')">
+                <i class="fas fa-table me-1"></i>Export Data as CSV
+            </button>
+            <button class="btn btn-outline-info btn-sm" onclick="exportData('json')">
+                <i class="fas fa-code me-1"></i>Export Data as JSON
+            </button>
+        </div>
+    </div>
+
+    <!-- Individual Charts -->
+    {% for lipid in selected_lipids %}
+    <div class="chart-container" id="chart-{{ lipid.lipid_id }}">
+        <div class="chart-header">
+            <div>
+                <h3 class="chart-title">{{ lipid.lipid_name }}</h3>
+                <div class="chart-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Class</span>
+                        <span class="class-badge">{{ lipid.class_name or 'Unknown' }}</span>
+                    </div>
+                    
+                    {% if lipid.retention_time %}
+                    <div class="meta-item">
+                        <span class="meta-label">Retention Time</span>
+                        <span class="meta-value">{{ "%.2f"|format(lipid.retention_time) }} min</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if lipid.precursor_ion and lipid.product_ion %}
+                    <div class="meta-item">
+                        <span class="meta-label">MS/MS Transition</span>
+                        <span class="meta-value">{{ lipid.precursor_ion }} → {{ lipid.product_ion }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="meta-item">
+                        <span class="meta-label">Annotated Ions</span>
+                        <span class="meta-value">{{ lipid.annotated_ions_count or 0 }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Interactive Zoom Controls -->
+        <div class="zoom-controls mb-3" id="zoom-controls-{{ lipid.lipid_id }}" style="display: none;">
+            <div class="card">
+                <div class="card-body py-2">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <label class="form-label mb-1">
+                                <strong>🔍 Zoom Range:</strong>
+                                <span id="range-display-{{ lipid.lipid_id }}" class="badge bg-primary">0.0 - 16.0 min</span>
+                            </label>
+                            <div class="d-flex gap-2 align-items-center">
+                                <small class="text-muted">0</small>
+                                <input type="range" class="form-range flex-grow-1" 
+                                       id="zoom-start-{{ lipid.lipid_id }}" 
+                                       min="0" max="15" step="0.1" value="0"
+                                       onchange="updateZoomRange({{ lipid.lipid_id }})">
+                                <small class="text-muted">to</small>
+                                <input type="range" class="form-range flex-grow-1" 
+                                       id="zoom-end-{{ lipid.lipid_id }}" 
+                                       min="1" max="16" step="0.1" value="16"
+                                       onchange="updateZoomRange({{ lipid.lipid_id }})">
+                                <small class="text-muted">16</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex gap-1 flex-wrap">
+                                <button class="btn btn-sm btn-outline-primary" 
+                                        onclick="setZoomPreset({{ lipid.lipid_id }}, 0.6)">
+                                    ±0.6 min
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary" 
+                                        onclick="setZoomPreset({{ lipid.lipid_id }}, 2.0)">
+                                    ±2 min
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" 
+                                        onclick="resetZoom({{ lipid.lipid_id }})">
+                                    Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Loading/Content Area -->
+        <div class="chart-content" id="chart-content-{{ lipid.lipid_id }}">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                <p class="mt-3">Generating chart for {{ lipid.lipid_name }}...</p>
+            </div>
+        </div>
+        
+        <!-- Chart Actions -->
+        <div class="chart-actions">
+            <button class="action-btn" onclick="downloadChart({{ lipid.lipid_id }})">
+                <i class="fas fa-download me-1"></i>Download PNG
+            </button>
+            <button class="action-btn" onclick="viewLipidDetails({{ lipid.lipid_id }})">
+                <i class="fas fa-info-circle me-1"></i>View Details
+            </button>
+            <button class="action-btn" onclick="toggleIonsInfo({{ lipid.lipid_id }})">
+                <i class="fas fa-list me-1"></i>Annotated Ions
+            </button>
+        </div>
+        
+        <!-- Collapsible Ions Info -->
+        <div class="ions-info" id="ions-info-{{ lipid.lipid_id }}" style="display: none;">
+            <strong>Annotated Ions:</strong>
+            <div class="row mt-2">
+                {% for ion in lipid.annotated_ions %}
+                <div class="col-md-4 mb-2">
+                    <div class="small">
+                        <strong>{{ ion.ion_lipid_name }}</strong><br>
+                        <span class="text-muted">{{ ion.annotation_type or 'Default' }}</span><br>
+                        {% if ion.retention_time %}RT: {{ "%.2f"|format(ion.retention_time) }} min{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    
+    {% if not selected_lipids %}
+    <div class="text-center py-5">
+        <i class="fas fa-exclamation-triangle fa-3x text-muted mb-3"></i>
+        <h4 class="text-muted">No Lipids Selected</h4>
+        <p class="text-muted">Please go back and select lipids to view their charts.</p>
+        <a href="{{ url_for('clean_dashboard') }}" class="btn btn-primary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Selection
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Store lipid IDs for chart generation
+const selectedLipidIds = {{ selected_lipid_ids | tojson }};
+let chartsGenerated = 0;
+
+// Generate all charts on page load
+document.addEventListener('DOMContentLoaded', function() {
+    generateAllCharts();
+});
+
+async function generateAllCharts() {
+    for (let lipidId of selectedLipidIds) {
+        try {
+            await generateChart(lipidId);
+            chartsGenerated++;
+        } catch (error) {
+            console.error(`Failed to generate chart for lipid ${lipidId}:`, error);
+            showChartError(lipidId, error.message);
+        }
+    }
+    
+    console.log(`Generated ${chartsGenerated} out of ${selectedLipidIds.length} charts`);
+}
+
+async function generateChart(lipidId) {
+    const contentDiv = document.getElementById(`chart-content-${lipidId}`);
+    
+    try {
+        // Make API call to generate chart
+        const response = await fetch(`/api/generate-chart/${lipidId}?chart_type=dual`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            // Display the chart image
+            contentDiv.innerHTML = `
+                <img src="${data.chart_image}" alt="Chart for Lipid ${lipidId}" class="chart-image">
+                <div class="mt-2 text-center">
+                    <small class="text-muted">
+                        Generated: ${new Date(data.metadata.generation_time).toLocaleString()}
+                        | Ions: ${data.metadata.ions_count || 0}
+                        | RT Window: ±${data.metadata.rt_window || 0.6} min
+                        | Data Source: ${data.metadata.data_source || 'database'}
+                    </small>
+                </div>
+            `;
+            
+            // Show zoom controls after chart is loaded
+            const zoomControls = document.getElementById(`zoom-controls-${lipidId}`);
+            if (zoomControls) {
+                zoomControls.style.display = 'block';
+            }
+        } else {
+            throw new Error(data.message || 'Chart generation failed');
+        }
+        
+    } catch (error) {
+        showChartError(lipidId, error.message);
+    }
+}
+
+function showChartError(lipidId, errorMessage) {
+    const contentDiv = document.getElementById(`chart-content-${lipidId}`);
+    contentDiv.innerHTML = `
+        <div class="error-message">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Chart Generation Failed</strong><br>
+            ${errorMessage}
+            <div class="mt-2">
+                <button class="btn btn-sm btn-outline-danger" onclick="generateChart(${lipidId})">
+                    <i class="fas fa-redo me-1"></i>Retry
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function downloadChart(lipidId) {
+    const chartImg = document.querySelector(`#chart-content-${lipidId} .chart-image`);
+    if (!chartImg) {
+        alert('Chart not available for download');
+        return;
+    }
+    
+    // Create download link
+    const link = document.createElement('a');
+    link.href = chartImg.src;
+    link.download = `lipid_${lipidId}_chart.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function viewLipidDetails(lipidId) {
+    window.open(`/lipid/${lipidId}`, '_blank');
+}
+
+function toggleIonsInfo(lipidId) {
+    const ionsDiv = document.getElementById(`ions-info-${lipidId}`);
+    const isVisible = ionsDiv.style.display !== 'none';
+    
+    ionsDiv.style.display = isVisible ? 'none' : 'block';
+}
+
+function exportAllCharts(format) {
+    // This would trigger a server-side export of all charts
+    const lipidIds = selectedLipidIds.join(',');
+    window.open(`/api/export-charts/${format}?lipids=${lipidIds}`, '_blank');
+}
+
+function exportData(format) {
+    // This would trigger a server-side data export
+    const lipidIds = selectedLipidIds.join(',');
+    window.open(`/api/export-data/${format}?lipids=${lipidIds}`, '_blank');
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // B key to go back
+    if (e.key === 'b' || e.key === 'B') {
+        window.location.href = "{{ url_for('clean_dashboard') }}";
+    }
+    
+    // R key to refresh all charts
+    if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        location.reload();
+    }
+});
+
+// Auto-scroll to show progress
+let currentChart = 0;
+function scrollToNextChart() {
+    if (currentChart < selectedLipidIds.length) {
+        const chartElement = document.getElementById(`chart-${selectedLipidIds[currentChart]}`);
+        if (chartElement) {
+            chartElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        currentChart++;
+        setTimeout(scrollToNextChart, 3000); // Scroll every 3 seconds
+    }
+}
+
+// Start auto-scroll after 2 seconds
+setTimeout(scrollToNextChart, 2000);
+
+// ===============================
+// INTERACTIVE ZOOM FUNCTIONALITY
+// ===============================
+
+function updateZoomRange(lipidId) {
+    const startSlider = document.getElementById(`zoom-start-${lipidId}`);
+    const endSlider = document.getElementById(`zoom-end-${lipidId}`);
+    const rangeDisplay = document.getElementById(`range-display-${lipidId}`);
+    
+    let start = parseFloat(startSlider.value);
+    let end = parseFloat(endSlider.value);
+    
+    // Ensure start < end
+    if (start >= end) {
+        if (startSlider === event.target) {
+            endSlider.value = Math.min(16, start + 0.5);
+        } else {
+            startSlider.value = Math.max(0, end - 0.5);
+        }
+        start = parseFloat(startSlider.value);
+        end = parseFloat(endSlider.value);
+    }
+    
+    // Update display
+    rangeDisplay.textContent = `${start.toFixed(1)} - ${end.toFixed(1)} min`;
+    
+    // Regenerate chart with new range
+    regenerateChartWithZoom(lipidId, start, end);
+}
+
+function setZoomPreset(lipidId, windowSize) {
+    // Get the main retention time for this lipid (you might need to store this)
+    // For now, let's center around the middle of current view
+    const startSlider = document.getElementById(`zoom-start-${lipidId}`);
+    const endSlider = document.getElementById(`zoom-end-${lipidId}`);
+    
+    const currentStart = parseFloat(startSlider.value);
+    const currentEnd = parseFloat(endSlider.value);
+    const currentCenter = (currentStart + currentEnd) / 2;
+    
+    const newStart = Math.max(0, currentCenter - windowSize);
+    const newEnd = Math.min(16, currentCenter + windowSize);
+    
+    startSlider.value = newStart;
+    endSlider.value = newEnd;
+    
+    updateZoomRange(lipidId);
+}
+
+function resetZoom(lipidId) {
+    const startSlider = document.getElementById(`zoom-start-${lipidId}`);
+    const endSlider = document.getElementById(`zoom-end-${lipidId}`);
+    
+    startSlider.value = 0;
+    endSlider.value = 16;
+    
+    updateZoomRange(lipidId);
+}
+
+async function regenerateChartWithZoom(lipidId, startTime, endTime) {
+    const contentDiv = document.getElementById(`chart-content-${lipidId}`);
+    
+    // Show loading indicator
+    contentDiv.innerHTML = `
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <p class="mt-3">Regenerating chart with zoom ${startTime.toFixed(1)}-${endTime.toFixed(1)} min...</p>
+        </div>
+    `;
+    
+    try {
+        // Make API call with zoom parameters
+        const response = await fetch(`/api/generate-chart/${lipidId}?chart_type=dual&zoom_start=${startTime}&zoom_end=${endTime}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            // Display the zoomed chart image
+            contentDiv.innerHTML = `
+                <img src="${data.chart_image}" alt="Chart for Lipid ${lipidId}" class="chart-image">
+                <div class="mt-2 text-center">
+                    <small class="text-muted">
+                        🔍 Zoomed: ${startTime.toFixed(1)}-${endTime.toFixed(1)} min |
+                        Generated: ${new Date(data.metadata.generation_time).toLocaleString()} |
+                        Ions: ${data.metadata.ions_count || 0} |
+                        Data Source: ${data.metadata.data_source || 'database'}
+                    </small>
+                </div>
+            `;
+        } else {
+            throw new Error(data.message || 'Zoom chart generation failed');
+        }
+        
+    } catch (error) {
+        console.error(`Failed to regenerate chart for lipid ${lipidId}:`, error);
+        contentDiv.innerHTML = `
+            <div class="error-message">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Zoom Chart Generation Failed</strong><br>
+                ${error.message}
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-outline-danger" onclick="regenerateChartWithZoom(${lipidId}, ${startTime}, ${endTime})">
+                        <i class="fas fa-redo me-1"></i>Retry Zoom
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="resetZoom(${lipidId})">
+                        <i class="fas fa-expand me-1"></i>Reset to Full Range
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Keyboard shortcuts for zoom
+document.addEventListener('keydown', function(e) {
+    // + key to zoom in on all visible charts
+    if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        selectedLipidIds.forEach(lipidId => {
+            const controls = document.getElementById(`zoom-controls-${lipidId}`);
+            if (controls && controls.style.display !== 'none') {
+                setZoomPreset(lipidId, 1.0); // Zoom to ±1 minute
+            }
+        });
+    }
+    
+    // - key to zoom out on all visible charts
+    if (e.key === '-' || e.key === '_') {
+        e.preventDefault();
+        selectedLipidIds.forEach(lipidId => {
+            const controls = document.getElementById(`zoom-controls-${lipidId}`);
+            if (controls && controls.style.display !== 'none') {
+                setZoomPreset(lipidId, 4.0); // Zoom to ±4 minutes
+            }
+        });
+    }
+    
+    // 0 key to reset zoom on all charts
+    if (e.key === '0') {
+        e.preventDefault();
+        selectedLipidIds.forEach(lipidId => {
+            resetZoom(lipidId);
+        });
+    }
+});
+</script>
+{% endblock %}

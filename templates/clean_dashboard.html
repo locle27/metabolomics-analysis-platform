@@ -1,0 +1,643 @@
+{% extends "base.html" %}
+
+{% block title %}Lipid Selection - Database Analysis{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Page Header */
+    .page-header {
+        padding: 40px 0;
+        background: var(--phenikaa-light);
+        border-radius: var(--dl-layout-radius-cardradius);
+        margin-bottom: 30px;
+    }
+    
+    .page-header h1 {
+        color: var(--phenikaa-text-blue);
+        font-family: Inter;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+    
+    .page-header p {
+        color: var(--phenikaa-dark);
+        font-family: Inter;
+        font-size: 16px;
+        line-height: 1.6;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .lipid-selector {
+        background: var(--phenikaa-white);
+        border-radius: var(--dl-layout-radius-cardradius);
+        padding: var(--dl-layout-space-twounits);
+        margin: var(--dl-layout-space-unit) 0;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid var(--phenikaa-orange);
+    }
+    
+    .class-filter-bar {
+        background: var(--phenikaa-light);
+        border-radius: var(--dl-layout-radius-cardradius);
+        padding: var(--dl-layout-space-unit);
+        margin-bottom: var(--dl-layout-space-unit);
+        border: 1px solid #e9ecef;
+    }
+    
+    .lipid-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 8px;
+        margin-top: 20px;
+    }
+    
+    .lipid-card {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 4px;
+        padding: 8px 10px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        position: relative;
+        height: 40px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .lipid-card:hover {
+        border-color: #007bff;
+        background: #f8f9fa;
+    }
+    
+    .lipid-card.selected {
+        border-color: var(--phenikaa-orange);
+        background: rgba(233, 75, 0, 0.1);
+    }
+    
+    .lipid-card .selection-checkbox {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 12px;
+        height: 12px;
+        border: 1px solid #007bff;
+        border-radius: 2px;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 8px;
+        color: #007bff;
+        font-weight: bold;
+    }
+    
+    .lipid-card.selected .selection-checkbox {
+        background: #007bff;
+        color: white;
+    }
+    
+    .lipid-name {
+        font-family: 'Courier New', monospace;
+        font-weight: 500;
+        font-size: 13px;
+        color: #2c3e50;
+        margin: 0;
+        padding-right: 18px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .lipid-class-badge {
+        display: none; /* Hidden to save space */
+    }
+    
+    .lipid-details {
+        display: none; /* Hidden to save space */
+    }
+    
+    .selected-lipids-panel {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #FFFFFF !important;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25) !important;
+        max-width: 400px;
+        min-width: 350px;
+        z-index: 9999 !important;
+        border: 3px solid #E94B00 !important;
+        transform: translateY(100px);
+        opacity: 0;
+        transition: all 0.4s ease;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+    
+    .selected-lipids-panel.visible {
+        transform: translateY(0);
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+    
+    /* Ensure panel content is always visible */
+    .selected-lipids-panel * {
+        position: relative !important;
+        z-index: 10000 !important;
+    }
+    
+    .class-filter-btn {
+        border: 2px solid #e9ecef;
+        background: var(--phenikaa-white);
+        color: var(--phenikaa-dark);
+        padding: 8px 15px;
+        border-radius: 20px;
+        margin: 5px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 14px;
+        font-weight: 500;
+        font-family: Inter;
+    }
+    
+    .class-filter-btn:hover {
+        border-color: var(--phenikaa-orange);
+        color: var(--phenikaa-orange);
+    }
+    
+    .class-filter-btn.active {
+        background: var(--phenikaa-orange);
+        color: var(--phenikaa-white);
+        border-color: var(--phenikaa-orange);
+    }
+    
+    .stats-strip {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 0;
+        margin-bottom: 30px;
+        border-radius: 10px;
+    }
+    
+    .search-bar {
+        max-width: 400px;
+        margin: 0 auto 20px auto;
+    }
+    
+    .view-charts-btn {
+        background: #E94B00 !important;
+        border: 2px solid #E94B00 !important;
+        color: #FFFFFF !important;
+        padding: 15px 25px !important;
+        border-radius: 10px !important;
+        font-weight: 700 !important;
+        font-size: 16px !important;
+        font-family: Inter !important;
+        width: 100% !important;
+        margin-top: 15px !important;
+        transition: all 0.3s ease !important;
+        position: relative !important;
+        z-index: 10001 !important;
+        cursor: pointer !important;
+        opacity: 1 !important;
+    }
+    
+    .view-charts-btn:hover {
+        background: #BF4408 !important;
+        border-color: #BF4408 !important;
+        transform: translateY(-3px) !important;
+        color: #FFFFFF !important;
+        box-shadow: 0 6px 25px rgba(233, 75, 0, 0.5) !important;
+    }
+    
+    .view-charts-btn:disabled {
+        background: #6c757d !important;
+        border-color: #6c757d !important;
+        color: #FFFFFF !important;
+        cursor: not-allowed !important;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+    
+    .clear-selection-btn {
+        background: #dc3545 !important;
+        border: none !important;
+        color: white !important;
+        padding: 8px 15px !important;
+        border-radius: 6px !important;
+        font-size: 14px !important;
+        margin-left: 10px !important;
+        z-index: 10002 !important;
+        position: relative !important;
+    }
+    
+    /* Additional fixes to prevent panel from being covered */
+    .selected-lipids-panel h6,
+    .selected-lipids-panel button,
+    .selected-lipids-panel div {
+        z-index: 10000 !important;
+        position: relative !important;
+    }
+    
+    /* Ensure no other elements can cover the panel */
+    body > * {
+        max-z-index: 9998;
+    }
+    
+    /* Force the panel to be on top of everything */
+    .selected-lipids-panel {
+        isolation: isolate;
+    }
+    
+    /* Remove any potential blur or opacity issues */
+    .selected-lipids-panel,
+    .selected-lipids-panel * {
+        filter: none !important;
+        -webkit-filter: none !important;
+        blur: none !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header text-center mb-4">
+        <h1 class="phenikaa-heading">Lipid Database Analysis</h1>
+        <p class="phenikaa-text">Select lipids from our comprehensive database for interactive chromatography analysis</p>
+    </div>
+
+    <!-- Lipid Selector -->
+    <div class="lipid-selector">
+        <h2 class="text-center mb-4">🧬 Select Lipids for Analysis</h2>
+        
+        <!-- Search Bar -->
+        <div class="search-bar">
+            <input type="text" id="search-input" class="form-control" 
+                   placeholder="🔍 Search lipids (e.g., ac120, tg480, pc341, or full names...)"
+                   autocomplete="off">
+            <small class="form-text text-muted mt-1">
+                💡 <strong>Quick search tips:</strong> 
+                Type "ac120" for AC(12:0), "tg480" for TG(48:0), "180" for any 18:0 lipid
+            </small>
+        </div>
+        
+        <!-- Class Filter Bar -->
+        <div class="class-filter-bar">
+            <div class="text-center">
+                <strong>Filter by Lipid Class:</strong>
+                <div class="mt-2">
+                    <button class="class-filter-btn active" data-class="all">All Classes</button>
+                    {% for cls in data.classes %}
+                    <button class="class-filter-btn" data-class="{{ cls.class_name }}">
+                        {{ cls.class_name }}
+                        <span class="badge bg-light text-dark ms-1">{{ cls.count or 0 }}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Lipid Grid -->
+        <div id="lipid-grid" class="lipid-grid">
+            {% for lipid in data.lipids %}
+            <div class="lipid-card" 
+                 data-lipid-id="{{ lipid.lipid_id }}" 
+                 data-class="{{ lipid.class_name }}"
+                 data-name="{{ lipid.lipid_name | lower }}"
+                 onclick="toggleLipidSelection(this)">
+                
+                <div class="selection-checkbox"></div>
+                <div class="lipid-name">{{ lipid.lipid_name }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- No Results Message -->
+        <div id="no-results" class="text-center py-5" style="display: none;">
+            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No lipids match your search criteria</h5>
+            <p class="text-muted">Try adjusting your search or filter settings</p>
+        </div>
+    </div>
+
+    <!-- Selected Lipids Panel (Fixed Position) -->
+    <div id="selected-panel" class="selected-lipids-panel">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0"><strong>Selected Lipids</strong></h6>
+            <button class="clear-selection-btn btn btn-sm" onclick="clearAllSelections()">
+                Clear All
+            </button>
+        </div>
+        
+        <div id="selected-list" class="mb-3">
+            <!-- Selected lipids will be listed here -->
+        </div>
+        
+        <button id="optimized-charts-btn" class="view-charts-btn btn btn-primary" 
+                onclick="viewOptimizedCharts()" disabled>
+            <i class="fas fa-chart-area me-2"></i>
+            View Interactive Charts (<span id="btn-count">0</span>)
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Global variables
+let selectedLipids = new Set();
+let allLipids = [];
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Store all lipid data for filtering
+    document.querySelectorAll('.lipid-card').forEach(card => {
+        allLipids.push({
+            id: card.dataset.lipidId,
+            name: card.dataset.name,
+            class: card.dataset.class,
+            element: card
+        });
+    });
+    
+    // Setup search functionality
+    setupSearch();
+    setupClassFilters();
+    updateSelectedPanel();
+});
+
+function toggleLipidSelection(cardElement) {
+    const lipidId = cardElement.dataset.lipidId;
+    const lipidName = cardElement.querySelector('.lipid-name').textContent;
+    
+    if (selectedLipids.has(lipidId)) {
+        // Deselect
+        selectedLipids.delete(lipidId);
+        cardElement.classList.remove('selected');
+        cardElement.querySelector('.selection-checkbox').innerHTML = '';
+    } else {
+        // Select
+        selectedLipids.add(lipidId);
+        cardElement.classList.add('selected');
+        cardElement.querySelector('.selection-checkbox').innerHTML = '✓';
+    }
+    
+    updateSelectedPanel();
+    updateStats();
+}
+
+function updateSelectedPanel() {
+    const panel = document.getElementById('selected-panel');
+    const list = document.getElementById('selected-list');
+    const optimizedBtn = document.getElementById('optimized-charts-btn');
+    
+    if (selectedLipids.size === 0) {
+        panel.classList.remove('visible');
+        optimizedBtn.disabled = true;
+        return;
+    }
+    
+    panel.classList.add('visible');
+    optimizedBtn.disabled = false;
+    
+    // Build selected lipids list
+    let listHTML = '';
+    selectedLipids.forEach(lipidId => {
+        const card = document.querySelector(`[data-lipid-id="${lipidId}"]`);
+        const name = card.querySelector('.lipid-name').textContent;
+        const className = card.dataset.class;
+        
+        listHTML += `
+            <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded">
+                <div>
+                    <div class="lipid-name" style="font-size: 12px;">${name}</div>
+                    <small class="text-muted">${className}</small>
+                </div>
+                <button class="btn btn-sm btn-outline-danger" onclick="deselectLipid('${lipidId}')"
+                        style="padding: 2px 6px; font-size: 12px;">×</button>
+            </div>
+        `;
+    });
+    
+    list.innerHTML = listHTML;
+    document.getElementById('btn-count').textContent = selectedLipids.size;
+    document.getElementById('btn-count-2').textContent = selectedLipids.size;
+}
+
+function deselectLipid(lipidId) {
+    const card = document.querySelector(`[data-lipid-id="${lipidId}"]`);
+    if (card) {
+        toggleLipidSelection(card);
+    }
+}
+
+function clearAllSelections() {
+    selectedLipids.forEach(lipidId => {
+        const card = document.querySelector(`[data-lipid-id="${lipidId}"]`);
+        if (card) {
+            card.classList.remove('selected');
+            card.querySelector('.selection-checkbox').innerHTML = '';
+        }
+    });
+    
+    selectedLipids.clear();
+    updateSelectedPanel();
+    updateStats();
+}
+
+function updateStats() {
+    document.getElementById('selected-count').textContent = selectedLipids.size;
+}
+
+function setupSearch() {
+    const searchInput = document.getElementById('search-input');
+    
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        filterLipids();
+    });
+}
+
+function setupClassFilters() {
+    document.querySelectorAll('.class-filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Update active state
+            document.querySelectorAll('.class-filter-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            filterLipids();
+        });
+    });
+}
+
+function filterLipids() {
+    const searchTerm = document.getElementById('search-input').value.toLowerCase();
+    const selectedClass = document.querySelector('.class-filter-btn.active').dataset.class;
+    
+    let visibleCount = 0;
+    
+    allLipids.forEach(lipid => {
+        let visible = true;
+        
+        // Class filter
+        if (selectedClass !== 'all' && lipid.class !== selectedClass) {
+            visible = false;
+        }
+        
+        // Enhanced search filter with shorthand support
+        if (searchTerm && visible) {
+            const lipidNameLower = lipid.name.toLowerCase();
+            const classLower = lipid.class.toLowerCase();
+            
+            // Direct match (existing functionality)
+            if (lipidNameLower.includes(searchTerm) || classLower.includes(searchTerm)) {
+                visible = true;
+            }
+            // Shorthand lipid code matching (new feature)
+            else if (matchesShorthandCode(lipidNameLower, searchTerm)) {
+                visible = true;
+            }
+            else {
+                visible = false;
+            }
+        }
+        
+        if (visible) {
+            lipid.element.style.display = 'block';
+            visibleCount++;
+        } else {
+            lipid.element.style.display = 'none';
+        }
+    });
+    
+    // Show/hide no results message
+    const noResults = document.getElementById('no-results');
+    if (visibleCount === 0) {
+        noResults.style.display = 'block';
+    } else {
+        noResults.style.display = 'none';
+    }
+}
+
+function matchesShorthandCode(lipidName, searchTerm) {
+    /**
+     * Enhanced shorthand matching for lipid codes
+     * Examples:
+     * - "ac120" matches "ac(12:0)"
+     * - "tg480" matches "tg(48:0)" or "tg48_0"
+     * - "pc341" matches "pc(34:1)"
+     * - "180" matches any lipid with "18:0"
+     */
+    
+    // Remove all special characters for comparison
+    const cleanLipid = lipidName.replace(/[():\-\[\]\/\s_]/g, '').toLowerCase();
+    const cleanSearch = searchTerm.replace(/[():\-\[\]\/\s_]/g, '').toLowerCase();
+    
+    // Direct clean match
+    if (cleanLipid.includes(cleanSearch)) {
+        return true;
+    }
+    
+    // Try to parse shorthand patterns like "ac120" -> "ac12:0"
+    const shorthandPattern = /^([a-z]+)(\d+)$/;
+    const match = cleanSearch.match(shorthandPattern);
+    
+    if (match) {
+        const [, classPrefix, numbers] = match;
+        
+        // Try different number splitting patterns
+        const patterns = [
+            // Pattern 1: last digit as second number (ac120 -> ac(12:0))
+            numbers.length >= 2 ? `${classPrefix}${numbers.slice(0, -1)}:${numbers.slice(-1)}` : null,
+            
+            // Pattern 2: split in half (ac1820 -> ac(18:20))
+            numbers.length >= 4 && numbers.length % 2 === 0 ? 
+                `${classPrefix}${numbers.slice(0, numbers.length/2)}:${numbers.slice(numbers.length/2)}` : null,
+            
+            // Pattern 3: try 2-digit splits for longer numbers (tg4801 -> tg(48:01))
+            numbers.length >= 4 ? `${classPrefix}${numbers.slice(0, 2)}:${numbers.slice(2)}` : null,
+            
+            // Pattern 4: try 3-digit splits (tg48016 -> tg(480:16))
+            numbers.length >= 5 ? `${classPrefix}${numbers.slice(0, 3)}:${numbers.slice(3)}` : null
+        ].filter(Boolean);
+        
+        // Check if any pattern matches the clean lipid name
+        return patterns.some(pattern => cleanLipid.includes(pattern));
+    }
+    
+    // Try numeric-only search (e.g., "120" matches any lipid with "12:0")
+    if (/^\d+$/.test(cleanSearch) && cleanSearch.length >= 2) {
+        const numbers = cleanSearch;
+        const numericPatterns = [
+            // Split last digit: "120" -> "12:0"
+            numbers.length >= 2 ? `${numbers.slice(0, -1)}:${numbers.slice(-1)}` : null,
+            
+            // Split in half: "1820" -> "18:20" 
+            numbers.length >= 4 && numbers.length % 2 === 0 ? 
+                `${numbers.slice(0, numbers.length/2)}:${numbers.slice(numbers.length/2)}` : null
+        ].filter(Boolean);
+        
+        return numericPatterns.some(pattern => cleanLipid.includes(pattern));
+    }
+    
+    return false;
+}
+
+function viewSelectedCharts() {
+    if (selectedLipids.size === 0) {
+        alert('Please select at least one lipid to view charts.');
+        return;
+    }
+    
+    // Convert Set to Array for URL parameters
+    const lipidIds = Array.from(selectedLipids);
+    
+    // Create URL with selected lipid IDs
+    const url = `/multi-chart-view?lipids=${lipidIds.join(',')}`;
+    
+    // Open in new tab or same tab
+    window.location.href = url;
+}
+
+function viewOptimizedCharts() {
+    if (selectedLipids.size === 0) {
+        alert('Please select at least one lipid to view charts.');
+        return;
+    }
+    
+    // Convert Set to Array for URL parameters
+    const lipidIds = Array.from(selectedLipids);
+    
+    // Create URL with selected lipid IDs for dual chart view
+    const url = `/dual-chart-view?lipids=${lipidIds.join(',')}`;
+    
+    // Open in new tab
+    window.open(url, '_blank');
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + A to select all visible
+    if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        e.preventDefault();
+        selectAllVisible();
+    }
+    
+    // Escape to clear all selections
+    if (e.key === 'Escape') {
+        clearAllSelections();
+    }
+});
+
+function selectAllVisible() {
+    document.querySelectorAll('.lipid-card').forEach(card => {
+        if (card.style.display !== 'none' && !card.classList.contains('selected')) {
+            toggleLipidSelection(card);
+        }
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Metabolomics Research Platform{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js for interactive charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Tailwind Config for Custom Colors -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'metabolomics-blue': '#2E4C92',
+                        'metabolomics-dark-blue': '#213671',
+                        'metabolomics-orange': '#E94B00',
+                        'metabolomics-light-blue': '#4A6FA5',
+                        'metabolomics-light-orange': '#FF6B1A'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Exact Phenikaa University CSS (Based on ui-test files) -->
+    <style>
+        :root {
+            /* Updated Blue/Orange Theme Colors */
+            --primary-blue: #2E4C92;            /* Main blue from logo */
+            --dark-blue: #213671;                /* Darker blue for navigation */
+            --primary-orange: #E94B00;           /* Main orange from logo */
+            --light-blue: #4A6FA5;               /* Lighter blue variant */
+            --light-orange: #FF6B1A;             /* Lighter orange variant */
+            --white: #FFFFFF;
+            --light-bg: #F8FAFC;
+            --dark-text: #1E293B;
+            --gray-text: #64748B;
+            
+            /* Layout variables from Phenikaa */
+            --dl-layout-space-unit: 16px;
+            --dl-layout-space-twounits: 32px;
+            --dl-layout-space-threeunits: 48px;
+            --dl-layout-radius-cardradius: 8px;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-weight: 400;
+            font-style: normal;
+            text-decoration: none;
+            text-transform: none;
+            letter-spacing: normal;
+            line-height: 1.6;
+            color: var(--dark-text);
+            background: var(--light-bg);
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Updated Header - Clean white background */
+        .phenikaa-header {
+            background: #FFFFFF !important;
+            padding: 20px 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-bottom: 3px solid var(--primary-blue);
+        }
+        
+        /* Logo and Title Section */
+        .menu-logos {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .logo img,
+        .science.logo img {
+            height: 79px;
+            width: auto;
+        }
+        
+        .slogan table,
+        .science.slogan table {
+            border: none;
+            margin: 0;
+        }
+        
+        .slogan table td,
+        .science.slogan table td {
+            padding: 2px 0;
+            border: none;
+        }
+        
+        .slogan table td span,
+        .science.slogan table td span {
+            color: #DC3545 !important; /* Red color for title text */
+            font-size: 13px;
+            font-family: Inter;
+            font-weight: 600;
+            line-height: 18px;
+        }
+        
+        .slogan table td span a,
+        .science.slogan table td span a {
+            color: #DC3545 !important; /* Red color for title text */
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .slogan table td span a:hover,
+        .science.slogan table td span a:hover {
+            color: var(--primary-orange) !important;
+        }
+        
+        .slogan table tr:last-child td span,
+        .science.slogan table tr:last-child td span {
+            font-weight: 500;
+            font-size: 12px;
+            color: #6C757D !important; /* Gray for subtitle */
+        }
+        
+        /* Navigation Menu - Clean text only */
+        .right-main-menu {
+            margin-left: auto;
+        }
+        
+        .main-menu .navbar {
+            padding: 0;
+            background: none !important;
+            border: none !important;
+        }
+        
+        .navbar {
+            background: none !important;
+            border: none !important;
+        }
+        
+        .navbar-toggler {
+            border: none;
+            padding: 4px 8px;
+        }
+        
+        .navbar-toggler-icon {
+            display: block;
+            width: 22px;
+            height: 2px;
+            background: var(--phenikaa-text-blue);
+            margin: 4px 0;
+            transition: 0.3s;
+        }
+        
+        .main-navbar_nav {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav-item {
+            position: relative;
+        }
+        
+        /* CLEAN TEXT-ONLY NAVIGATION */
+        .navbar-nav .nav-link,
+        .main-navbar_nav .nav-link,
+        ul.navbar-nav li.nav-item a.nav-link {
+            color: #2E4C92 !important;
+            font-size: 15px !important;
+            font-family: Inter !important;
+            font-weight: 600 !important;
+            text-transform: uppercase !important;
+            padding: 10px 15px !important;
+            text-decoration: none !important;
+            transition: color 0.3s ease !important;
+            background: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            margin: 0 10px !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            display: inline-block !important;
+        }
+        
+        .navbar-nav .nav-link:hover,
+        .navbar-nav .nav-link.active,
+        .main-navbar_nav .nav-link:hover,
+        .main-navbar_nav .nav-link.active,
+        ul.navbar-nav li.nav-item a.nav-link:hover,
+        ul.navbar-nav li.nav-item a.nav-link.active {
+            color: #E94B00 !important;
+            background: none !important;
+            border: none !important;
+            transform: none !important;
+            box-shadow: none !important;
+            text-decoration: underline !important;
+        }
+        
+        /* Dropdown Menus */
+        .has-submenu {
+            position: relative;
+        }
+        
+        .sub-nav-toggler {
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 4px solid currentColor;
+            margin-left: 8px;
+        }
+        
+        .sub-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            min-width: 250px;
+            background: var(--white);
+            box-shadow: 0 8px 25px rgba(46, 76, 146, 0.2);
+            border-radius: 12px;
+            padding: 20px 0;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            border: 2px solid var(--light-blue);
+        }
+        
+        .has-submenu:hover .sub-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        
+        .sub-menu-content {
+            padding: 0 20px;
+        }
+        
+        .sub-links ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .sub-links li {
+            margin: 8px 0;
+        }
+        
+        .sub-links a {
+            color: var(--dark-text);
+            font-size: 14px;
+            font-family: Inter;
+            font-weight: 400;
+            text-decoration: none;
+            padding: 8px 0;
+            display: block;
+            transition: all 0.3s ease;
+            border-radius: 6px;
+        }
+        
+        .sub-links a:hover {
+            color: var(--primary-orange);
+            padding-left: 10px;
+            background: rgba(233, 75, 0, 0.1);
+        }
+        
+        /* Hero Section - Blue/Orange Theme */
+        .phenikaa-hero {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-orange) 100%);
+            color: white;
+            padding: 60px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .phenikaa-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 50%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="2"/></svg>');
+            opacity: 0.1;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        /* Content Styling */
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+            box-shadow: 0 4px 20px rgba(46, 76, 146, 0.1);
+            border-left: 6px solid var(--primary-orange);
+            border-top: 2px solid var(--primary-blue);
+        }
+        
+        /* Updated Button Styles */
+        .btn-phenikaa {
+            background: linear-gradient(135deg, var(--primary-orange), var(--light-orange));
+            border: 2px solid var(--primary-orange);
+            color: var(--white);
+            cursor: pointer;
+            display: inline-flex;
+            transition: all 0.3s ease;
+            align-items: center;
+            font-weight: 700;
+            padding: 12px 28px;
+            white-space: nowrap;
+            border-radius: 30px;
+            justify-content: center;
+            font-family: Inter;
+            font-size: 14px;
+            box-shadow: 0 4px 15px rgba(233, 75, 0, 0.2);
+        }
+        
+        .btn-phenikaa:hover {
+            background: linear-gradient(135deg, var(--light-orange), var(--primary-orange));
+            border-color: var(--light-orange);
+            color: var(--white);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(233, 75, 0, 0.4);
+        }
+        
+        .btn-phenikaa-secondary {
+            background: transparent;
+            border: 2px solid var(--primary-blue);
+            color: var(--primary-blue);
+            cursor: pointer;
+            display: inline-flex;
+            transition: all 0.3s ease;
+            align-items: center;
+            font-weight: 600;
+            padding: 12px 28px;
+            border-radius: 30px;
+            justify-content: center;
+            font-family: Inter;
+            font-size: 14px;
+        }
+        
+        .btn-phenikaa-secondary:hover {
+            background: linear-gradient(135deg, var(--primary-blue), var(--light-blue));
+            color: var(--white);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(46, 76, 146, 0.3);
+        }
+        
+        /* Stats Cards */
+        .stat-card {
+            background: linear-gradient(135deg, var(--phenikaa-blue), var(--phenikaa-light-blue));
+            color: white;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        /* Updated Footer */
+        .phenikaa-footer {
+            background: linear-gradient(135deg, var(--dark-blue) 0%, var(--primary-blue) 100%);
+            color: var(--white);
+            padding: 40px 0 20px;
+            margin-top: 50px;
+            font-family: Inter;
+            box-shadow: 0 -4px 20px rgba(46, 76, 146, 0.2);
+        }
+        
+        /* Content Sections - Blue/Orange Theme */
+        .phenikaa-content-section {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 32px;
+            margin: 16px 0;
+            box-shadow: 0 4px 20px rgba(46, 76, 146, 0.1);
+            border-left: 6px solid var(--primary-orange);
+            border-top: 2px solid var(--primary-blue);
+        }
+        
+        /* Updated Cards */
+        .phenikaa-card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: 0 6px 25px rgba(46, 76, 146, 0.1);
+            transition: all 0.3s ease;
+            border: 2px solid rgba(46, 76, 146, 0.1);
+        }
+        
+        .phenikaa-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 35px rgba(46, 76, 146, 0.2);
+            border-color: var(--light-blue);
+        }
+        
+        /* Text Styles - Blue/Orange Theme */
+        .phenikaa-heading {
+            color: var(--primary-blue);
+            font-family: Inter;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .phenikaa-text {
+            color: var(--dark-text);
+            font-family: Inter;
+            font-weight: 400;
+            line-height: 1.6;
+        }
+        
+        .phenikaa-accent-text {
+            color: var(--primary-orange);
+            font-family: Inter;
+            font-weight: 500;
+        }
+        
+        /* Responsive Design - Phenikaa Style */
+        @media (max-width: 768px) {
+            .phenikaa-university-text {
+                margin-left: 20px;
+                font-size: 10px;
+            }
+            
+            .phenikaa-logo-section {
+                margin-left: 20px;
+            }
+            
+            .phenikaa-nav-list {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .phenikaa-nav-item {
+                height: auto;
+            }
+            
+            .phenikaa-nav-link {
+                padding: 15px 20px;
+                font-size: 13px;
+            }
+            
+            .phenikaa-hero {
+                padding: 40px 0;
+            }
+            
+            .phenikaa-main-title {
+                font-size: 11px;
+            }
+        }
+        
+        .lipid-name {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+        
+        .footer {
+            background-color: var(--primary-blue);
+            color: white;
+            padding: 20px 0;
+            margin-top: 50px;
+        }
+        
+        .btn-metabolomics {
+            background: linear-gradient(135deg, var(--primary-orange), var(--light-orange));
+            border-color: var(--primary-orange);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-metabolomics:hover {
+            background: linear-gradient(135deg, var(--light-orange), var(--primary-orange));
+            border-color: var(--light-orange);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(233, 75, 0, 0.3);
+        }
+        
+        /* Additional Bootstrap overrides */
+        .navbar-nav .nav-item {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        
+        .navbar-collapse {
+            display: flex !important;
+            visibility: visible !important;
+        }
+        
+        .main-navbar_nav {
+            display: flex !important;
+            list-style: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        /* Force show on larger screens */
+        @media (min-width: 992px) {
+            .navbar-collapse {
+                display: flex !important;
+            }
+            .navbar-nav {
+                display: flex !important;
+                flex-direction: row !important;
+            }
+        }
+        
+        /* Tailwind-inspired utility classes */
+        .bg-gradient-blue-orange {
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-orange));
+        }
+        
+        .text-metabolomics-blue {
+            color: var(--primary-blue);
+        }
+        
+        .text-metabolomics-orange {
+            color: var(--primary-orange);
+        }
+        
+        .border-metabolomics-blue {
+            border-color: var(--primary-blue);
+        }
+        
+        .border-metabolomics-orange {
+            border-color: var(--primary-orange);
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Exact Phenikaa University Header Structure -->
+    <header class="phenikaa-header">
+        <div class="container-fluid">
+            <div class="d-flex flex-column flex-md-row align-items-center position-relative">
+                <!-- Logo and Title Section (Left) -->
+                <div class="my-0 mr-md-auto menu-logos">
+                    <div class="logo khoavien">
+                        <a class="main-logo" href="{{ url_for('homepage') }}">
+                            <img src="{{ url_for('static', filename='logo-phenikaa.png') }}" alt="Metabolomics Research Platform">
+                        </a>
+                    </div>
+                    <div class="slogan khoavien">
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <span>
+                                            <a href="{{ url_for('homepage') }}">Advanced Lipid Chromatography Data Analysis & Visualization Platform</a>
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><span>Precision • Innovation • Discovery</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Navigation Menu (Right) -->
+                <div class="pt-1 my-0 my-md-0 right-main-menu">
+                    <div class="main-menu">
+                        <nav class="navbar navbar-expand-lg">
+                            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                                <span class="navbar-toggler-icon"></span>
+                            </button>
+                            
+                            <div class="collapse navbar-collapse justify-content-center" id="navbarSupportedContent">
+                                <ul class="navbar-nav ml-auto main-navbar_nav">
+                                    <!-- Home -->
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if request.endpoint == 'homepage' %}active{% endif %}" href="{{ url_for('homepage') }}">
+                                            HOME
+                                        </a>
+                                    </li>
+                                    
+                                    <!-- Analysis/Lipid Selection -->
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if request.endpoint in ['clean_dashboard', 'dual_chart_view'] %}active{% endif %}" href="{{ url_for('clean_dashboard') }}">
+                                            ANALYSIS
+                                        </a>
+                                    </li>
+                                    
+                                    <!-- Data Management -->
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if request.endpoint == 'manage_lipids' %}active{% endif %}" href="{{ url_for('manage_lipids') }}">
+                                            MANAGEMENT
+                                        </a>
+                                    </li>
+                                    
+                                    <!-- Admin System -->
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if request.endpoint in ['admin_dashboard', 'admin_login'] %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">
+                                            ADMIN
+                                        </a>
+                                    </li>
+                                    
+                                    <!-- Documentation -->
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="#documentation">
+                                            DOCUMENTATION
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container mt-3">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' if category == 'success' else 'warning' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Hero Section (Optional) -->
+    {% block hero %}
+    <!-- Default hero for pages that don't override it -->
+    {% if not request.endpoint in ['dual_chart_view', 'manage_lipids', 'browse_lipids'] %}
+    <section class="phenikaa-hero">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h2 class="display-5 fw-bold mb-3">Welcome to Advanced Metabolomics</h2>
+                    <p class="lead mb-4">
+                        Explore comprehensive lipid chromatography data with interactive visualizations, 
+                        advanced filtering, and scientific-grade analysis tools.
+                    </p>
+                    <div class="d-flex gap-3">
+                        <a href="{{ url_for('clean_dashboard') }}" class="btn btn-phenikaa">
+                            <i class="fas fa-play"></i> Start Analysis
+                        </a>
+                        <a href="{{ url_for('browse_lipids') }}" class="btn btn-phenikaa-secondary">
+                            <i class="fas fa-database"></i> Browse Data
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="hero-icon" style="font-size: 120px; color: rgba(255,255,255,0.2);">
+                        <i class="fas fa-microscope"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+    {% endblock %}
+
+    <!-- Main Content -->
+    <main class="container-fluid my-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Phenikaa Footer -->
+    <footer class="phenikaa-footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="phenikaa-logo me-3" style="width: 40px; height: 40px; font-size: 16px;">
+                            <i class="fas fa-flask"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-1">Metabolomics Research Platform</h6>
+                            <small class="opacity-75">Advanced Chromatography Analysis</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="mb-3">
+                        <small class="opacity-75">
+                            Powered by <i class="fas fa-database"></i> PostgreSQL & 
+                            <i class="fab fa-python"></i> Flask<br>
+                            Data source: <a href="https://metabolomics.baker.edu.au" class="text-light opacity-75">Baker Institute</a>
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <hr class="opacity-25">
+            <div class="text-center">
+                <small class="opacity-50">
+                    &copy; 2025 Metabolomics Research Platform | Built for Scientific Excellence
+                </small>
+            </div>
+        </div>
+    </footer>
+
+    <!-- jQuery (required for some functionality) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        // Utility functions for the metabolomics app
+        function formatRetentionTime(rt) {
+            if (rt === null || rt === undefined) return 'N/A';
+            return parseFloat(rt).toFixed(2) + ' min';
+        }
+        
+        function formatIntensity(intensity) {
+            if (intensity === null || intensity === undefined) return 'N/A';
+            return parseInt(intensity).toLocaleString();
+        }
+        
+        // Auto-hide alerts after 5 seconds
+        setTimeout(function() {
+            $('.alert').alert('close');
+        }, 5000);
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

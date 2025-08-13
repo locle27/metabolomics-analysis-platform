@@ -1,0 +1,422 @@
+{% extends "base.html" %}
+
+{% block title %}Metabolomics Research Platform - Advanced Lipid Analysis{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Hero Section */
+    .hero-section {
+        background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-orange) 100%);
+        color: var(--white);
+        padding: 80px 0;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 50%;
+        height: 100%;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="2"/><circle cx="30" cy="30" r="20" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/></svg>');
+        opacity: 0.1;
+    }
+    
+    .hero-content {
+        position: relative;
+        z-index: 2;
+    }
+    
+    /* Project Overview Cards */
+    .project-overview {
+        padding: 60px 0;
+        background: var(--light-bg);
+    }
+    
+    .overview-card {
+        background: var(--white);
+        border-radius: var(--dl-layout-radius-cardradius);
+        padding: 30px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+        border-left: 4px solid var(--primary-orange);
+        height: 100%;
+    }
+    
+    .overview-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    }
+    
+    .overview-card .icon {
+        font-size: 48px;
+        color: var(--primary-orange);
+        margin-bottom: 20px;
+    }
+    
+    .overview-card h4 {
+        color: var(--primary-blue);
+        font-family: Inter;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+    
+    .overview-card p {
+        color: var(--dark-text);
+        font-family: Inter;
+        font-weight: 400;
+        line-height: 1.6;
+        margin-bottom: 0;
+    }
+    
+    /* News Section */
+    .news-section {
+        padding: 60px 0;
+        background: var(--white);
+    }
+    
+    .news-card {
+        background: var(--white);
+        border-radius: var(--dl-layout-radius-cardradius);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: transform 0.3s ease;
+        height: 100%;
+    }
+    
+    .news-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    }
+    
+    .news-card .news-image {
+        height: 200px;
+        background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-orange) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 48px;
+        color: var(--white);
+    }
+    
+    .news-card .news-content {
+        padding: 25px;
+    }
+    
+    .news-card .news-date {
+        color: var(--primary-orange);
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-bottom: 10px;
+    }
+    
+    .news-card h5 {
+        color: var(--primary-blue);
+        font-family: Inter;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+    
+    .news-card p {
+        color: var(--dark-text);
+        font-family: Inter;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+    
+    /* Statistics Section */
+    .stats-section {
+        padding: 60px 0;
+        background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+        color: var(--white);
+    }
+    
+    .stat-item {
+        text-align: center;
+        padding: 20px;
+    }
+    
+    .stat-number {
+        font-size: 48px;
+        font-weight: 700;
+        color: var(--white);
+        display: block;
+    }
+    
+    .stat-label {
+        font-size: 16px;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.9);
+        margin-top: 5px;
+    }
+    
+    /* CTA Section */
+    .cta-section {
+        padding: 60px 0;
+        background: var(--light-bg);
+        text-align: center;
+    }
+    
+    .cta-content {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .cta-content h3 {
+        color: var(--primary-blue);
+        font-family: Inter;
+        font-weight: 600;
+        margin-bottom: 20px;
+    }
+    
+    .cta-content p {
+        color: var(--dark-text);
+        font-family: Inter;
+        line-height: 1.6;
+        margin-bottom: 30px;
+    }
+    
+    /* Section Titles */
+    .section-title {
+        text-align: center;
+        margin-bottom: 50px;
+    }
+    
+    .section-title h2 {
+        color: var(--primary-blue);
+        font-family: Inter;
+        font-weight: 600;
+        font-size: 36px;
+        margin-bottom: 15px;
+    }
+    
+    .section-title p {
+        color: var(--dark-text);
+        font-family: Inter;
+        font-size: 18px;
+        line-height: 1.6;
+    }
+</style>
+{% endblock %}
+
+{% block hero %}
+<!-- Custom hero for homepage -->
+<section class="hero-section">
+    <div class="container">
+        <div class="hero-content">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h1 class="display-4 fw-bold mb-4">
+                        Advanced Metabolomics Research Platform
+                    </h1>
+                    <p class="lead mb-4">
+                        Cutting-edge lipid chromatography data analysis and visualization system. 
+                        Explore comprehensive metabolomics data with interactive charts, advanced filtering, 
+                        and scientific-grade analysis tools.
+                    </p>
+                    <div class="d-flex gap-3">
+                        <a href="{{ url_for('clean_dashboard') }}" class="btn btn-phenikaa btn-lg">
+                            <i class="fas fa-flask me-2"></i>Start Analysis
+                        </a>
+                        <a href="{{ url_for('browse_lipids') }}" class="btn btn-phenikaa-secondary btn-lg">
+                            <i class="fas fa-database me-2"></i>Browse Data
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-4 text-center">
+                    <div class="hero-icon" style="font-size: 120px; color: rgba(255,255,255,0.3);">
+                        <i class="fas fa-microscope"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block content %}
+<!-- Project Overview Section -->
+<section class="project-overview">
+    <div class="container">
+        <div class="section-title">
+            <h2>Research Platform Features</h2>
+            <p>Comprehensive tools for advanced metabolomics research and analysis</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="overview-card">
+                    <div class="icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <h4>Comprehensive Database</h4>
+                    <p>
+                        Access to {{ data.stats.total_lipids or '800+' }} lipids across multiple classes 
+                        with detailed chromatography data from Baker Institute's metabolomics database.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="overview-card">
+                    <div class="icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h4>Interactive Analysis</h4>
+                    <p>
+                        Advanced dual-chart visualization system with zoom, pan, and precision tooltips 
+                        for detailed XIC data analysis and lipid characterization.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="overview-card">
+                    <div class="icon">
+                        <i class="fas fa-microscope"></i>
+                    </div>
+                    <h4>Scientific Accuracy</h4>
+                    <p>
+                        Professional-grade analysis tools with integration boundaries, retention time calculations, 
+                        and MS/MS data for comprehensive metabolomics research.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Statistics Section -->
+<section class="stats-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-item">
+                    <span class="stat-number">{{ data.stats.total_lipids or '800+' }}</span>
+                    <div class="stat-label">Lipid Compounds</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-item">
+                    <span class="stat-number">{{ data.stats.total_classes or '45' }}</span>
+                    <div class="stat-label">Lipid Classes</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-item">
+                    <span class="stat-number">{{ data.stats.annotated_ions or '1600+' }}</span>
+                    <div class="stat-label">Annotated Ions</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-item">
+                    <span class="stat-number">100%</span>
+                    <div class="stat-label">Data Accuracy</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- News Section -->
+<section class="news-section">
+    <div class="container">
+        <div class="section-title">
+            <h2>Latest Updates</h2>
+            <p>Recent developments and platform enhancements</p>
+        </div>
+        
+        <div class="row">
+            {% for news_item in data.news %}
+            <div class="col-lg-6 mb-4">
+                <div class="news-card">
+                    <div class="news-image">
+                        <i class="fas fa-newspaper"></i>
+                    </div>
+                    <div class="news-content">
+                        <div class="news-date">{{ news_item.date }}</div>
+                        <h5>{{ news_item.title }}</h5>
+                        <p>{{ news_item.summary }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Future Plans Section -->
+<section class="project-overview">
+    <div class="container">
+        <div class="section-title">
+            <h2>Future Development Plans</h2>
+            <p>Upcoming features and platform enhancements</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="overview-card">
+                    <div class="icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h4>AI-Powered Analysis</h4>
+                    <p>
+                        Integration of machine learning algorithms for automated lipid identification 
+                        and pattern recognition in chromatography data.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="overview-card">
+                    <div class="icon">
+                        <i class="fas fa-cloud"></i>
+                    </div>
+                    <h4>Cloud Integration</h4>
+                    <p>
+                        Enhanced cloud-based data storage and processing capabilities for 
+                        large-scale metabolomics studies and collaborative research.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="overview-card">
+                    <div class="icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h4>Mobile Platform</h4>
+                    <p>
+                        Development of mobile application for on-the-go access to metabolomics data 
+                        and real-time analysis capabilities.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action Section -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-content">
+            <h3>Ready to Start Your Research?</h3>
+            <p>
+                Explore our comprehensive metabolomics platform and discover the power of 
+                advanced lipid chromatography analysis for your research projects.
+            </p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="{{ url_for('clean_dashboard') }}" class="btn btn-phenikaa btn-lg">
+                    <i class="fas fa-play me-2"></i>Get Started
+                </a>
+                <a href="#documentation" class="btn btn-phenikaa-secondary btn-lg">
+                    <i class="fas fa-book me-2"></i>Learn More
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
