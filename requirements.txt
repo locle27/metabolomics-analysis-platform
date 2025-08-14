@@ -1,62 +1,38 @@
 # Flask Core
-Flask==2.3.3
-Werkzeug==2.3.7
+Flask==3.0.0
+Werkzeug==3.0.1
 gunicorn==21.2.0
 
 # Database
-Flask-SQLAlchemy==3.0.5
-SQLAlchemy==2.0.21
-psycopg2-binary==2.9.7
-alembic==1.12.0
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.23
+psycopg2-binary==2.9.9
+alembic==1.13.1
 
 # Environment
 python-dotenv==1.0.0
 
 # Data Processing
-pandas==2.1.1
-numpy==1.24.4
-scipy==1.11.3
+pandas==2.1.4
+numpy==1.26.2
+scipy==1.11.4
 
 # Chart Generation
-matplotlib==3.7.2
-seaborn==0.12.2
+matplotlib==3.8.2
+seaborn==0.13.0
 
-# HTTP Requests and APIs
+# HTTP Requests and APIs  
 requests==2.31.0
-aiohttp==3.8.6
-asyncio-throttle==1.0.2
-
-# Web Scraping (for data extraction)
-selenium==4.15.0
-webdriver-manager==4.0.1
-beautifulsoup4==4.12.2
-crawl4ai==0.2.75
+aiohttp==3.9.1
 
 # Environment and Configuration
 python-dotenv==1.0.0
-pydantic==2.4.2
-pydantic-settings==2.0.3
 
 # Utilities
-pathlib2==2.3.7
 python-dateutil==2.8.2
-pytz==2023.3
-
-# Development and Testing
-pytest==7.4.2
-pytest-cov==4.1.0
-ruff==0.0.292
-mypy==1.6.0
-
-# Production Server
-gunicorn==21.2.0
 
 # JSON handling
 ujson==5.8.0
 
 # File handling
 openpyxl==3.1.2
-
-# Progress bars and logging
-tqdm==4.66.1
-colorlog==6.7.0
