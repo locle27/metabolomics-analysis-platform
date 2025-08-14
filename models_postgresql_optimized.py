@@ -17,19 +17,19 @@ db = SQLAlchemy()
 class LipidClass(db.Model):
     __tablename__ = 'lipid_classes'
     
-    class_id = db.Column(db.Integer, primary_key=True)
+    class_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     class_name = db.Column(db.String(50), nullable=False, unique=True)
-    description = db.Column(db.Text)
+    class_description = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     
     # Relationship to lipids
-    lipids = db.relationship('MainLipid', back_populates='lipid_class', lazy='select')
+    main_lipids = db.relationship('MainLipid', back_populates='lipid_class', lazy='select')
     
     def to_dict(self):
         return {
             'class_id': self.class_id,
             'class_name': self.class_name,
-            'description': self.description
+            'class_description': self.class_description
         }
 
 class MainLipid(db.Model):
@@ -40,11 +40,14 @@ class MainLipid(db.Model):
     api_code = db.Column(db.String(100))
     class_id = db.Column(db.Integer, db.ForeignKey('lipid_classes.class_id'))
     retention_time = db.Column(db.Float)
-    precursor_ion = db.Column(db.Float)
-    product_ion = db.Column(db.Float)
-    collision_energy = db.Column(db.Float)
-    polarity = db.Column(db.String(10))
+    precursor_ion = db.Column(db.String(50))
+    product_ion = db.Column(db.String(50))
+    collision_energy = db.Column(db.Integer)
+    polarity = db.Column(db.String(20), default='Positive')
+    internal_standard = db.Column(db.String(255))
     xic_data = db.Column(db.JSON)
+    extraction_timestamp = db.Column(db.DateTime, default=db.func.current_timestamp())
+    extraction_method = db.Column(db.String(100))
     extraction_success = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     
@@ -84,13 +87,13 @@ class AnnotatedIon(db.Model):
     ion_lipidcode = db.Column(db.String(100))
     annotation_type = db.Column(db.String(50))
     retention_time = db.Column(db.Float)
-    precursor_ion = db.Column(db.Float)
-    product_ion = db.Column(db.Float)
-    collision_energy = db.Column(db.Float)
-    polarity = db.Column(db.String(10))
+    precursor_ion = db.Column(db.String(50))
+    product_ion = db.Column(db.String(50))
+    collision_energy = db.Column(db.Integer)
+    polarity = db.Column(db.String(20))
+    response_factor = db.Column(db.Float, default=1.0)
     int_start = db.Column(db.Float)
     int_end = db.Column(db.Float)
-    integration_area = db.Column(db.Float)
     is_main_lipid = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     
@@ -109,9 +112,9 @@ class AnnotatedIon(db.Model):
             'product_ion': self.product_ion,
             'collision_energy': self.collision_energy,
             'polarity': self.polarity,
+            'response_factor': self.response_factor,
             'int_start': self.int_start,
             'int_end': self.int_end,
-            'integration_area': self.integration_area,
             'is_main_lipid': self.is_main_lipid
         }
 

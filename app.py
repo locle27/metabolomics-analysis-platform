@@ -405,6 +405,29 @@ def admin_stats():
         return render_template('admin_stats.html', stats={}, detailed_stats={})
 
 # =====================================================
+# ADMIN DASHBOARD ROUTE
+# =====================================================
+
+@app.route('/admin')
+def admin_dashboard():
+    """Admin dashboard - basic interface."""
+    try:
+        stats = get_db_stats()
+        
+        admin_info = {
+            'total_users': 0,  # Placeholder for future user system
+            'active_sessions': 1,
+            'database_status': 'Connected',
+            'last_backup': 'Not configured'
+        }
+        
+        return render_template('admin_dashboard.html', stats=stats, admin_info=admin_info)
+        
+    except Exception as e:
+        flash(f'Admin dashboard error: {str(e)}', 'error')
+        return render_template('admin_dashboard.html', stats={}, admin_info={})
+
+# =====================================================
 # ERROR HANDLERS
 # =====================================================
 
