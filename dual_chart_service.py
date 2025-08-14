@@ -7,7 +7,7 @@ with annotated ions displayed ON the charts and proper mouse hover information
 import json
 import math
 from typing import Dict, List, Optional, Tuple, Any
-from models import db, MainLipid, AnnotatedIon
+from models_sqlite import fast_db, MainLipid, AnnotatedIon
 
 class DualChartService:
     """
@@ -33,44 +33,66 @@ class DualChartService:
         Returns both Chart 1 (focused) and Chart 2 (overview) with annotated ions.
         """
         try:
-            # Get lipid with annotated ions
-            lipid = MainLipid.query.get(lipid_id)
-            if not lipid:
+            # Get lipid with annotated ions using SQLite
+            chart_data = fast_db.get_lipid_chart_data(lipid_id)
+            if not chart_data:
                 raise ValueError(f"Lipid with ID {lipid_id} not found")
             
-            # Get XIC data from database
-            xic_data = lipid.xic_data
+            lipid_info = chart_data['lipid_info']
+            annotated_ions_data = chart_data['annotated_ions']
+            xic_data = chart_data['xic_data']
+            
             if not xic_data:
-                raise ValueError(f"No XIC data found for lipid {lipid.lipid_name}")
+                raise ValueError(f"No XIC data found for lipid {lipid_info['lipid_name']}")
             
             # Parse XIC data with error handling
             time_points = []
             intensity_points = []
             
+            # Handle XIC data from Railway (now matches web-lipid2 format exactly)
             if isinstance(xic_data, list):
+                # Railway JSON parsed to list - exact format from web-lipid2
                 for point in xic_data:
                     if isinstance(point, dict) and 'time' in point and 'intensity' in point:
                         try:
                             time_val = float(point['time'])
                             intensity_val = float(point['intensity'])
-                            # Filter out invalid values
-                            if not (math.isnan(time_val) or math.isnan(intensity_val) or math.isinf(time_val) or math.isinf(intensity_val)):
+                            if not (math.isnan(time_val) or math.isnan(intensity_val)):
                                 time_points.append(time_val)
                                 intensity_points.append(intensity_val)
-                        except (ValueError, TypeError) as e:
-                            print(f"WARNING: Skipping invalid XIC point: {point}, Error: {e}")
+                        except (ValueError, TypeError):
                             continue
+            elif isinstance(xic_data, str):
+                # String format - parse as JSON to get list
+                try:
+                    parsed_json = json.loads(xic_data)
+                    if isinstance(parsed_json, list):
+                        for point in parsed_json:
+                            if isinstance(point, dict) and 'time' in point and 'intensity' in point:
+                                try:
+                                    time_val = float(point['time'])
+                                    intensity_val = float(point['intensity'])
+                                    if not (math.isnan(time_val) or math.isnan(intensity_val)):
+                                        time_points.append(time_val)
+                                        intensity_points.append(intensity_val)
+                                except (ValueError, TypeError):
+                                    continue
+                except (json.JSONDecodeError, ValueError) as e:
+                    print(f"WARNING: JSON parsing error for {lipid_info['lipid_name']}: {e}")
             
             if not time_points:
                 raise ValueError("No valid XIC data points found")
             
             print(f"DEBUG: Loaded {len(time_points)} XIC data points")
             
-            # Get all annotated ions for this lipid
-            annotated_ions = AnnotatedIon.query.filter_by(main_lipid_id=lipid_id).all()
+            # Convert annotated ions data to objects for compatibility
+            annotated_ions = []
+            for ion_data in annotated_ions_data:
+                ion_obj = type('AnnotatedIon', (), ion_data)()
+                annotated_ions.append(ion_obj)
             
             # Find main lipid retention time for Chart 1 range
-            main_retention_time = lipid.retention_time
+            main_retention_time = lipid_info.get('retention_time')
             if not main_retention_time and annotated_ions:
                 # Use first annotated ion RT if main lipid RT not available
                 main_retention_time = annotated_ions[0].retention_time
@@ -86,23 +108,23 @@ class DualChartService:
             chart1_config = self._create_chart_config(
                 time_points, intensity_points, annotated_ions, 
                 chart1_start, chart1_end, 
-                f"Chart 1: {lipid.lipid_name} - Focused View (RT ± 0.6 min)"
+                f"Chart 1: {lipid_info['lipid_name']} - Focused View (RT ± 0.6 min)"
             )
             
             chart2_config = self._create_chart_config(
                 time_points, intensity_points, annotated_ions,
                 0.0, 16.0, 
-                f"Chart 2: {lipid.lipid_name} - Full Overview (0-16 min)",
+                f"Chart 2: {lipid_info['lipid_name']} - Full Overview (0-16 min)",
                 force_x_range=True  # Force exact 0-16 range for Chart 2
             )
             
             # Prepare result
             result = {
                 'lipid_info': {
-                    'lipid_id': lipid.lipid_id,
-                    'lipid_name': lipid.lipid_name,
-                    'api_code': lipid.api_code,
-                    'class_name': lipid.lipid_class.class_name if lipid.lipid_class else 'Unknown',
+                    'lipid_id': lipid_info['lipid_id'],
+                    'lipid_name': lipid_info['lipid_name'],
+                    'api_code': lipid_info.get('api_code', ''),
+                    'class_name': lipid_info.get('class_name', 'Unknown'),
                     'retention_time': float(main_retention_time),
                     'chart1_range': f"{chart1_start:.1f} - {chart1_end:.1f} min",
                     'chart2_range': "0.0 - 16.0 min"
@@ -123,10 +145,13 @@ class DualChartService:
     def _get_parent_lipid(self, ion):
         """Get the parent lipid object for extracting class information."""
         try:
-            if hasattr(ion, 'main_lipid') and ion.main_lipid:
-                return ion.main_lipid
-            elif hasattr(ion, 'main_lipid_id') and ion.main_lipid_id:
-                return MainLipid.query.get(ion.main_lipid_id)
+            # For SQLite compatibility, return a simple object with class info
+            if hasattr(ion, 'main_lipid_id'):
+                chart_data = fast_db.get_lipid_chart_data(ion.main_lipid_id)
+                if chart_data:
+                    class_info = type('LipidClass', (), {'class_name': chart_data['lipid_info'].get('class_name', 'Unknown')})()
+                    parent = type('MainLipid', (), {'lipid_class': class_info})()
+                    return parent
             return None
         except Exception:
             return None
