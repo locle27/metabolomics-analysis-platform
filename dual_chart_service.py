@@ -7,7 +7,16 @@ with annotated ions displayed ON the charts and proper mouse hover information
 import json
 import math
 from typing import Dict, List, Optional, Tuple, Any
-from models_sqlite import fast_db, MainLipid, AnnotatedIon
+# Import compatibility - works with both PostgreSQL and SQLite
+try:
+    # Try PostgreSQL optimized models first
+    from models_postgresql_optimized import optimized_manager
+    print("✅ Using optimized PostgreSQL models for dual charts")
+except ImportError:
+    # Fallback to SQLite
+    from models_sqlite import fast_db
+    optimized_manager = fast_db
+    print("✅ Using SQLite models for dual charts")
 
 class DualChartService:
     """
@@ -33,8 +42,8 @@ class DualChartService:
         Returns both Chart 1 (focused) and Chart 2 (overview) with annotated ions.
         """
         try:
-            # Get lipid with annotated ions using SQLite
-            chart_data = fast_db.get_lipid_chart_data(lipid_id)
+            # Get lipid with annotated ions using optimized data access
+            chart_data = optimized_manager.get_lipid_chart_data_optimized(lipid_id)
             if not chart_data:
                 raise ValueError(f"Lipid with ID {lipid_id} not found")
             
@@ -145,9 +154,9 @@ class DualChartService:
     def _get_parent_lipid(self, ion):
         """Get the parent lipid object for extracting class information."""
         try:
-            # For SQLite compatibility, return a simple object with class info
+            # For optimized compatibility, return a simple object with class info
             if hasattr(ion, 'main_lipid_id'):
-                chart_data = fast_db.get_lipid_chart_data(ion.main_lipid_id)
+                chart_data = optimized_manager.get_lipid_chart_data_optimized(ion.main_lipid_id)
                 if chart_data:
                     class_info = type('LipidClass', (), {'class_name': chart_data['lipid_info'].get('class_name', 'Unknown')})()
                     parent = type('MainLipid', (), {'lipid_class': class_info})()
