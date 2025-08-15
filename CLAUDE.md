@@ -420,4 +420,191 @@ python -c "from models import *; print(f'Lipids: {MainLipid.query.count()}')"
 
 **🎯 REMEMBER**: This system is now production-ready with a professional Phenikaa University-inspired interface, interactive dual-chart analysis, and comprehensive PostgreSQL database. All user-requested optimizations have been implemented. Focus on maintaining stability and user experience quality.
 
-**Last Updated**: January 2025 - Phenikaa UI Implementation & Chart System Optimization Complete
+## 🔐 **Authentication & Email Configuration (IMPORTANT - Don't Forget!)**
+
+### **Gmail OAuth Configuration (Google Cloud Console)**
+
+#### **Current OAuth 2.0 Client Setup:**
+- **Client ID**: `[CONFIGURED IN .env FILE]`
+- **Client Secret**: `[CONFIGURED IN .env FILE]`
+- **Authorized Redirect URIs**:
+  - `http://localhost:5000/login/authorized`
+  - `http://localhost:5000/login`
+  - `http://localhost:5000/callback`
+
+#### **How to Change OAuth Credentials (Future Reference):**
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Navigate to: APIs & Services → Credentials
+3. Click on the OAuth 2.0 Client ID
+4. Update Client ID and Client Secret in `.env` file:
+```env
+GOOGLE_CLIENT_ID=your_new_client_id
+GOOGLE_CLIENT_SECRET=your_new_client_secret
+```
+
+### **Gmail SMTP Email Configuration (Current Setup)**
+
+#### **Active Configuration:**
+- **Admin Email**: `[configured in .env file]` (receives consultation notifications)
+- **Gmail App Password**: `[configured in .env file]`
+- **SMTP Server**: `smtp.gmail.com` (standard Gmail SMTP with hostname override)
+- **Port**: 587 (TLS enabled)
+- **Hostname Fix**: Uses explicit `ehlo('metabolomics-platform.com')` to override Windows hostname issues
+
+#### **How to Change Email Recipient (Step-by-Step):**
+
+1. **Generate New Gmail App Password:**
+   ```
+   Gmail Account → Manage Account → Security → 2-Step Verification (must be ON)
+   → App passwords → Generate new password for "metabolomics-project"
+   → Copy the 16-character password (format: abcd efgh ijkl mnop)
+   ```
+
+2. **Update `.env` file:**
+   ```env
+   MAIL_USERNAME=your_new_email@gmail.com
+   MAIL_PASSWORD=your_new_16_char_app_password
+   MAIL_DEFAULT_SENDER=your_new_email@gmail.com
+   ```
+
+3. **Restart Flask Application:**
+   ```bash
+   python app.py
+   ```
+
+#### **Required Dependencies (Gemini Method):**
+```bash
+pip install Flask-Mail Flask-WTF email-validator
+```
+
+### **Current .env File Configuration:**
+```env
+# Database Configuration
+DATABASE_URL=postgresql://postgres:VmyAveAhkGVOFlSiVBWgyIEAUbKAXEPi@mainline.proxy.rlwy.net:36647/lipid-data
+
+# Application Security
+SECRET_KEY=dev-metabolomics-key-local-testing-only
+FLASK_ENV=development
+FLASK_DEBUG=True
+
+# Gmail OAuth Configuration
+GOOGLE_CLIENT_ID=[your_oauth_client_id]
+GOOGLE_CLIENT_SECRET=[your_oauth_client_secret]
+
+# Email Configuration (Gmail SMTP) - Following Gemini Guide
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USERNAME=[your_gmail_address]
+MAIL_PASSWORD=[your_gmail_app_password]
+MAIL_DEFAULT_SENDER=[your_gmail_address]
+```
+
+### **User Management & Access Control**
+
+#### **Role-Based System:**
+- **Admin**: Full platform access (database, management, user roles)
+- **Manager**: Database management, scheduling access, statistics
+- **User**: Analysis tools and data visualization only
+
+#### **Admin Setup Process:**
+1. **First Login**: Use Gmail OAuth → Creates 'user' role account
+2. **Promote to Admin**: Visit `/promote-to-admin` (only works if no admins exist)
+3. **Access Management**: Can then use Management dropdown menu
+
+#### **Useful Debug Routes:**
+- `/user-debug` - Shows current role, permissions, system stats
+- `/promote-to-admin` - Emergency admin promotion (first user only)
+
+## 🗺️ **Updated Navigation Structure (August 2025)**
+
+### **New Main Navigation:**
+```
+HOME | ANALYSIS | SCHEDULE | MANAGEMENT | DOCUMENTATION | [USER PROFILE]
+```
+
+#### **Navigation Changes Made:**
+- ✅ **SCHEDULE**: Moved to main navigation (public access, no login needed)
+- ✅ **MANAGEMENT**: Renamed from "ADMIN" with professional dropdown:
+  - Dashboard (admin overview)
+  - Database Management (lipid data management)
+  - Patient Management (coming soon)
+  - Equipment Management (coming soon)
+  - System Statistics (analytics)
+  - Admin Panel (backup management)
+
+### **Access Levels by Route:**
+- **Public**: `/`, `/schedule`, `/api/database-view`
+- **User**: `/dashboard`, `/dual-chart-view`
+- **Manager**: `/manage-lipids`, `/patient-management`, `/equipment-management`
+- **Admin**: All routes + user management
+
+## 📧 **Email System Status & Troubleshooting**
+
+### **Current Status:**
+- ✅ **Form Submission**: Works perfectly
+- ✅ **Data Storage**: Consultations saved to database
+- ❌ **Email Sending**: Still experiencing SMTP issues
+
+### **Known Issues & Solutions:**
+1. **SMTP Hostname Problem**: Windows hostname causes Gmail rejection
+   - **Solution**: Implemented direct SMTP connection
+   - **Fallback**: Uses Flask-Mail as backup
+
+2. **Email Flow:**
+   ```
+   User submits form → Data saved to database → Success message shown
+   └── Attempts email to admin ([configured email])
+   └── Attempts confirmation email to user
+   ```
+
+3. **Troubleshooting Checklist:**
+   - [ ] Gmail App Password correct: `[check .env file]`
+   - [ ] SMTP Server: `smtp.gmail.com`
+   - [ ] Gmail 2-Factor Authentication enabled
+   - [ ] App-specific password (not regular Gmail password)
+
+### **Future Email Configuration Templates:**
+
+#### **For Different Admin Email:**
+```env
+MAIL_USERNAME=new_admin@gmail.com
+MAIL_PASSWORD=new_16_char_password
+MAIL_DEFAULT_SENDER=new_admin@gmail.com
+```
+
+#### **For Different Email Provider:**
+```env
+# Outlook/Hotmail Example
+MAIL_SERVER=smtp.live.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+
+# Yahoo Example  
+MAIL_SERVER=smtp.mail.yahoo.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+```
+
+## 🛠️ **Dependencies & Installation Reference**
+
+### **Current Python Packages (Installed):**
+```bash
+Flask-Login==0.6.3
+Authlib==1.3.0
+requests-oauthlib==1.3.1
+Flask-Mail==0.9.1
+Flask-WTF
+email-validator
+```
+
+### **Installation Commands (Don't Forget!):**
+```bash
+# Main authentication packages
+pip install Flask-Login Authlib requests-oauthlib
+
+# Email system (Gemini recommended method)
+pip install Flask-Mail Flask-WTF email-validator
+```
+
+**Last Updated**: August 2025 - Complete Authentication, Email & Navigation System Documentation

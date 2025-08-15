@@ -4,10 +4,10 @@ Fixes N+1 query problems with proper eager loading
 """
 
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response, send_file
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response, send_file, session
 from dotenv import load_dotenv
 import json
-from functools import lru_cache
+from functools import lru_cache, wraps
 from pathlib import Path
 import pandas as pd
 from datetime import datetime
@@ -17,10 +17,15 @@ from io import BytesIO
 from sqlalchemy import text
 from sqlalchemy.orm import joinedload, selectinload
 
+# Authentication imports
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from authlib.integrations.flask_client import OAuth
+from flask_mail import Mail, Message
+
 # Import optimized PostgreSQL models
 from models_postgresql_optimized import (
     db, init_db, create_all_tables,
-    MainLipid, LipidClass, AnnotatedIon, optimized_manager,
+    MainLipid, LipidClass, AnnotatedIon, User, ScheduleRequest, optimized_manager,
     get_db_stats, get_lipids_by_class, search_lipids,
     BackupHistory, BackupSnapshots, BackupStats
 )
@@ -41,6 +46,50 @@ load_dotenv(BASE_DIR / ".env")
 app = Flask(__name__, template_folder=BASE_DIR / "templates", static_folder=BASE_DIR / "static")
 app.secret_key = os.getenv('SECRET_KEY', 'metabolomics-dev-key-change-in-production')
 
+# Authentication Configuration
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Please log in to access this page.'
+login_manager.login_message_category = 'info'
+
+# OAuth Configuration
+oauth = OAuth(app)
+google = oauth.register(
+    name='google',
+    client_id=os.getenv('GOOGLE_CLIENT_ID'),
+    client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={
+        'scope': 'openid email profile'
+    }
+)
+
+# Email Configuration with SMTP hostname fix
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'True').lower() == 'true'
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', os.getenv('MAIL_USERNAME'))
+app.config['MAIL_SUPPRESS_SEND'] = os.getenv('MAIL_SUPPRESS_SEND', 'False').lower() == 'true'
+app.config['MAIL_MAX_EMAILS'] = None
+app.config['MAIL_ASCII_ATTACHMENTS'] = False
+# Fix SMTP HELO hostname issue by setting a valid hostname
+import socket
+try:
+    # Use a valid hostname instead of the problematic Windows hostname
+    app.config['MAIL_LOCAL_HOSTNAME'] = 'metabolomics-platform.local'
+except:
+    pass
+
+mail = Mail(app)
+
+@login_manager.user_loader
+def load_user(user_id):
+    """Load user for Flask-Login"""
+    return User.query.get(int(user_id))
+
 # PostgreSQL configuration with optimization
 database_url = os.getenv('DATABASE_URL')
 if not database_url:
@@ -60,6 +109,137 @@ db = init_db(app)
 
 # Initialize backup system
 backup_system = PostgreSQLBackupSystem(app)
+
+# =====================================================
+# AUTHENTICATION ROUTES
+# =====================================================
+
+@app.route('/login')
+def login():
+    """Display login page"""
+    return render_template('login.html')
+
+@app.route('/login/callback')
+def login_callback():
+    """Gmail OAuth callback and login processing"""
+    try:
+        # Get authorization from Google
+        redirect_uri = url_for('login_authorized', _external=True)
+        return google.authorize_redirect(redirect_uri)
+    except Exception as e:
+        flash(f'Login initialization failed: {str(e)}', 'error')
+        return redirect(url_for('login'))
+
+@app.route('/callback')
+def login_authorized():
+    """Handle OAuth authorization response"""
+    try:
+        # Get token from Google
+        token = google.authorize_access_token()
+        if not token:
+            flash('Authorization was denied. Please try again.', 'error')
+            return redirect(url_for('login'))
+        
+        # Get user info from Google
+        user_info = token.get('userinfo')
+        if not user_info:
+            # Try to get user info from the userinfo endpoint
+            try:
+                user_info = google.parse_id_token(token)
+            except Exception as e:
+                # Fallback: try manual userinfo endpoint request
+                try:
+                    resp = google.get('userinfo', token=token)
+                    user_info = resp.json()
+                except Exception as e2:
+                    flash(f'Failed to get user information from Gmail: {str(e2)}', 'error')
+                    return redirect(url_for('login'))
+        
+        email = user_info.get('email')
+        full_name = user_info.get('name', 'Unknown User')
+        picture = user_info.get('picture', '')
+        
+        if not email:
+            flash('Gmail email address is required.', 'error')
+            return redirect(url_for('login'))
+        
+        # Find or create user
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            # Check if this is the first user - make them admin
+            user_count = User.query.count()
+            default_role = 'admin' if user_count == 0 else 'user'
+            
+            # Create new user
+            user = User(
+                email=email,
+                full_name=full_name,
+                picture=picture,
+                role=default_role,
+                is_active=True
+            )
+            db.session.add(user)
+            db.session.commit()
+            
+            if default_role == 'admin':
+                flash(f'Welcome {full_name}! You have been granted admin access as the first user.', 'success')
+            else:
+                flash(f'Welcome {full_name}! Your account has been created.', 'success')
+        else:
+            # Update existing user info
+            user.full_name = full_name
+            user.picture = picture
+            user.last_login = datetime.now()
+            db.session.commit()
+            flash(f'Welcome back, {full_name}!', 'success')
+        
+        # Log the user in
+        login_user(user, remember=True)
+        
+        # Redirect to requested page or homepage
+        next_page = request.args.get('next')
+        if next_page and next_page.startswith('/'):
+            return redirect(next_page)
+        else:
+            return redirect(url_for('homepage'))
+            
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Login failed: {str(e)}', 'error')
+        return redirect(url_for('login'))
+
+@app.route('/logout')
+@login_required
+def logout():
+    """Logout user and redirect to homepage"""
+    user_name = current_user.full_name if current_user.is_authenticated else "User"
+    logout_user()
+    flash(f'Goodbye {user_name}! You have been logged out successfully.', 'info')
+    return redirect(url_for('homepage'))
+
+def admin_required(f):
+    """Decorator to require admin role"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('login'))
+        if not current_user.is_admin():
+            flash('Admin access required.', 'error')
+            return redirect(url_for('homepage'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def manager_required(f):
+    """Decorator to require manager or admin role"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('login'))
+        if not current_user.is_manager():
+            flash('Manager or Admin access required.', 'error')
+            return redirect(url_for('homepage'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # =====================================================
 # MAIN DASHBOARD ROUTE (OPTIMIZED)
@@ -316,7 +496,36 @@ def api_load_lipids():
 # MANAGE LIPIDS ROUTES (OPTIMIZED)
 # =====================================================
 
+@app.route('/api/database-view')
+def api_database_view():
+    """API endpoint for database view modal - no authentication required"""
+    try:
+        # Get database statistics
+        stats = get_db_stats()
+        
+        # Get all lipids with optimized query  
+        lipids_data = optimized_manager.get_all_lipids_optimized()
+        total_count = len(lipids_data)
+        
+        # Get class distribution
+        classes_data = optimized_manager.get_lipid_classes_optimized()
+        
+        return jsonify({
+            'status': 'success',
+            'stats': stats,
+            'lipids': lipids_data,
+            'classes': classes_data,
+            'total_count': total_count
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error', 
+            'message': str(e)
+        }), 500
+
 @app.route('/manage-lipids')
+@manager_required
 def manage_lipids():
     """Manage lipids interface with OPTIMIZED data loading."""
     try:
@@ -402,6 +611,7 @@ def api_classes():
 # =====================================================
 
 @app.route('/admin/stats')
+@admin_required
 def admin_stats():
     """Admin statistics with OPTIMIZED database queries."""
     try:
@@ -437,7 +647,79 @@ def admin_stats():
 # ADMIN DASHBOARD ROUTE
 # =====================================================
 
+@app.route('/user-debug')
+@login_required
+def user_debug():
+    """Debug route to show current user info"""
+    try:
+        user_info = {
+            'email': current_user.email,
+            'full_name': current_user.full_name,
+            'role': current_user.role,
+            'is_admin': current_user.is_admin(),
+            'is_manager': current_user.is_manager(),
+            'is_authenticated': current_user.is_authenticated,
+            'user_id': current_user.user_id
+        }
+        
+        admin_count = User.query.filter_by(role='admin').count()
+        user_count = User.query.count()
+        
+        debug_info = f"""
+        <h2>🔍 User Debug Information</h2>
+        <h3>Current User:</h3>
+        <ul>
+            <li><strong>Email:</strong> {user_info['email']}</li>
+            <li><strong>Name:</strong> {user_info['full_name']}</li>
+            <li><strong>Role:</strong> {user_info['role']}</li>
+            <li><strong>Admin Access:</strong> {'✅ YES' if user_info['is_admin'] else '❌ NO'}</li>
+            <li><strong>Manager Access:</strong> {'✅ YES' if user_info['is_manager'] else '❌ NO'}</li>
+            <li><strong>User ID:</strong> {user_info['user_id']}</li>
+        </ul>
+        
+        <h3>System Stats:</h3>
+        <ul>
+            <li><strong>Total Users:</strong> {user_count}</li>
+            <li><strong>Admin Users:</strong> {admin_count}</li>
+        </ul>
+        
+        <h3>Quick Actions:</h3>
+        <ul>
+            <li><a href="{url_for('promote_to_admin')}">🚀 Request Admin Access</a></li>
+            <li><a href="{url_for('homepage')}">🏠 Back to Homepage</a></li>
+        </ul>
+        """
+        
+        return debug_info
+        
+    except Exception as e:
+        return f"<h2>❌ Debug Error</h2><p>{str(e)}</p><a href='{url_for('homepage')}'>Back to Homepage</a>"
+
+@app.route('/promote-to-admin')
+@login_required
+def promote_to_admin():
+    """Emergency route to promote current user to admin (for initial setup)"""
+    try:
+        # Only allow this if there are no admins in the system
+        admin_count = User.query.filter_by(role='admin').count()
+        
+        if admin_count == 0:
+            # No admins exist, promote current user
+            current_user.role = 'admin'
+            db.session.commit()
+            flash(f'🎉 SUCCESS! You have been promoted to admin! You now have full access to the platform.', 'success')
+        else:
+            flash('Admin users already exist. Contact an existing admin for role changes.', 'warning')
+        
+        return redirect(url_for('homepage'))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error promoting user: {str(e)}', 'error')
+        return redirect(url_for('homepage'))
+
 @app.route('/admin')
+@admin_required
 def admin_dashboard():
     """Admin dashboard - basic interface."""
     try:
@@ -467,6 +749,7 @@ def admin_dashboard():
 # =====================================================
 
 @app.route('/backup-management')
+@admin_required
 def backup_management():
     """Backup management dashboard"""
     try:
@@ -646,6 +929,224 @@ def internal_error(error):
     return render_template('500.html'), 500
 
 # =====================================================
+# SCHEDULING ROUTES
+# =====================================================
+
+@app.route('/schedule')
+def schedule_form():
+    """Display scheduling form"""
+    from datetime import datetime
+    today = datetime.now().strftime('%Y-%m-%d')
+    return render_template('schedule_form.html', today=today)
+
+@app.route('/schedule', methods=['POST'])
+def submit_schedule_request():
+    """Handle schedule request submission"""
+    try:
+        # Get form data
+        full_name = request.form.get('full_name', '').strip()
+        email = request.form.get('email', '').strip()
+        phone = request.form.get('phone', '').strip()
+        organization = request.form.get('organization', '').strip()
+        request_type = request.form.get('request_type', '').strip()
+        preferred_date = request.form.get('preferred_date', '').strip()
+        preferred_time = request.form.get('preferred_time', '').strip()
+        message = request.form.get('message', '').strip()
+        
+        # Validate required fields
+        if not all([full_name, email, request_type, message]):
+            flash('Please fill in all required fields.', 'error')
+            return render_template('schedule_form.html', today=datetime.now().strftime('%Y-%m-%d'))
+        
+        # Validate email format
+        import re
+        email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+        if not re.match(email_regex, email):
+            flash('Please provide a valid email address.', 'error')
+            return render_template('schedule_form.html', today=datetime.now().strftime('%Y-%m-%d'))
+        
+        # Parse preferred date
+        preferred_date_obj = None
+        if preferred_date:
+            try:
+                from datetime import datetime
+                preferred_date_obj = datetime.strptime(preferred_date, '%Y-%m-%d').date()
+            except ValueError:
+                preferred_date_obj = None
+        
+        # Create schedule request
+        schedule_request = ScheduleRequest(
+            email=email,
+            full_name=full_name,
+            phone=phone,
+            organization=organization,
+            request_type=request_type,
+            message=message,
+            preferred_date=preferred_date_obj,
+            preferred_time=preferred_time,
+            status='pending'
+        )
+        
+        db.session.add(schedule_request)
+        db.session.commit()
+        
+        # Send email notification
+        try:
+            send_schedule_notification_email(schedule_request)
+        except Exception as e:
+            print(f"Failed to send email notification: {e}")
+        
+        flash(f'Thank you {full_name}! Your consultation request has been submitted successfully. We\'ll respond within 24-48 hours.', 'success')
+        return redirect(url_for('homepage'))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error submitting request: {str(e)}', 'error')
+        return render_template('schedule_form.html', today=datetime.now().strftime('%Y-%m-%d'))
+
+def send_schedule_notification_email(schedule_request):
+    """Send email notification with SMTP hostname fix"""
+    
+    # Check if email is configured
+    if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
+        print("📧 Email not configured - skipping email notifications")
+        return
+    
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    
+    try:
+        # Create SMTP connection with explicit hostname override
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.ehlo('metabolomics-platform.com')  # Override problematic Windows hostname
+        server.starttls()
+        server.ehlo('metabolomics-platform.com')  # Some servers require EHLO after STARTTLS
+        server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+        
+        # Email to admin
+        admin_msg = MIMEMultipart()
+        admin_msg['From'] = app.config['MAIL_USERNAME']
+        admin_msg['To'] = app.config['MAIL_USERNAME']
+        admin_msg['Subject'] = f"New Consultation Request - {schedule_request.full_name}"
+        
+        admin_body = f"""New consultation request submitted:
+
+Name: {schedule_request.full_name}
+Email: {schedule_request.email}
+Phone: {schedule_request.phone or 'Not provided'}
+Organization: {schedule_request.organization or 'Not provided'}
+Type: {schedule_request.request_type}
+Preferred Date: {schedule_request.preferred_date or 'Any date'}
+Preferred Time: {schedule_request.preferred_time or 'Any time'}
+
+Message:
+{schedule_request.message}
+
+Submitted: {schedule_request.created_at}
+Request ID: {schedule_request.request_id}
+
+Please respond to the client within 24-48 hours."""
+        
+        admin_msg.attach(MIMEText(admin_body, 'plain'))
+        server.sendmail(app.config['MAIL_USERNAME'], app.config['MAIL_USERNAME'], admin_msg.as_string())
+        print(f"✅ Admin notification sent successfully to {app.config['MAIL_USERNAME']}")
+        
+        # Confirmation email to client
+        client_msg = MIMEMultipart()
+        client_msg['From'] = app.config['MAIL_USERNAME']
+        client_msg['To'] = schedule_request.email
+        client_msg['Subject'] = "Consultation Request Received - Metabolomics Platform"
+        
+        client_body = f"""Dear {schedule_request.full_name},
+
+Thank you for your interest in our Metabolomics Research Platform!
+
+We have received your consultation request and will respond within 24-48 hours. Here are the details we received:
+
+Consultation Type: {schedule_request.request_type}
+Preferred Date: {schedule_request.preferred_date or 'Any date'}
+Preferred Time: {schedule_request.preferred_time or 'Any time'}
+
+Our team will review your request and contact you at {schedule_request.email} to schedule the consultation.
+
+If you have any urgent questions, please don't hesitate to contact us.
+
+Best regards,
+Metabolomics Research Team
+
+Request ID: {schedule_request.request_id}"""
+
+        client_msg.attach(MIMEText(client_body, 'plain'))
+        server.sendmail(app.config['MAIL_USERNAME'], schedule_request.email, client_msg.as_string())
+        print(f"✅ Client confirmation sent successfully to {schedule_request.email}")
+        
+        server.quit()
+        
+    except Exception as e:
+        print(f"❌ Email sending failed: {e}")
+        # Fallback: Try Flask-Mail (might still work in some cases)
+        try:
+            fallback_body = f"""New consultation request submitted:
+
+Name: {schedule_request.full_name}
+Email: {schedule_request.email}
+Phone: {schedule_request.phone or 'Not provided'}
+Organization: {schedule_request.organization or 'Not provided'}
+Type: {schedule_request.request_type}
+Preferred Date: {schedule_request.preferred_date or 'Any date'}
+Preferred Time: {schedule_request.preferred_time or 'Any time'}
+
+Message: {schedule_request.message}
+
+Request ID: {schedule_request.request_id}"""
+
+            admin_msg = Message(
+                subject=f"New Consultation Request - {schedule_request.full_name}",
+                sender=app.config['MAIL_DEFAULT_SENDER'],
+                recipients=[app.config['MAIL_USERNAME']],
+                body=fallback_body
+            )
+            mail.send(admin_msg)
+            print(f"✅ Fallback: Admin email sent via Flask-Mail")
+        except Exception as e2:
+            print(f"❌ Fallback also failed: {e2}")
+            # Even if email fails, the form submission was successful
+            print(f"📝 Consultation request saved to database with ID: {schedule_request.request_id}")
+
+# =====================================================
+# FUTURE MANAGEMENT SECTIONS (PLACEHOLDER ROUTES)
+# =====================================================
+
+@app.route('/patient-management')
+@manager_required
+def patient_management():
+    """Patient Management section - Future feature"""
+    return render_template('coming_soon.html', 
+                         title="Patient Management", 
+                         description="Manage patient data and research projects",
+                         features=[
+                             "Patient database management",
+                             "Project assignment tracking", 
+                             "Data access control",
+                             "Research progress monitoring"
+                         ])
+
+@app.route('/equipment-management')
+@manager_required  
+def equipment_management():
+    """Equipment Management section - Future feature"""
+    return render_template('coming_soon.html',
+                         title="Equipment Management",
+                         description="Track and manage laboratory equipment",
+                         features=[
+                             "Equipment inventory tracking",
+                             "Maintenance scheduling",
+                             "Usage monitoring",
+                             "Calibration management"
+                         ])
+
+# =====================================================
 # APPLICATION STARTUP
 # =====================================================
 
@@ -667,4 +1168,4 @@ if __name__ == '__main__':
     print(f"   Database: PostgreSQL (Optimized with Eager Loading)")
     print(f"   Features: ✅ No N+1 Queries ✅ Proper Caching ✅ Fast Performance")
     
-    app.run(debug=debug_mode, host='0.0.0.0', port=port)
+    app.run(debug=debug_mode, host='localhost', port=port)
