@@ -47,37 +47,39 @@
     
     .charts-grid {
         display: grid;
-        grid-template-columns: 1fr 300px;
-        gap: 20px;
+        grid-template-columns: 1fr 250px;
+        gap: 15px;
         margin-bottom: 20px;
     }
     
-    /* Professional Information Panel */
+    /* Compact Professional Information Panel */
     .lipid-info-panel {
         background: #f8f9fa;
         border: 2px solid #e9ecef;
-        border-radius: 12px;
-        padding: 20px;
+        border-radius: 8px;
+        padding: 15px;
         height: fit-content;
-        min-height: 350px;
+        min-height: 200px;
+        max-height: 400px;
+        overflow-y: auto;
         position: sticky;
         top: 20px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
     
     .info-panel-title {
         font-weight: bold;
-        font-size: 16px;
+        font-size: 14px;
         color: #2c3e50;
-        margin-bottom: 15px;
-        padding-bottom: 10px;
+        margin-bottom: 10px;
+        padding-bottom: 6px;
         border-bottom: 2px solid #007bff;
         text-align: center;
     }
     
     .info-panel-content {
-        font-size: 13px;
-        line-height: 1.6;
+        font-size: 12px;
+        line-height: 1.4;
         color: #495057;
     }
     
@@ -85,22 +87,23 @@
         text-align: center;
         color: #6c757d;
         font-style: italic;
-        margin-top: 50px;
+        margin-top: 20px;
+        font-size: 11px;
     }
     
     .info-panel-data {
         background: white;
-        border-radius: 8px;
-        padding: 15px;
-        border-left: 4px solid #007bff;
-        box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+        border-radius: 6px;
+        padding: 10px;
+        border-left: 3px solid #007bff;
+        box-shadow: 0 1px 4px rgba(0, 123, 255, 0.1);
     }
     
     .info-panel-data .data-row {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 8px;
-        padding-bottom: 5px;
+        margin-bottom: 6px;
+        padding-bottom: 3px;
         border-bottom: 1px solid #f1f3f4;
     }
     
@@ -112,17 +115,19 @@
     .info-panel-data .label {
         font-weight: 600;
         color: #2c3e50;
+        font-size: 11px;
     }
     
     .info-panel-data .value {
         color: #495057;
         font-family: 'Courier New', monospace;
+        font-size: 11px;
     }
     
     .dual-charts-container {
         display: grid;
-        grid-template-columns: 1fr;
-        gap: 20px;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
     }
     
     /* Shared legend container */
@@ -175,12 +180,12 @@
         background: #fafafa;
         border: 1px solid #e9ecef;
         border-radius: 6px;
-        padding: 15px;
+        padding: 10px;
     }
     
     .chart-canvas {
         position: relative;
-        height: 350px;
+        height: 300px;
         cursor: pointer;
     }
     
@@ -193,10 +198,10 @@
     }
     
     .chart-title {
-        font-size: 14px;
+        font-size: 12px;
         font-weight: bold;
         color: #495057;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
         text-align: center;
     }
     
@@ -291,15 +296,25 @@
             grid-template-columns: 1fr !important;
         }
         
+        .dual-charts-container {
+            grid-template-columns: 1fr !important;
+            gap: 10px;
+        }
+        
         .lipid-info-panel {
             position: relative;
             top: 0;
-            min-height: 200px;
+            min-height: 150px;
+            max-height: 300px;
         }
         
         .legend-items {
             justify-content: flex-start;
             gap: 15px;
+        }
+        
+        .chart-canvas {
+            height: 250px;
         }
     }
     
