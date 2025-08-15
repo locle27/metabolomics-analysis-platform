@@ -119,6 +119,48 @@ def login():
     """Display login page"""
     return render_template('login.html')
 
+@app.route('/demo-login')
+def demo_login():
+    """Demo login for deployment testing - bypasses OAuth"""
+    try:
+        # Create or get demo user
+        demo_email = "demo@metabolomics-platform.com"
+        demo_user = User.query.filter_by(email=demo_email).first()
+        
+        if not demo_user:
+            # Create demo admin user
+            demo_user = User(
+                email=demo_email,
+                full_name="Demo Admin User",
+                picture="",
+                role='admin',
+                is_active=True
+            )
+            db.session.add(demo_user)
+            db.session.commit()
+        
+        # Log in the demo user
+        login_user(demo_user, remember=True)
+        flash('🎯 Demo login successful! You have admin access.', 'success')
+        return redirect(url_for('homepage'))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Demo login failed: {str(e)}', 'error')
+        return redirect(url_for('homepage'))
+
+@app.route('/recovery-mode')
+def recovery_mode():
+    """Emergency recovery: disable authentication completely"""
+    try:
+        # Create emergency admin session
+        session['emergency_admin'] = True
+        session['recovery_mode'] = True
+        flash('🚨 RECOVERY MODE ACTIVE - All authentication bypassed for debugging', 'warning')
+        return redirect(url_for('homepage'))
+    except Exception as e:
+        return f"Recovery mode failed: {str(e)}"
+
 @app.route('/login/callback')
 def login_callback():
     """Gmail OAuth callback and login processing"""

@@ -604,18 +604,34 @@
                                         </a>
                                     </li>
                                     
-                                    <!-- Data Management -->
+                                    <!-- Schedule Consultation (Public - No Login Required) -->
                                     <li class="nav-item">
-                                        <a class="nav-link {% if request.endpoint == 'manage_lipids' %}active{% endif %}" href="{{ url_for('manage_lipids') }}">
-                                            MANAGEMENT
+                                        <a class="nav-link {% if request.endpoint in ['schedule_form', 'submit_schedule_request'] %}active{% endif %}" href="{{ url_for('schedule_form') }}">
+                                            SCHEDULE
                                         </a>
                                     </li>
                                     
-                                    <!-- Admin System -->
-                                    <li class="nav-item">
-                                        <a class="nav-link {% if request.endpoint in ['admin_dashboard', 'admin_stats', 'backup_management'] %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">
-                                            ADMIN
+                                    <!-- Management System (renamed from Admin) -->
+                                    <li class="nav-item has-submenu">
+                                        <a class="nav-link {% if request.endpoint in ['admin_dashboard', 'admin_stats', 'backup_management', 'manage_lipids'] %}active{% endif %}" href="#">
+                                            MANAGEMENT
+                                            <span class="sub-nav-toggler"></span>
                                         </a>
+                                        <div class="sub-menu">
+                                            <div class="sub-menu-content">
+                                                <div class="sub-links">
+                                                    <ul>
+                                                        <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                                                        <li><a href="{{ url_for('manage_lipids') }}"><i class="fas fa-database"></i> Database Management</a></li>
+                                                        <li><a href="{{ url_for('patient_management') }}"><i class="fas fa-users"></i> Patient Management</a></li>
+                                                        <li><a href="{{ url_for('equipment_management') }}"><i class="fas fa-cogs"></i> Equipment Management</a></li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li><a href="{{ url_for('admin_stats') }}"><i class="fas fa-chart-bar"></i> System Statistics</a></li>
+                                                        <li><a href="{{ url_for('backup_management') }}"><i class="fas fa-shield-alt"></i> Admin Panel</a></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </li>
                                     
                                     <!-- Documentation -->
@@ -624,6 +640,48 @@
                                             DOCUMENTATION
                                         </a>
                                     </li>
+                                    
+                                    <!-- Authentication -->
+                                    {% if current_user.is_authenticated %}
+                                    <li class="nav-item has-submenu">
+                                        <a class="nav-link" href="#">
+                                            {{ current_user.full_name.split()[0] }}
+                                            <span class="sub-nav-toggler"></span>
+                                        </a>
+                                        <div class="sub-menu">
+                                            <div class="sub-menu-content">
+                                                <div class="sub-links">
+                                                    <ul>
+                                                        <li><a href="#"><i class="fas fa-user"></i> Profile</a></li>
+                                                        {% if current_user.is_admin() %}
+                                                        <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-shield-alt"></i> Management</a></li>
+                                                        {% endif %}
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li><a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                    {% else %}
+                                    <li class="nav-item has-submenu">
+                                        <a class="nav-link" href="#">
+                                            LOGIN
+                                            <span class="sub-nav-toggler"></span>
+                                        </a>
+                                        <div class="sub-menu">
+                                            <div class="sub-menu-content">
+                                                <div class="sub-links">
+                                                    <ul>
+                                                        <li><a href="{{ url_for('login') }}"><i class="fab fa-google"></i> Gmail Login</a></li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li><a href="{{ url_for('demo_login') }}" style="color: #28a745;"><i class="fas fa-play-circle"></i> Demo Access</a></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                    {% endif %}
                                 </ul>
                             </div>
                         </nav>
@@ -632,6 +690,20 @@
             </div>
         </div>
     </header>
+
+    <!-- Admin Access Notice -->
+    {% if current_user.is_authenticated and not current_user.is_admin() %}
+        {% if request.endpoint in ['admin_dashboard', 'manage_lipids'] %}
+        <div class="container mt-3">
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                <i class="fas fa-info-circle"></i>
+                <strong>Need Admin Access?</strong> 
+                If you're the platform administrator, <a href="{{ url_for('promote_to_admin') }}" class="alert-link">click here to request admin privileges</a>.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+        {% endif %}
+    {% endif %}
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
