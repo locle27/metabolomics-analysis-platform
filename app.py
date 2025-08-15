@@ -1168,4 +1168,4 @@ if __name__ == '__main__':
     print(f"   Database: PostgreSQL (Optimized with Eager Loading)")
     print(f"   Features: ✅ No N+1 Queries ✅ Proper Caching ✅ Fast Performance")
     
-    app.run(debug=debug_mode, host='localhost', port=port)
+    app.run(debug=debug_mode, host='0.0.0.0', port=port)
