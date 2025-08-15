@@ -119,6 +119,95 @@ class AnnotatedIon(db.Model):
             'is_main_lipid': self.is_main_lipid
         }
 
+class User(db.Model):
+    """User model for authentication with Gmail OAuth"""
+    __tablename__ = 'users'
+    
+    user_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    email = db.Column(db.String(255), nullable=False, unique=True)
+    full_name = db.Column(db.String(255), nullable=False)
+    picture = db.Column(db.String(500))  # URL to user's profile picture
+    role = db.Column(db.String(50), default='user')  # 'admin', 'manager', 'user'
+    is_active = db.Column(db.Boolean, default=True)
+    last_login = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    
+    def __repr__(self):
+        return f'<User {self.email}>'
+    
+    def to_dict(self):
+        return {
+            'user_id': self.user_id,
+            'email': self.email,
+            'full_name': self.full_name,
+            'picture': self.picture,
+            'role': self.role,
+            'is_active': self.is_active,
+            'last_login': self.last_login,
+            'created_at': self.created_at
+        }
+    
+    # Flask-Login required methods
+    def is_authenticated(self):
+        return True
+    
+    def is_active_user(self):
+        return self.is_active
+    
+    def is_anonymous(self):
+        return False
+    
+    def get_id(self):
+        return str(self.user_id)
+    
+    def has_role(self, role):
+        return self.role == role
+    
+    def is_admin(self):
+        return self.role == 'admin'
+    
+    def is_manager(self):
+        return self.role in ['admin', 'manager']
+
+class ScheduleRequest(db.Model):
+    """Model for appointment/consultation scheduling requests"""
+    __tablename__ = 'schedule_requests'
+    
+    request_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    email = db.Column(db.String(255), nullable=False)
+    full_name = db.Column(db.String(255), nullable=False)
+    phone = db.Column(db.String(50))
+    organization = db.Column(db.String(255))
+    request_type = db.Column(db.String(100), default='consultation')  # 'consultation', 'training', 'collaboration'
+    message = db.Column(db.Text)
+    preferred_date = db.Column(db.Date)
+    preferred_time = db.Column(db.String(50))
+    status = db.Column(db.String(50), default='pending')  # 'pending', 'approved', 'rejected', 'completed'
+    admin_notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    
+    def __repr__(self):
+        return f'<ScheduleRequest {self.full_name} - {self.email}>'
+    
+    def to_dict(self):
+        return {
+            'request_id': self.request_id,
+            'email': self.email,
+            'full_name': self.full_name,
+            'phone': self.phone,
+            'organization': self.organization,
+            'request_type': self.request_type,
+            'message': self.message,
+            'preferred_date': self.preferred_date,
+            'preferred_time': self.preferred_time,
+            'status': self.status,
+            'admin_notes': self.admin_notes,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at
+        }
+
 class OptimizedDataManager:
     """
     Optimized data access layer that fixes N+1 query problems
@@ -382,6 +471,91 @@ class BackupStats(db.Model):
     data_changed_mb = Column(Float, default=0.0)
     snapshots_created = Column(Integer, default=0)
     total_backup_size_mb = Column(Float, default=0.0)
+
+
+# =====================================================
+# AUTHENTICATION & USER MANAGEMENT MODELS
+# =====================================================
+
+class User(db.Model):
+    """User model for authentication and authorization"""
+    __tablename__ = 'users'
+    
+    user_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    email = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    full_name = db.Column(db.String(255), nullable=False)
+    picture = db.Column(db.String(500))
+    role = db.Column(db.String(50), default='user', nullable=False)  # user, manager, admin
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    last_login = db.Column(db.DateTime)
     
     def __repr__(self):
-        return f'<BackupStats {self.stat_date}: {self.backups_created} backups>'
+        return f'<User {self.email}: {self.role}>'
+    
+    # Flask-Login required methods
+    def is_authenticated(self):
+        return True
+    
+    def is_anonymous(self):
+        return False
+    
+    def get_id(self):
+        return str(self.user_id)
+    
+    # Role checking methods
+    def is_admin(self):
+        return self.role == 'admin'
+    
+    def is_manager(self):
+        return self.role in ['admin', 'manager']
+    
+    def to_dict(self):
+        return {
+            'user_id': self.user_id,
+            'email': self.email,
+            'full_name': self.full_name,
+            'role': self.role,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_login': self.last_login.isoformat() if self.last_login else None
+        }
+
+
+class ScheduleRequest(db.Model):
+    """Model for consultation scheduling requests"""
+    __tablename__ = 'schedule_requests'
+    
+    request_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    email = db.Column(db.String(255), nullable=False, index=True)
+    full_name = db.Column(db.String(255), nullable=False)
+    phone = db.Column(db.String(50))
+    organization = db.Column(db.String(255))
+    request_type = db.Column(db.String(100), nullable=False)  # consultation, demo, partnership, etc.
+    message = db.Column(db.Text, nullable=False)
+    preferred_date = db.Column(db.Date)
+    preferred_time = db.Column(db.String(50))
+    status = db.Column(db.String(50), default='pending', nullable=False)  # pending, contacted, scheduled, completed
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    contacted_at = db.Column(db.DateTime)
+    notes = db.Column(db.Text)
+    
+    def __repr__(self):
+        return f'<ScheduleRequest {self.request_id}: {self.full_name} ({self.status})>'
+    
+    def to_dict(self):
+        return {
+            'request_id': self.request_id,
+            'email': self.email,
+            'full_name': self.full_name,
+            'phone': self.phone,
+            'organization': self.organization,
+            'request_type': self.request_type,
+            'message': self.message,
+            'preferred_date': self.preferred_date.isoformat() if self.preferred_date else None,
+            'preferred_time': self.preferred_time,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'contacted_at': self.contacted_at.isoformat() if self.contacted_at else None,
+            'notes': self.notes
+        }
