@@ -1,0 +1,476 @@
+{% extends "base.html" %}
+
+{% block title %}Backup Management - Metabolomics Platform{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="page-title mb-1">🔄 Database Backup Management</h1>
+            <p class="text-muted mb-0">Monitor, create, and manage database backups and change history</p>
+        </div>
+        <div>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createSnapshotModal">
+                <i class="fas fa-camera"></i> Create Snapshot
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Backup Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-primary mb-2">
+                    <i class="fas fa-database fa-2x"></i>
+                </div>
+                <h3 class="text-primary mb-1">{{ stats.total_backups or 0 }}</h3>
+                <p class="text-muted mb-0">Total Backups</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-success mb-2">
+                    <i class="fas fa-camera fa-2x"></i>
+                </div>
+                <h3 class="text-success mb-1">{{ stats.total_snapshots or 0 }}</h3>
+                <p class="text-muted mb-0">Snapshots</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-warning mb-2">
+                    <i class="fas fa-clock fa-2x"></i>
+                </div>
+                <h3 class="text-warning mb-1">{{ stats.recent_backups_24h or 0 }}</h3>
+                <p class="text-muted mb-0">Recent (24h)</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-info mb-2">
+                    <i class="fas fa-hdd fa-2x"></i>
+                </div>
+                <h3 class="text-info mb-1">{{ stats.storage_used_mb or 0 }}MB</h3>
+                <p class="text-muted mb-0">Storage Used</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Backup Management Tabs -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom">
+        <ul class="nav nav-tabs card-header-tabs" id="backupTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="history-tab" data-bs-toggle="tab" data-bs-target="#history-pane" type="button" role="tab">
+                    <i class="fas fa-history"></i> Change History
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="snapshots-tab" data-bs-toggle="tab" data-bs-target="#snapshots-pane" type="button" role="tab">
+                    <i class="fas fa-camera"></i> Snapshots
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings-pane" type="button" role="tab">
+                    <i class="fas fa-cog"></i> Settings
+                </button>
+            </li>
+        </ul>
+    </div>
+    <div class="card-body">
+        <div class="tab-content" id="backupTabContent">
+            <!-- Change History Tab -->
+            <div class="tab-pane fade show active" id="history-pane" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Recent Changes</h5>
+                    <div class="d-flex gap-2">
+                        <select class="form-select form-select-sm" id="tableFilter" style="width: auto;">
+                            <option value="">All Tables</option>
+                            <option value="main_lipids">Main Lipids</option>
+                            <option value="annotated_ions">Annotated Ions</option>
+                            <option value="lipid_classes">Lipid Classes</option>
+                        </select>
+                        <button class="btn btn-sm btn-outline-primary" onclick="refreshBackupHistory()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Time</th>
+                                <th>Operation</th>
+                                <th>Table</th>
+                                <th>Record ID</th>
+                                <th>User</th>
+                                <th>Source</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="backupHistoryBody">
+                            {% for backup in recent_backups %}
+                            <tr>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ backup.created_at.strftime('%Y-%m-%d %H:%M:%S') if backup.created_at else 'Unknown' }}
+                                    </small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if backup.operation == 'UPDATE' %}warning{% elif backup.operation == 'INSERT' %}success{% else %}danger{% endif %}">
+                                        {{ backup.operation }}
+                                    </span>
+                                </td>
+                                <td><code>{{ backup.table_name }}</code></td>
+                                <td>{{ backup.record_id }}</td>
+                                <td>{{ backup.user_id or 'System' }}</td>
+                                <td><small class="text-muted">{{ backup.source }}</small></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-info" onclick="viewBackupDetails('{{ backup.backup_id }}')">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if not recent_backups %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">
+                                    No backup history found
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Snapshots Tab -->
+            <div class="tab-pane fade" id="snapshots-pane" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Database Snapshots</h5>
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createSnapshotModal">
+                        <i class="fas fa-plus"></i> Create Snapshot
+                    </button>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Snapshot ID</th>
+                                <th>Created</th>
+                                <th>Description</th>
+                                <th>Records</th>
+                                <th>Size</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for snapshot in recent_snapshots %}
+                            <tr>
+                                <td><code>{{ snapshot.snapshot_id }}</code></td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ snapshot.created_at.strftime('%Y-%m-%d %H:%M:%S') if snapshot.created_at else 'Unknown' }}
+                                    </small>
+                                </td>
+                                <td>{{ snapshot.description }}</td>
+                                <td>{{ snapshot.records_count }}</td>
+                                <td>{{ "%.2f"|format(snapshot.compressed_size / 1024 / 1024) }} MB</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" title="Download">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                        <button class="btn btn-outline-info" title="View Details">
+                                            <i class="fas fa-info"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if not recent_snapshots %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    No snapshots found
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Settings Tab -->
+            <div class="tab-pane fade" id="settings-pane" role="tabpanel">
+                <h5 class="mb-3">Backup Settings</h5>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title">Automatic Backup</h6>
+                                <p class="card-text text-muted">Automatic backup is enabled for all data changes</p>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="autoBackupEnabled" checked disabled>
+                                    <label class="form-check-label" for="autoBackupEnabled">
+                                        Auto-backup on changes
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title">Storage Information</h6>
+                                <p class="card-text text-muted">Backup storage location and usage</p>
+                                <ul class="list-unstyled mb-0">
+                                    <li><strong>Location:</strong> {{ stats.backup_directory or 'database_backups' }}</li>
+                                    <li><strong>Total Size:</strong> {{ stats.storage_used_mb or 0 }} MB</li>
+                                    <li><strong>Database:</strong> PostgreSQL</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Snapshot Modal -->
+<div class="modal fade" id="createSnapshotModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Database Snapshot</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="createSnapshotForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="snapshotDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="snapshotDescription" name="description" rows="3" 
+                                  placeholder="Enter a description for this snapshot..."></textarea>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        This will create a compressed backup of all database tables including lipids, annotations, and classifications.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-camera"></i> Create Snapshot
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Backup Details Modal -->
+<div class="modal fade" id="backupDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Backup Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="backupDetailsContent">
+                <!-- Content loaded dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Backup Management JavaScript
+function refreshBackupHistory() {
+    const tableFilter = document.getElementById('tableFilter').value;
+    const url = new URL('/api/backup-history', window.location.origin);
+    if (tableFilter) {
+        url.searchParams.append('table', tableFilter);
+    }
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                updateBackupHistoryTable(data.backups);
+            } else {
+                showAlert('Error loading backup history: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error loading backup history: ' + error.message, 'danger');
+        });
+}
+
+function updateBackupHistoryTable(backups) {
+    const tbody = document.getElementById('backupHistoryBody');
+    tbody.innerHTML = '';
+    
+    if (backups.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center text-muted py-4">
+                    No backup history found
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    backups.forEach(backup => {
+        const operationClass = backup.operation === 'UPDATE' ? 'warning' : 
+                              backup.operation === 'INSERT' ? 'success' : 'danger';
+        
+        const row = `
+            <tr>
+                <td><small class="text-muted">${backup.formatted_time}</small></td>
+                <td><span class="badge bg-${operationClass}">${backup.operation}</span></td>
+                <td><code>${backup.table_name}</code></td>
+                <td>${backup.record_id}</td>
+                <td>${backup.user_id}</td>
+                <td><small class="text-muted">${backup.source}</small></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-info" onclick="viewBackupDetails('${backup.backup_id}')">
+                        <i class="fas fa-eye"></i> View
+                    </button>
+                </td>
+            </tr>
+        `;
+        tbody.innerHTML += row;
+    });
+}
+
+function viewBackupDetails(backupId) {
+    fetch(`/api/backup-details/${backupId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showBackupDetails(data.backup);
+            } else {
+                showAlert('Error loading backup details: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error loading backup details: ' + error.message, 'danger');
+        });
+}
+
+function showBackupDetails(backup) {
+    const content = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Backup Information</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Backup ID:</strong></td><td><code>${backup.backup_id}</code></td></tr>
+                    <tr><td><strong>Table:</strong></td><td><code>${backup.table_name}</code></td></tr>
+                    <tr><td><strong>Record ID:</strong></td><td>${backup.record_id}</td></tr>
+                    <tr><td><strong>Operation:</strong></td><td><span class="badge bg-primary">${backup.operation}</span></td></tr>
+                    <tr><td><strong>Time:</strong></td><td>${backup.formatted_time}</td></tr>
+                    <tr><td><strong>User:</strong></td><td>${backup.user_id}</td></tr>
+                    <tr><td><strong>Source:</strong></td><td>${backup.source}</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6>Data Changes</h6>
+                ${backup.old_data ? `
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Old Data:</strong></label>
+                        <pre class="bg-light p-2 rounded"><code>${JSON.stringify(backup.old_data, null, 2)}</code></pre>
+                    </div>
+                ` : ''}
+                ${backup.new_data ? `
+                    <div class="mb-3">
+                        <label class="form-label"><strong>New Data:</strong></label>
+                        <pre class="bg-light p-2 rounded"><code>${JSON.stringify(backup.new_data, null, 2)}</code></pre>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('backupDetailsContent').innerHTML = content;
+    new bootstrap.Modal(document.getElementById('backupDetailsModal')).show();
+}
+
+// Create snapshot form handler
+document.getElementById('createSnapshotForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('/api/create-snapshot', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showAlert('Snapshot created successfully: ' + data.snapshot_id, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('createSnapshotModal')).hide();
+            // Refresh the page to show new snapshot
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('Error creating snapshot: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('Error creating snapshot: ' + error.message, 'danger');
+    });
+});
+
+// Table filter change handler
+document.getElementById('tableFilter').addEventListener('change', refreshBackupHistory);
+
+// Set default description when modal opens
+document.getElementById('createSnapshotModal').addEventListener('show.bs.modal', function() {
+    const now = new Date();
+    const formattedDate = now.getFullYear() + '-' + 
+                         String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                         String(now.getDate()).padStart(2, '0') + ' ' +
+                         String(now.getHours()).padStart(2, '0') + ':' + 
+                         String(now.getMinutes()).padStart(2, '0') + ':' + 
+                         String(now.getSeconds()).padStart(2, '0');
+    
+    document.getElementById('snapshotDescription').value = `Manual snapshot created on ${formattedDate}`;
+});
+
+function showAlert(message, type) {
+    // Create and show Bootstrap alert
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Insert at top of content
+    const content = document.querySelector('.tab-pane.active');
+    content.insertBefore(alertDiv, content.firstChild);
+    
+    // Auto dismiss after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

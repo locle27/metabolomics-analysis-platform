@@ -1,712 +1,638 @@
 {% extends "base.html" %}
 
-{% block title %}Manage Lipids - Metabolomics DB{% endblock %}
+{% block title %}Lipid Database Management - Metabolomics Platform{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="page-title mb-1">🧬 Lipid Database Management</h1>
+            <p class="text-muted mb-0">Comprehensive lipid chromatography data overview and management</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="exportData()">
+                <i class="fas fa-download"></i> Export Data
+            </button>
+            <button class="btn btn-primary" onclick="refreshData()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
 {% block extra_css %}
 <style>
-    .lipid-table-container {
+    /* Professional Management Interface Styles */
+    .management-container {
         background: white;
-        border-radius: 10px;
-        padding: 20px;
-        margin: 20px 0;
-        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
-    }
-    
-    .lipid-row {
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-    
-    .lipid-row:hover {
-        background-color: #f8f9fa;
-        transform: scale(1.01);
-    }
-    
-    .lipid-row.selected {
-        background-color: #e3f2fd;
-        border-left: 4px solid #007bff;
-    }
-    
-    .lipid-details-panel {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        padding: 20px;
-        margin-top: 15px;
-        display: none;
-    }
-    
-    .lipid-details-panel.active {
-        display: block;
-        animation: slideDown 0.3s ease;
-    }
-    
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .detail-section {
-        background: white;
-        border-radius: 6px;
-        padding: 15px;
-        margin: 10px 0;
-        border: 1px solid #e9ecef;
-    }
-    
-    .detail-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 8px 15px;
-        border-radius: 4px;
-        margin: -5px -5px 10px -5px;
-        font-weight: bold;
-        font-size: 14px;
-    }
-    
-    .ion-card {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        padding: 12px;
-        margin: 8px 0;
-        transition: all 0.2s ease;
-    }
-    
-    .ion-card:hover {
-        background: white;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-    
-    .ion-card.main-ion {
-        border-left: 4px solid #28a745;
-        background: #f0f9f0;
-    }
-    
-    .property-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 15px;
-        margin-top: 15px;
-    }
-    
-    .property-item {
-        display: flex;
-        justify-content: between;
-        padding: 8px 0;
-        border-bottom: 1px solid #eee;
-    }
-    
-    .property-label {
-        font-weight: 600;
-        color: #495057;
-        min-width: 120px;
-    }
-    
-    .property-value {
-        color: #6c757d;
-        font-family: 'Courier New', monospace;
-    }
-    
-    .stats-badges {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin: 15px 0;
-    }
-    
-    .stat-badge {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 6px 12px;
-        border-radius: 15px;
-        font-size: 12px;
-        font-weight: bold;
-    }
-    
-    .lipid-name-cell {
-        font-family: 'Courier New', monospace;
-        font-weight: bold;
-        color: #2c3e50;
-    }
-    
-    .class-badge {
-        background: #007bff;
-        color: white;
-        padding: 3px 8px;
         border-radius: 12px;
-        font-size: 11px;
-        font-weight: bold;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+    }
+    
+    .management-header {
+        background: linear-gradient(135deg, var(--primary-blue), var(--light-blue));
+        color: white;
+        padding: 20px 25px;
+        border-bottom: 3px solid var(--primary-orange);
+    }
+    
+    .stats-overview {
+        background: #f8f9fa;
+        padding: 15px 25px;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: #495057;
+    }
+    
+    .stat-value {
+        font-weight: 600;
+        color: var(--primary-blue);
+        font-size: 16px;
     }
     
     .search-controls {
-        background: #f8f9fa;
-        padding: 20px;
+        padding: 20px 25px;
+        background: white;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .search-row {
+        display: grid;
+        grid-template-columns: 1fr 200px 150px 120px;
+        gap: 15px;
+        align-items: end;
+    }
+    
+    .form-control, .form-select {
+        border: 2px solid #e9ecef;
         border-radius: 8px;
-        margin-bottom: 20px;
+        padding: 8px 12px;
+        font-size: 14px;
+        transition: all 0.3s ease;
     }
     
-    .action-buttons {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 0.2rem rgba(46, 76, 146, 0.15);
     }
     
-    .btn-sm-custom {
-        padding: 4px 8px;
+    .table-container {
+        overflow-x: auto;
+        max-height: 70vh;
+    }
+    
+    .lipids-table {
+        margin: 0;
+        font-size: 13px;
+    }
+    
+    .lipids-table thead th {
+        background: #f8f9fa;
+        border-bottom: 2px solid var(--primary-blue);
+        color: var(--primary-blue);
+        font-weight: 600;
+        text-transform: uppercase;
         font-size: 11px;
-        border-radius: 4px;
+        letter-spacing: 0.5px;
+        padding: 12px 10px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
     }
     
-    .close-details-btn {
-        position: absolute;
-        top: 10px;
-        right: 15px;
-        background: #dc3545;
+    .lipids-table tbody tr {
+        border-bottom: 1px solid #f1f3f4;
+        transition: background-color 0.2s ease;
+    }
+    
+    .lipids-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .lipids-table td {
+        padding: 12px 10px;
+        vertical-align: middle;
+        border-top: none;
+    }
+    
+    .lipid-name {
+        font-family: 'Courier New', monospace;
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 13px;
+    }
+    
+    .class-badge {
+        background: var(--primary-blue);
         color: white;
-        border: none;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    
+    .api-code {
+        font-family: 'Courier New', monospace;
+        background: #f8f9fa;
+        padding: 3px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        color: #6c757d;
+        border: 1px solid #e9ecef;
+    }
+    
+    .retention-time {
+        font-weight: 600;
+        color: var(--primary-blue);
+    }
+    
+    .ms-data {
+        font-family: 'Courier New', monospace;
+        font-size: 11px;
+        color: #6c757d;
+        line-height: 1.3;
+    }
+    
+    .ms-arrow {
+        color: var(--primary-orange);
+        font-weight: bold;
+        margin: 0 2px;
+    }
+    
+    .ion-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .ion-badge {
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    
+    .ion-badge.multiple {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .ion-badge.single {
+        background: #cce7f0;
+        color: #004085;
+        border: 1px solid #a7d4ea;
+    }
+    
+    .ion-badge.none {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .status-badge {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    
+    .status-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .status-failed {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .peak-intensity {
+        font-weight: 600;
+        color: var(--primary-orange);
+    }
+    
+    .polarity-indicator {
+        font-size: 10px;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-weight: 600;
+    }
+    
+    .polarity-positive {
+        background: #e7f3ff;
+        color: #0066cc;
+    }
+    
+    .polarity-negative {
+        background: #fff2e7;
+        color: #cc6600;
+    }
+    
+    .energy-value {
+        font-size: 11px;
+        color: #6c757d;
+        font-weight: 500;
+    }
+    
+    .internal-standard {
+        font-size: 10px;
+        background: #fff3cd;
+        color: #856404;
+        padding: 2px 4px;
+        border-radius: 3px;
+        border: 1px solid #ffeaa7;
+    }
+    
+    .no-data {
+        color: #adb5bd;
+        font-style: italic;
+        font-size: 11px;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 1200px) {
+        .search-row {
+            grid-template-columns: 1fr 180px 130px 100px;
+            gap: 10px;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .search-row {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        
+        .stats-overview {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .table-container {
+            max-height: 60vh;
+        }
+    }
+    
+    /* Loading and Empty States */
+    .loading-state {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #adb5bd;
+    }
+    
+    .loading-spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid var(--primary-blue);
         border-radius: 50%;
         width: 30px;
         height: 30px;
-        font-size: 16px;
-        cursor: pointer;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 15px;
     }
     
-    .xic-preview {
-        background: #e9ecef;
-        padding: 10px;
-        border-radius: 4px;
-        font-family: 'Courier New', monospace;
-        font-size: 12px;
-        max-height: 150px;
-        overflow-y: auto;
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <h1 class="display-6 text-center mb-4">🧬 Manage Lipids Database</h1>
-    
-    <!-- Search and Filter Controls -->
-    <div class="search-controls">
-        <div class="row">
-            <div class="col-md-4">
-                <label class="form-label">Search Lipids</label>
-                <input type="text" id="search-input" class="form-control" 
-                       placeholder="Search: ac120, tg480, pc341, or full names...">
-                <small class="form-text text-muted">
-                    💡 Try shorthand: "ac120" for AC(12:0), "180" for any 18:0 lipid
-                </small>
+    <!-- Management Container -->
+    <div class="management-container">
+        <!-- Header -->
+        <div class="management-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h4 class="mb-1">Database Overview</h4>
+                    <p class="mb-0 opacity-75">Complete lipid chromatography database with mass spectrometry data</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="text-white">
+                        <i class="fas fa-database fa-2x opacity-50"></i>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-3">
-                <label class="form-label">Filter by Class</label>
-                <select id="class-filter" class="form-select">
-                    <option value="">All Classes</option>
-                    {% for cls in data.classes %}
-                    <option value="{{ cls.class_name }}">{{ cls.class_name }} ({{ cls.count }})</option>
-                    {% endfor %}
-                </select>
+        </div>
+        
+        <!-- Statistics Overview -->
+        <div class="stats-overview">
+            <div class="stat-item">
+                <i class="fas fa-flask text-primary"></i>
+                <span>Total Lipids:</span>
+                <span class="stat-value">{{ data.total_count or 0 }}</span>
             </div>
-            <div class="col-md-2">
-                <label class="form-label">Extraction Status</label>
-                <select id="status-filter" class="form-select">
-                    <option value="">All Status</option>
-                    <option value="success">Successful Only</option>
-                    <option value="with_ions">With Annotated Ions</option>
-                    <option value="multi_ion">Multi-Ion Lipids</option>
-                </select>
+            <div class="stat-item">
+                <i class="fas fa-check-circle text-success"></i>
+                <span>Successful Extractions:</span>
+                <span class="stat-value">{{ data.stats.successful_extractions or 0 }}</span>
             </div>
-            <div class="col-md-3">
-                <label class="form-label">Actions</label>
-                <div class="d-flex gap-2">
-                    <button id="refresh-btn" class="btn btn-outline-primary btn-sm">
-                        <i class="fas fa-sync"></i> Refresh
-                    </button>
-                    <button id="export-btn" class="btn btn-outline-success btn-sm">
-                        <i class="fas fa-download"></i> Export
+            <div class="stat-item">
+                <i class="fas fa-tags text-info"></i>
+                <span>Lipid Classes:</span>
+                <span class="stat-value">{{ data.classes|length or 0 }}</span>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-atom text-warning"></i>
+                <span>Annotated Ions:</span>
+                <span class="stat-value">{{ data.stats.total_annotated_ions or 0 }}</span>
+            </div>
+        </div>
+        
+        <!-- Search and Filter Controls -->
+        <div class="search-controls">
+            <div class="search-row">
+                <div>
+                    <label class="form-label">Search Lipids</label>
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search by name, API code, or properties...">
+                </div>
+                <div>
+                    <label class="form-label">Lipid Class</label>
+                    <select class="form-select" id="classFilter">
+                        <option value="">All Classes</option>
+                        {% for class_item in data.classes %}
+                        <option value="{{ class_item.class_name }}">{{ class_item.class_name }} ({{ class_item.count }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Status</label>
+                    <select class="form-select" id="statusFilter">
+                        <option value="">All Status</option>
+                        <option value="success">Success</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Actions</label>
+                    <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                        <i class="fas fa-times"></i> Clear
                     </button>
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Statistics Summary -->
-    <div class="stats-badges">
-        <span class="stat-badge">📊 Total: {{ data.stats.main_lipids or 0 }}</span>
-        <span class="stat-badge">✅ Successful: {{ data.stats.successful_extractions or 0 }}</span>
-        <span class="stat-badge">🏷️ Classes: {{ data.stats.lipid_classes or 0 }}</span>
-        <span class="stat-badge">🔗 Ions: {{ data.stats.annotated_ions or 0 }}</span>
-        <span class="stat-badge">📈 Multi-Ion: {{ data.stats.multi_ion_lipids or 0 }}</span>
-    </div>
-
-    <!-- Lipids Table -->
-    <div class="lipid-table-container">
-        <div class="table-responsive">
-            <table class="table table-hover" id="lipids-table">
-                <thead class="table-light">
+        
+        <!-- Professional Data Table -->
+        <div class="table-container">
+            <table class="table lipids-table" id="lipidsTable">
+                <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Lipid Name</th>
-                        <th>Class</th>
-                        <th>API Code</th>
-                        <th>RT (min)</th>
-                        <th>MS/MS</th>
-                        <th>Ions</th>
-                        <th>Status</th>
-                        <th>Actions</th>
+                        <th style="width: 60px;">ID</th>
+                        <th style="width: 200px;">Lipid Name</th>
+                        <th style="width: 80px;">Class</th>
+                        <th style="width: 120px;">API Code</th>
+                        <th style="width: 90px;">RT (min)</th>
+                        <th style="width: 140px;">MS/MS Transition</th>
+                        <th style="width: 80px;">Polarity</th>
+                        <th style="width: 70px;">CE (V)</th>
+                        <th style="width: 90px;">Ion Count</th>
+                        <th style="width: 100px;">Peak Intensity</th>
+                        <th style="width: 80px;">Int. Std.</th>
+                        <th style="width: 80px;">Status</th>
                     </tr>
                 </thead>
-                <tbody id="lipids-tbody">
+                <tbody id="lipidsTableBody">
                     {% for lipid in data.lipids %}
-                    <tr class="lipid-row" data-lipid-id="{{ lipid.lipid_id }}" 
-                        data-class="{{ lipid.class_name }}" 
+                    <tr data-lipid-id="{{ lipid.lipid_id }}" 
+                        data-class="{{ lipid.class_name | lower }}" 
                         data-name="{{ lipid.lipid_name | lower }}"
-                        data-status="{{ 'success' if lipid.extraction_success else 'failed' }}"
-                        data-has-ions="{{ 'true' if lipid.annotated_ions_count > 0 else 'false' }}"
-                        data-multi-ion="{{ 'true' if lipid.annotated_ions_count > 1 else 'false' }}">
-                        <td>{{ lipid.lipid_id }}</td>
-                        <td class="lipid-name-cell">{{ lipid.lipid_name }}</td>
-                        <td><span class="class-badge">{{ lipid.class_name or 'Unknown' }}</span></td>
-                        <td><code>{{ lipid.api_code }}</code></td>
+                        data-api="{{ lipid.api_code | lower }}"
+                        data-status="{{ 'success' if lipid.extraction_success else 'failed' }}">
+                        
+                        <!-- ID -->
+                        <td>
+                            <span class="text-muted">#{{ lipid.lipid_id }}</span>
+                        </td>
+                        
+                        <!-- Lipid Name -->
+                        <td>
+                            <div class="lipid-name">{{ lipid.lipid_name }}</div>
+                        </td>
+                        
+                        <!-- Class -->
+                        <td>
+                            <span class="class-badge">{{ lipid.class_name or 'Unknown' }}</span>
+                        </td>
+                        
+                        <!-- API Code -->
+                        <td>
+                            {% if lipid.api_code %}
+                                <span class="api-code">{{ lipid.api_code }}</span>
+                            {% else %}
+                                <span class="no-data">N/A</span>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Retention Time -->
                         <td>
                             {% if lipid.retention_time %}
-                                {{ "%.2f"|format(lipid.retention_time) }}
+                                <span class="retention-time">{{ "%.2f"|format(lipid.retention_time) }}</span>
                             {% else %}
-                                <span class="text-muted">N/A</span>
+                                <span class="no-data">N/A</span>
                             {% endif %}
                         </td>
+                        
+                        <!-- MS/MS Transition -->
                         <td>
                             {% if lipid.precursor_ion and lipid.product_ion %}
-                                <small>{{ lipid.precursor_ion }} → {{ lipid.product_ion }}</small>
+                                <div class="ms-data">
+                                    {{ lipid.precursor_ion }}<span class="ms-arrow">→</span>{{ lipid.product_ion }}
+                                </div>
                             {% else %}
-                                <span class="text-muted">N/A</span>
+                                <span class="no-data">N/A</span>
                             {% endif %}
                         </td>
+                        
+                        <!-- Polarity -->
                         <td>
-                            <span class="badge {% if lipid.annotated_ions_count > 1 %}bg-success{% elif lipid.annotated_ions_count == 1 %}bg-info{% else %}bg-secondary{% endif %}">
-                                {{ lipid.annotated_ions_count or 0 }}
-                            </span>
-                        </td>
-                        <td>
-                            {% if lipid.extraction_success %}
-                                <span class="badge bg-success">Success</span>
+                            {% if lipid.polarity %}
+                                <span class="polarity-indicator {% if lipid.polarity == 'Positive' %}polarity-positive{% else %}polarity-negative{% endif %}">
+                                    {{ lipid.polarity }}
+                                </span>
                             {% else %}
-                                <span class="badge bg-danger">Failed</span>
+                                <span class="no-data">N/A</span>
                             {% endif %}
                         </td>
+                        
+                        <!-- Collision Energy -->
                         <td>
-                            <div class="action-buttons">
-                                <button class="btn btn-primary btn-sm-custom" onclick="toggleDetails({{ lipid.lipid_id }})">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                {% if lipid.annotated_ions_count > 0 %}
-                                <button class="btn btn-success btn-sm-custom" onclick="generateChart({{ lipid.lipid_id }})">
-                                    <i class="fas fa-chart-line"></i>
-                                </button>
+                            {% if lipid.collision_energy %}
+                                <span class="energy-value">{{ lipid.collision_energy }}V</span>
+                            {% else %}
+                                <span class="no-data">N/A</span>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Ion Count -->
+                        <td>
+                            <div class="ion-count">
+                                {% set ion_count = lipid.annotated_ions_count or 0 %}
+                                {% if ion_count > 1 %}
+                                    <span class="ion-badge multiple">{{ ion_count }} ions</span>
+                                {% elif ion_count == 1 %}
+                                    <span class="ion-badge single">1 ion</span>
+                                {% else %}
+                                    <span class="ion-badge none">0 ions</span>
                                 {% endif %}
                             </div>
                         </td>
-                    </tr>
-                    
-                    <!-- Detailed View (Initially Hidden) -->
-                    <tr id="details-{{ lipid.lipid_id }}" class="lipid-details-panel">
-                        <td colspan="9">
-                            <div style="position: relative;">
-                                <button class="close-details-btn" onclick="closeDetails({{ lipid.lipid_id }})">×</button>
-                                
-                                <h5 class="mb-3">📋 Detailed Information: {{ lipid.lipid_name }}</h5>
-                                
-                                <div class="row">
-                                    <!-- Main Properties -->
-                                    <div class="col-md-6">
-                                        <div class="detail-section">
-                                            <div class="detail-header">🧬 Main Properties</div>
-                                            <div class="property-grid">
-                                                <div class="property-item">
-                                                    <span class="property-label">Lipid ID:</span>
-                                                    <span class="property-value">{{ lipid.lipid_id }}</span>
-                                                </div>
-                                                <div class="property-item">
-                                                    <span class="property-label">API Code:</span>
-                                                    <span class="property-value">{{ lipid.api_code or 'N/A' }}</span>
-                                                </div>
-                                                <div class="property-item">
-                                                    <span class="property-label">Class:</span>
-                                                    <span class="property-value">{{ lipid.class_name or 'Unknown' }}</span>
-                                                </div>
-                                                <div class="property-item">
-                                                    <span class="property-label">Retention Time:</span>
-                                                    <span class="property-value">
-                                                        {% if lipid.retention_time %}{{ "%.4f"|format(lipid.retention_time) }} min{% else %}N/A{% endif %}
-                                                    </span>
-                                                </div>
-                                                <div class="property-item">
-                                                    <span class="property-label">Precursor Ion:</span>
-                                                    <span class="property-value">{{ lipid.precursor_ion or 'N/A' }}</span>
-                                                </div>
-                                                <div class="property-item">
-                                                    <span class="property-label">Product Ion:</span>
-                                                    <span class="property-value">{{ lipid.product_ion or 'N/A' }}</span>
-                                                </div>
-                                                <div class="property-item">
-                                                    <span class="property-label">Collision Energy:</span>
-                                                    <span class="property-value">{{ lipid.collision_energy or 'N/A' }}</span>
-                                                </div>
-                                                <div class="property-item">
-                                                    <span class="property-label">Polarity:</span>
-                                                    <span class="property-value">{{ lipid.polarity or 'N/A' }}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Extraction Info -->
-                                    <div class="col-md-6">
-                                        <div class="detail-section">
-                                            <div class="detail-header">📊 Extraction Information</div>
-                                            <div class="property-grid">
-                                                <div class="property-item">
-                                                    <span class="property-label">Method:</span>
-                                                    <span class="property-value">{{ lipid.extraction_method or 'N/A' }}</span>
-                                                </div>
-                                                <div class="property-item">
-                                                    <span class="property-label">Success:</span>
-                                                    <span class="property-value">
-                                                        {% if lipid.extraction_success %}✅ Yes{% else %}❌ No{% endif %}
-                                                    </span>
-                                                </div>
-                                                <div class="property-item">
-                                                    <span class="property-label">Created:</span>
-                                                    <span class="property-value">{{ lipid.created_at or 'N/A' }}</span>
-                                                </div>
-                                                <div class="property-item">
-                                                    <span class="property-label">Internal Standard:</span>
-                                                    <span class="property-value">{{ lipid.internal_standard or 'N/A' }}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- XIC Data Preview -->
-                                        <div class="detail-section">
-                                            <div class="detail-header">📈 XIC Data Summary</div>
-                                            <div class="xic-preview" id="xic-preview-{{ lipid.lipid_id }}">
-                                                Loading XIC data...
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Annotated Ions Section -->
-                                <div class="detail-section">
-                                    <div class="detail-header">🔗 Annotated Ions ({{ lipid.annotated_ions_count or 0 }} total)</div>
-                                    <div id="ions-container-{{ lipid.lipid_id }}">
-                                        Loading annotated ions...
-                                    </div>
-                                </div>
-                            </div>
+                        
+                        <!-- Peak Intensity -->
+                        <td>
+                            {% if lipid.xic_peak_intensity %}
+                                <span class="peak-intensity">{{ "%.0f"|format(lipid.xic_peak_intensity) }}</span>
+                            {% else %}
+                                <span class="no-data">N/A</span>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Internal Standard -->
+                        <td>
+                            {% if lipid.internal_standard %}
+                                <span class="internal-standard">IS</span>
+                            {% else %}
+                                <span class="no-data">-</span>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Status -->
+                        <td>
+                            {% if lipid.extraction_success %}
+                                <span class="status-badge status-success">Success</span>
+                            {% else %}
+                                <span class="status-badge status-failed">Failed</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
+                    
+                    {% if not data.lipids %}
+                    <tr>
+                        <td colspan="12" class="empty-state">
+                            <i class="fas fa-search fa-2x mb-3"></i>
+                            <h5>No lipids found</h5>
+                            <p class="text-muted">No lipid data available in the database.</p>
+                        </td>
+                    </tr>
+                    {% endif %}
                 </tbody>
             </table>
         </div>
-        
-        <!-- Pagination will go here -->
-        <div class="d-flex justify-content-between align-items-center mt-3">
-            <div>
-                <small class="text-muted">Showing <span id="visible-count">{{ data.lipids|length }}</span> of {{ data.total_count }} lipids</small>
-            </div>
-            <div>
-                <!-- Pagination controls -->
-            </div>
-        </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
-let currentDetailLipid = null;
-
-// Search and filter functionality
-document.getElementById('search-input').addEventListener('input', filterLipids);
-document.getElementById('class-filter').addEventListener('change', filterLipids);
-document.getElementById('status-filter').addEventListener('change', filterLipids);
-
-function filterLipids() {
-    const searchTerm = document.getElementById('search-input').value.toLowerCase();
-    const classFilter = document.getElementById('class-filter').value;
-    const statusFilter = document.getElementById('status-filter').value;
+// Professional Lipid Management JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const classFilter = document.getElementById('classFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const tableBody = document.getElementById('lipidsTableBody');
+    const rows = Array.from(tableBody.querySelectorAll('tr[data-lipid-id]'));
     
-    const rows = document.querySelectorAll('.lipid-row');
-    let visibleCount = 0;
+    let currentFilters = {
+        search: '',
+        class: '',
+        status: ''
+    };
     
-    rows.forEach(row => {
-        let visible = true;
-        
-        // Enhanced search filter with shorthand support
-        if (searchTerm) {
-            const lipidName = row.querySelector('.lipid-name-cell').textContent.toLowerCase();
-            const apiCode = row.querySelector('code').textContent.toLowerCase();
-            const rowName = row.dataset.name;
-            
-            // Direct match (existing functionality)
-            if (rowName.includes(searchTerm) || lipidName.includes(searchTerm) || apiCode.includes(searchTerm)) {
-                visible = true;
-            }
-            // Shorthand lipid code matching (new feature)
-            else if (matchesShorthandCode(lipidName, searchTerm)) {
-                visible = true;
-            }
-            else {
-                visible = false;
-            }
-        }
-        
-        // Class filter
-        if (classFilter && visible && row.dataset.class !== classFilter) {
-            visible = false;
-        }
-        
-        // Status filter
-        if (statusFilter && visible) {
-            switch (statusFilter) {
-                case 'success':
-                    visible = visible && row.dataset.status === 'success';
-                    break;
-                case 'with_ions':
-                    visible = visible && row.dataset.hasIons === 'true';
-                    break;
-                case 'multi_ion':
-                    visible = visible && row.dataset.multiIon === 'true';
-                    break;
-            }
-        }
-        
-        if (visible) {
-            row.style.display = '';
-            visibleCount++;
-        } else {
-            row.style.display = 'none';
-            // Hide details if row is hidden
-            const detailsRow = document.getElementById(`details-${row.dataset.lipidId}`);
-            if (detailsRow) {
-                detailsRow.classList.remove('active');
-            }
-        }
+    // Search functionality
+    searchInput.addEventListener('input', function() {
+        currentFilters.search = this.value.toLowerCase();
+        applyFilters();
     });
     
-    document.getElementById('visible-count').textContent = visibleCount;
-}
-
-function matchesShorthandCode(lipidName, searchTerm) {
-    /**
-     * Enhanced shorthand matching for lipid codes
-     * Examples:
-     * - "ac120" matches "ac(12:0)"
-     * - "tg480" matches "tg(48:0)" or "tg48_0"
-     * - "pc341" matches "pc(34:1)"
-     * - "180" matches any lipid with "18:0"
-     */
-    
-    // Remove all special characters for comparison
-    const cleanLipid = lipidName.replace(/[():\-\[\]\/\s_]/g, '').toLowerCase();
-    const cleanSearch = searchTerm.replace(/[():\-\[\]\/\s_]/g, '').toLowerCase();
-    
-    // Direct clean match
-    if (cleanLipid.includes(cleanSearch)) {
-        return true;
-    }
-    
-    // Try to parse shorthand patterns like "ac120" -> "ac12:0"
-    const shorthandPattern = /^([a-z]+)(\d+)$/;
-    const match = cleanSearch.match(shorthandPattern);
-    
-    if (match) {
-        const [, classPrefix, numbers] = match;
-        
-        // Try different number splitting patterns
-        const patterns = [
-            // Pattern 1: last digit as second number (ac120 -> ac(12:0))
-            numbers.length >= 2 ? `${classPrefix}${numbers.slice(0, -1)}:${numbers.slice(-1)}` : null,
-            
-            // Pattern 2: split in half (ac1820 -> ac(18:20))
-            numbers.length >= 4 && numbers.length % 2 === 0 ? 
-                `${classPrefix}${numbers.slice(0, numbers.length/2)}:${numbers.slice(numbers.length/2)}` : null,
-            
-            // Pattern 3: try 2-digit splits for longer numbers (tg4801 -> tg(48:01))
-            numbers.length >= 4 ? `${classPrefix}${numbers.slice(0, 2)}:${numbers.slice(2)}` : null,
-            
-            // Pattern 4: try 3-digit splits (tg48016 -> tg(480:16))
-            numbers.length >= 5 ? `${classPrefix}${numbers.slice(0, 3)}:${numbers.slice(3)}` : null
-        ].filter(Boolean);
-        
-        // Check if any pattern matches the clean lipid name
-        return patterns.some(pattern => cleanLipid.includes(pattern));
-    }
-    
-    // Try numeric-only search (e.g., "120" matches any lipid with "12:0")
-    if (/^\d+$/.test(cleanSearch) && cleanSearch.length >= 2) {
-        const numbers = cleanSearch;
-        const numericPatterns = [
-            // Split last digit: "120" -> "12:0"
-            numbers.length >= 2 ? `${numbers.slice(0, -1)}:${numbers.slice(-1)}` : null,
-            
-            // Split in half: "1820" -> "18:20" 
-            numbers.length >= 4 && numbers.length % 2 === 0 ? 
-                `${numbers.slice(0, numbers.length/2)}:${numbers.slice(numbers.length/2)}` : null
-        ].filter(Boolean);
-        
-        return numericPatterns.some(pattern => cleanLipid.includes(pattern));
-    }
-    
-    return false;
-}
-
-function toggleDetails(lipidId) {
-    const detailsPanel = document.getElementById(`details-${lipidId}`);
-    const row = document.querySelector(`[data-lipid-id="${lipidId}"]`);
-    
-    // Close any currently open details
-    if (currentDetailLipid && currentDetailLipid !== lipidId) {
-        closeDetails(currentDetailLipid);
-    }
-    
-    if (detailsPanel.classList.contains('active')) {
-        closeDetails(lipidId);
-    } else {
-        detailsPanel.classList.add('active');
-        row.classList.add('selected');
-        currentDetailLipid = lipidId;
-        
-        // Load detailed data
-        loadLipidDetails(lipidId);
-    }
-}
-
-function closeDetails(lipidId) {
-    const detailsPanel = document.getElementById(`details-${lipidId}`);
-    const row = document.querySelector(`[data-lipid-id="${lipidId}"]`);
-    
-    detailsPanel.classList.remove('active');
-    row.classList.remove('selected');
-    
-    if (currentDetailLipid === lipidId) {
-        currentDetailLipid = null;
-    }
-}
-
-async function loadLipidDetails(lipidId) {
-    try {
-        // Load annotated ions
-        const ionsResponse = await fetch(`/api/lipid-ions/${lipidId}`);
-        const ionsData = await ionsResponse.json();
-        
-        if (ionsData.status === 'success') {
-            displayAnnotatedIons(lipidId, ionsData.ions);
-        }
-        
-        // Load XIC data summary
-        const xicResponse = await fetch(`/api/lipid-xic-summary/${lipidId}`);
-        const xicData = await xicResponse.json();
-        
-        if (xicData.status === 'success') {
-            displayXICData(lipidId, xicData.xic_summary);
-        }
-        
-    } catch (error) {
-        console.error('Error loading lipid details:', error);
-    }
-}
-
-function displayAnnotatedIons(lipidId, ions) {
-    const container = document.getElementById(`ions-container-${lipidId}`);
-    
-    if (ions.length === 0) {
-        container.innerHTML = '<p class="text-muted">No annotated ions found.</p>';
-        return;
-    }
-    
-    let html = '<div class="row">';
-    
-    ions.forEach(ion => {
-        html += `
-            <div class="col-md-6 mb-2">
-                <div class="ion-card ${ion.is_main_lipid ? 'main-ion' : ''}">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <strong>${ion.ion_lipid_name}</strong>
-                            ${ion.is_main_lipid ? '<span class="badge bg-success ms-2">Main</span>' : ''}
-                            <br>
-                            <small class="text-muted">${ion.annotation_type || 'Default'}</small>
-                        </div>
-                        <div class="text-end">
-                            <small>RT: ${ion.retention_time ? parseFloat(ion.retention_time).toFixed(2) + ' min' : 'N/A'}</small>
-                        </div>
-                    </div>
-                    <div class="mt-2">
-                        <small>
-                            <strong>MS/MS:</strong> ${ion.precursor_ion || 'N/A'} → ${ion.product_ion || 'N/A'}<br>
-                            <strong>Code:</strong> ${ion.ion_lipidcode || 'N/A'}
-                        </small>
-                    </div>
-                </div>
-            </div>
-        `;
+    // Class filter
+    classFilter.addEventListener('change', function() {
+        currentFilters.class = this.value.toLowerCase();
+        applyFilters();
     });
     
-    html += '</div>';
-    container.innerHTML = html;
-}
-
-function displayXICData(lipidId, xicSummary) {
-    const container = document.getElementById(`xic-preview-${lipidId}`);
+    // Status filter
+    statusFilter.addEventListener('change', function() {
+        currentFilters.status = this.value;
+        applyFilters();
+    });
     
-    if (!xicSummary) {
-        container.innerHTML = '<span class="text-muted">No XIC data available</span>';
-        return;
+    function applyFilters() {
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const lipidName = row.dataset.name || '';
+            const apiCode = row.dataset.api || '';
+            const className = row.dataset.class || '';
+            const status = row.dataset.status || '';
+            
+            const matchesSearch = !currentFilters.search || 
+                                 lipidName.includes(currentFilters.search) ||
+                                 apiCode.includes(currentFilters.search);
+            
+            const matchesClass = !currentFilters.class || className === currentFilters.class;
+            const matchesStatus = !currentFilters.status || status === currentFilters.status;
+            
+            if (matchesSearch && matchesClass && matchesStatus) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Update visible count
+        updateResultsCount(visibleCount);
     }
     
-    container.innerHTML = JSON.stringify(xicSummary, null, 2);
-}
-
-function generateChart(lipidId) {
-    // Open dual chart view in new tab using the new dual chart system
-    window.open(`/dual-chart-view?lipids=${lipidId}`, '_blank');
-}
-
-// Refresh functionality
-document.getElementById('refresh-btn').addEventListener('click', function() {
-    location.reload();
-});
-
-// Export functionality
-document.getElementById('export-btn').addEventListener('click', function() {
-    // Get visible lipids
-    const visibleRows = Array.from(document.querySelectorAll('.lipid-row')).filter(row => row.style.display !== 'none');
-    const lipidIds = visibleRows.map(row => row.dataset.lipidId);
-    
-    if (lipidIds.length === 0) {
-        alert('No lipids to export');
-        return;
+    function updateResultsCount(count) {
+        // You can add a results counter if needed
+        console.log(`Showing ${count} of ${rows.length} lipids`);
     }
     
-    // Export as CSV
-    window.open(`/api/export-data/csv?lipids=${lipidIds.join(',')}`, '_blank');
-});
-
-// Keyboard shortcuts
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && currentDetailLipid) {
-        closeDetails(currentDetailLipid);
-    }
+    // Clear filters function
+    window.clearFilters = function() {
+        searchInput.value = '';
+        classFilter.value = '';
+        statusFilter.value = '';
+        currentFilters = { search: '', class: '', status: '' };
+        applyFilters();
+    };
+    
+    // Export data function
+    window.exportData = function() {
+        // Implement export functionality
+        alert('Export functionality would be implemented here');
+    };
+    
+    // Refresh data function
+    window.refreshData = function() {
+        location.reload();
+    };
 });
 </script>
 {% endblock %}

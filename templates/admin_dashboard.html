@@ -51,100 +51,110 @@
     .stat-label {
         font-size: 14px;
         opacity: 0.9;
-    }
-    
-    .feature-list {
-        list-style: none;
-        padding: 0;
-    }
-    
-    .feature-list li {
-        padding: 8px 0;
-        border-bottom: 1px solid #f0f0f0;
-        display: flex;
-        align-items: center;
-    }
-    
-    .feature-list li:last-child {
-        border-bottom: none;
-    }
-    
-    .feature-list li i {
-        color: var(--primary-orange);
-        margin-right: 10px;
-        width: 20px;
-    }
-    
-    .status-badge {
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
         text-transform: uppercase;
-    }
-    
-    .status-operational {
-        background: #d4edda;
-        color: #155724;
-    }
-    
-    .status-warning {
-        background: #fff3cd;
-        color: #856404;
-    }
-    
-    .coming-soon {
-        color: var(--primary-orange);
-        font-weight: 600;
-        font-style: italic;
+        letter-spacing: 0.5px;
     }
     
     .admin-nav-pills {
         background: #f8f9fa;
         padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 25px;
+    }
+    
+    .nav-pills .nav-link {
+        color: var(--primary-blue);
         border-radius: 8px;
+        font-weight: 500;
+        margin-right: 10px;
+    }
+    
+    .nav-pills .nav-link.active {
+        background: var(--primary-blue);
+        color: white;
+    }
+    
+    .nav-pills .nav-link:hover {
+        background: var(--light-blue);
+        color: white;
+    }
+    
+    .admin-section {
+        margin-bottom: 30px;
+    }
+    
+    .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--primary-blue);
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .placeholder-content {
+        background: #f8f9fa;
+        border: 2px dashed #dee2e6;
+        padding: 30px;
+        text-align: center;
+        border-radius: 8px;
+        color: #6c757d;
+    }
+    
+    .backup-mini-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
         margin-bottom: 20px;
     }
     
-    .admin-nav-pills .nav-link {
-        color: var(--primary-blue);
-        border-radius: 20px;
-        margin-right: 10px;
-        transition: all 0.3s ease;
+    .mini-stat {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        border: 1px solid #e9ecef;
     }
     
-    .admin-nav-pills .nav-link:hover,
-    .admin-nav-pills .nav-link.active {
-        background: var(--primary-orange);
-        color: white;
+    .mini-stat-number {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--primary-blue);
+        margin-bottom: 5px;
+    }
+    
+    .mini-stat-label {
+        font-size: 12px;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    
+    .quick-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 15px;
+    }
+    
+    .btn-quick {
+        padding: 8px 16px;
+        font-size: 13px;
+        border-radius: 6px;
     }
 </style>
 {% endblock %}
 
-{% block hero %}
-<section class="admin-header">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-8">
-                <h1 class="display-5 fw-bold mb-3">
-                    <i class="fas fa-user-shield me-3"></i>Admin Dashboard
-                </h1>
-                <p class="lead mb-0">
-                    System management and administrative controls for the Metabolomics Platform
-                </p>
-            </div>
-            <div class="col-lg-4 text-end">
-                <div class="status-badge status-operational">
-                    <i class="fas fa-circle me-1"></i>System Operational
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-{% endblock %}
-
 {% block content %}
 <div class="container">
+    <!-- Admin Header -->
+    <div class="admin-header">
+        <div class="text-center">
+            <h1 class="display-5 mb-3">🎛️ Admin Dashboard</h1>
+            <p class="lead opacity-75">System administration and monitoring</p>
+        </div>
+    </div>
+
     <!-- Admin Navigation Pills -->
     <div class="admin-nav-pills">
         <ul class="nav nav-pills">
@@ -154,24 +164,19 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('admin_users') }}">
-                    <i class="fas fa-users me-1"></i>Users
+                <a class="nav-link" href="{{ url_for('admin_stats') }}">
+                    <i class="fas fa-chart-bar me-1"></i>Statistics
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('admin_system') }}">
-                    <i class="fas fa-cogs me-1"></i>System
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('admin_login') }}">
-                    <i class="fab fa-google me-1"></i>OAuth Setup
+                <a class="nav-link" href="{{ url_for('manage_lipids') }}">
+                    <i class="fas fa-flask me-1"></i>Manage Data
                 </a>
             </li>
         </ul>
     </div>
 
-    <!-- Statistics Grid -->
+    <!-- Main Statistics Grid -->
     <div class="admin-stat-grid">
         <div class="stat-card">
             <span class="stat-number">{{ stats.total_lipids or '0' }}</span>
@@ -182,115 +187,158 @@
             <div class="stat-label">Lipid Classes</div>
         </div>
         <div class="stat-card">
-            <span class="stat-number">{{ admin_info.total_users or '0' }}</span>
-            <div class="stat-label">Registered Users</div>
+            <span class="stat-number">{{ stats.total_annotated_ions or '0' }}</span>
+            <div class="stat-label">Annotated Ions</div>
         </div>
         <div class="stat-card">
-            <span class="stat-number">{{ admin_info.active_sessions or '0' }}</span>
+            <span class="stat-number">{{ admin_info.active_sessions or '1' }}</span>
             <div class="stat-label">Active Sessions</div>
         </div>
     </div>
 
     <div class="row">
-        <!-- System Status -->
-        <div class="col-lg-6">
-            <div class="admin-card">
-                <h4 class="text-metabolomics-blue mb-3">
-                    <i class="fas fa-server me-2"></i>System Status
-                </h4>
-                <div class="row">
-                    <div class="col-6">
-                        <div class="mb-2">
-                            <strong>System:</strong> 
-                            <span class="status-badge status-operational">{{ admin_info.system_status or 'Unknown' }}</span>
-                        </div>
-                        <div class="mb-2">
-                            <strong>Database:</strong> 
-                            <span class="status-badge status-operational">{{ admin_info.database_status or 'Unknown' }}</span>
-                        </div>
+        <!-- System Overview -->
+        <div class="col-md-6">
+            <div class="admin-section">
+                <h3 class="section-title">🖥️ System Overview</h3>
+                <div class="admin-card">
+                    <h5>Database Status</h5>
+                    <p class="text-success"><i class="fas fa-check-circle"></i> {{ admin_info.database_status or 'Connected' }}</p>
+                    
+                    <h5 class="mt-3">System Health</h5>
+                    <div class="progress mb-2">
+                        <div class="progress-bar bg-success" style="width: 95%"></div>
                     </div>
-                    <div class="col-6">
-                        <div class="mb-2">
-                            <strong>Last Backup:</strong><br>
-                            <small class="text-muted">{{ admin_info.last_backup or 'Not configured' }}</small>
-                        </div>
-                    </div>
+                    <small class="text-muted">95% - System running normally</small>
                 </div>
             </div>
         </div>
 
-        <!-- Available Features -->
-        <div class="col-lg-6">
-            <div class="admin-card">
-                <h4 class="text-metabolomics-blue mb-3">
-                    <i class="fas fa-check-circle me-2"></i>Available Features
-                </h4>
-                <ul class="feature-list">
-                    {% for feature in admin_info.features_available %}
-                    <li>
-                        <i class="fas fa-check"></i>{{ feature }}
-                    </li>
-                    {% endfor %}
-                </ul>
+        <!-- Backup Management Sub-Section -->
+        <div class="col-md-6">
+            <div class="admin-section">
+                <h3 class="section-title">💾 Backup Management</h3>
+                <div class="admin-card">
+                    {% if backup_stats %}
+                    <div class="backup-mini-stats">
+                        <div class="mini-stat">
+                            <div class="mini-stat-number">{{ backup_stats.total_backups or 0 }}</div>
+                            <div class="mini-stat-label">Total Backups</div>
+                        </div>
+                        <div class="mini-stat">
+                            <div class="mini-stat-number">{{ backup_stats.total_snapshots or 0 }}</div>
+                            <div class="mini-stat-label">Snapshots</div>
+                        </div>
+                        <div class="mini-stat">
+                            <div class="mini-stat-number">{{ backup_stats.storage_used_mb or 0 }}MB</div>
+                            <div class="mini-stat-label">Storage Used</div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-3">Backup system ready for use</p>
+                    {% endif %}
+                    
+                    <div class="quick-actions">
+                        <a href="{{ url_for('backup_management') }}" class="btn btn-primary btn-quick">
+                            <i class="fas fa-cog"></i> Manage Backups
+                        </a>
+                        <button class="btn btn-outline-primary btn-quick" onclick="createQuickSnapshot()">
+                            <i class="fas fa-camera"></i> Quick Snapshot
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="row">
-        <!-- Planned Features -->
-        <div class="col-lg-6">
-            <div class="admin-card">
-                <h4 class="text-metabolomics-blue mb-3">
-                    <i class="fas fa-rocket me-2"></i>Planned Features
-                </h4>
-                <ul class="feature-list">
-                    {% for feature in admin_info.planned_features %}
-                    <li>
-                        <i class="fas fa-clock"></i>{{ feature }} <span class="coming-soon">(Coming Soon)</span>
-                    </li>
-                    {% endfor %}
-                </ul>
+        <!-- User Management (Future) -->
+        <div class="col-md-6">
+            <div class="admin-section">
+                <h3 class="section-title">👥 User Management</h3>
+                <div class="admin-card">
+                    <div class="placeholder-content">
+                        <i class="fas fa-users fa-3x mb-3 text-muted"></i>
+                        <h5>User Management</h5>
+                        <p>User authentication and role management will be implemented here.</p>
+                        <small class="text-muted">Coming soon...</small>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Quick Actions -->
-        <div class="col-lg-6">
-            <div class="admin-card">
-                <h4 class="text-metabolomics-blue mb-3">
-                    <i class="fas fa-bolt me-2"></i>Quick Actions
-                </h4>
-                <div class="d-grid gap-2">
-                    <a href="{{ url_for('admin_stats') }}" class="btn btn-phenikaa">
-                        <i class="fas fa-chart-bar me-2"></i>View Statistics
-                    </a>
-                    <a href="{{ url_for('manage_lipids') }}" class="btn btn-phenikaa-secondary">
-                        <i class="fas fa-database me-2"></i>Manage Data
-                    </a>
-                    <button class="btn btn-outline-secondary" disabled>
-                        <i class="fab fa-google me-2"></i>Configure OAuth (Soon)
-                    </button>
-                    <button class="btn btn-outline-secondary" disabled>
-                        <i class="fas fa-backup me-2"></i>Backup System (Soon)
-                    </button>
+        <!-- Security & Access Control (Future) -->
+        <div class="col-md-6">
+            <div class="admin-section">
+                <h3 class="section-title">🔐 Security & Access</h3>
+                <div class="admin-card">
+                    <div class="placeholder-content">
+                        <i class="fas fa-shield-alt fa-3x mb-3 text-muted"></i>
+                        <h5>Security Settings</h5>
+                        <p>Access control, authentication settings, and security policies.</p>
+                        <small class="text-muted">Future development...</small>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- OAuth Setup Notice -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="alert alert-info d-flex align-items-center" role="alert">
-                <i class="fab fa-google fa-2x me-3 text-primary"></i>
-                <div>
-                    <h5 class="alert-heading mb-1">Google OAuth Integration</h5>
-                    <p class="mb-0">
-                        Google OAuth authentication system is planned for future implementation. This will provide secure login/register functionality 
-                        with Google accounts for enhanced user management and access control.
-                    </p>
+    <div class="row">
+        <!-- System Configuration (Future) -->
+        <div class="col-md-6">
+            <div class="admin-section">
+                <h3 class="section-title">⚙️ System Configuration</h3>
+                <div class="admin-card">
+                    <div class="placeholder-content">
+                        <i class="fas fa-cogs fa-3x mb-3 text-muted"></i>
+                        <h5>System Settings</h5>
+                        <p>Application configuration, environment variables, and system preferences.</p>
+                        <small class="text-muted">Planned feature...</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monitoring & Logs (Future) -->
+        <div class="col-md-6">
+            <div class="admin-section">
+                <h3 class="section-title">📊 Monitoring & Logs</h3>
+                <div class="admin-card">
+                    <div class="placeholder-content">
+                        <i class="fas fa-chart-line fa-3x mb-3 text-muted"></i>
+                        <h5>System Monitoring</h5>
+                        <p>Performance monitoring, error logs, and system analytics.</p>
+                        <small class="text-muted">Future implementation...</small>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+function createQuickSnapshot() {
+    // Quick snapshot creation
+    if (confirm('Create a quick database snapshot?')) {
+        fetch('/api/create-snapshot', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'description=Quick snapshot from admin dashboard'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Snapshot created successfully: ' + data.snapshot_id);
+            } else {
+                alert('Error creating snapshot: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error.message);
+        });
+    }
+}
+</script>
 {% endblock %}

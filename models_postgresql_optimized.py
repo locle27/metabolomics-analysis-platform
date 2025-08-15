@@ -8,7 +8,7 @@ import json
 from functools import lru_cache
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy import func, text
+from sqlalchemy import func, text, Column, String, Integer, Float, Text, Boolean, DateTime, JSON, CheckConstraint, Index
 import time
 
 # SQLAlchemy instance
@@ -137,11 +137,11 @@ class OptimizedDataManager:
         """
         start_time = time.time()
         
-        # Single optimized query with all related data
+        # Single optimized query with all related data - show ALL lipids for management
         lipids = MainLipid.query.options(
             joinedload(MainLipid.lipid_class),          # JOIN to get class
             selectinload(MainLipid.annotated_ions)      # Separate optimized query for ions
-        ).filter_by(extraction_success=True).all()
+        ).all()  # Remove filter to show all lipids including failed ones
         
         # Convert to dictionary format like SQLite version
         result = []
@@ -153,8 +153,13 @@ class OptimizedDataManager:
                 'retention_time': lipid.retention_time,
                 'precursor_ion': lipid.precursor_ion,
                 'product_ion': lipid.product_ion,
+                'collision_energy': lipid.collision_energy,
+                'polarity': lipid.polarity,
+                'internal_standard': lipid.internal_standard,
+                'xic_peak_intensity': None,  # Placeholder - field not in current schema
                 'class_name': lipid.lipid_class.class_name if lipid.lipid_class else 'Unknown',
-                'annotated_ions_count': len(lipid.annotated_ions)  # No additional query!
+                'annotated_ions_count': len(lipid.annotated_ions),  # No additional query!
+                'extraction_success': lipid.extraction_success  # Include extraction status
             }
             result.append(lipid_dict)
         
@@ -296,3 +301,66 @@ def init_db(app):
 def create_all_tables():
     """Create all tables"""
     db.create_all()
+
+
+# =====================================================
+# BACKUP SYSTEM MODELS - PostgreSQL-based backup
+# =====================================================
+
+class BackupHistory(db.Model):
+    """Track all data changes for backup/audit purposes"""
+    __tablename__ = 'backup_history'
+    
+    backup_id = Column(String(16), primary_key=True)
+    table_name = Column(String(100), nullable=False, index=True)
+    record_id = Column(Integer, nullable=False, index=True)
+    operation = Column(String(10), nullable=False, index=True)
+    old_data = Column(JSON)  # JSONB for PostgreSQL
+    new_data = Column(JSON)  # JSONB for PostgreSQL
+    timestamp = Column(Float, nullable=False, index=True)
+    user_id = Column(String(100))
+    source = Column(String(50), nullable=False, default='web_app')
+    backup_hash = Column(String(16), nullable=False)
+    created_at = Column(DateTime, default=func.current_timestamp())
+    
+    # Add check constraint for operation
+    __table_args__ = (
+        CheckConstraint("operation IN ('INSERT', 'UPDATE', 'DELETE')", name='valid_operation'),
+        Index('idx_backup_table_record', 'table_name', 'record_id'),
+        Index('idx_backup_timestamp', 'timestamp'),
+    )
+    
+    def __repr__(self):
+        return f'<BackupHistory {self.backup_id}: {self.operation} on {self.table_name}[{self.record_id}]>'
+
+
+class BackupSnapshots(db.Model):
+    """Store full database snapshots"""
+    __tablename__ = 'backup_snapshots'
+    
+    snapshot_id = Column(String(20), primary_key=True)
+    timestamp = Column(Float, nullable=False, index=True)
+    description = Column(Text, nullable=False)
+    tables_count = Column(Integer, nullable=False)
+    records_count = Column(Integer, nullable=False)
+    compressed_size = Column(Integer, nullable=False)  # in bytes
+    file_path = Column(String(500), nullable=False)
+    backup_hash = Column(String(16), nullable=False)
+    created_at = Column(DateTime, default=func.current_timestamp())
+    
+    def __repr__(self):
+        return f'<BackupSnapshot {self.snapshot_id}: {self.records_count} records>'
+
+
+class BackupStats(db.Model):
+    """Daily backup statistics"""
+    __tablename__ = 'backup_stats'
+    
+    stat_date = Column(DateTime, primary_key=True, default=func.current_date())
+    backups_created = Column(Integer, default=0)
+    data_changed_mb = Column(Float, default=0.0)
+    snapshots_created = Column(Integer, default=0)
+    total_backup_size_mb = Column(Float, default=0.0)
+    
+    def __repr__(self):
+        return f'<BackupStats {self.stat_date}: {self.backups_created} backups>'

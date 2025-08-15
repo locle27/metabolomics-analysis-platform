@@ -283,7 +283,7 @@ class DualChartService:
             y_min, y_max = 0, 100  # Fallback values
             calculated_step_size = 10
         
-        # Base datasets - main chromatogram line (like reference image)
+        # Base datasets - main chromatogram line (clean, professional appearance)
         datasets = [
             {
                 'label': 'Chromatogram',
@@ -292,9 +292,11 @@ class DualChartService:
                 'backgroundColor': 'rgba(0, 0, 0, 0)',  # Transparent
                 'borderWidth': 1.2,  # Slightly thinner for cleaner look
                 'fill': False,
-                'pointRadius': 0,  # Clean line without markers
-                'pointHoverRadius': 4,
-                'pointHoverBackgroundColor': '#1f77b4',
+                'pointRadius': 0,           # NO visible dots for clean appearance
+                'pointHoverRadius': 0,      # NO hover dots on main line
+                'pointBorderWidth': 0,      # NO point borders
+                'pointBackgroundColor': 'transparent',  # Invisible points
+                'pointBorderColor': 'transparent',      # Invisible borders
                 'tension': 0.0,  # No smoothing for accurate data representation
                 'order': 2  # Draw behind annotations
             }
@@ -424,8 +426,8 @@ class DualChartService:
                     }
                 },
                 'interaction': {
-                    'intersect': False,
-                    'mode': 'index'
+                    'intersect': False,  # Allow hover events anywhere on chart
+                    'mode': 'index'      # Better for area-based detection
                 }
             }
         }
@@ -475,11 +477,14 @@ class DualChartService:
                 'data': integration_data,
                 'borderColor': color,
                 'backgroundColor': light_fill,  # VERY light fill
-                'borderWidth': 0.5,  # Thinner border
+                'borderWidth': 0.8,  # Thin border for clean appearance
                 'fill': True,
-                'pointRadius': 0,
-                'pointHoverRadius': 3,  # Enable hover detection for integration areas
-                'pointHoverBorderWidth': 2,
+                'pointRadius': 0,           # NO visible dots for clean chart
+                'pointHoverRadius': 0,      # NO hover dots
+                'pointBorderWidth': 0,      # NO point borders
+                'pointBackgroundColor': 'transparent',  # Invisible points
+                'pointBorderColor': 'transparent',      # Invisible borders
+                'tension': 0,        # No smoothing for accurate area representation
                 'order': 1,  # Draw on top of main line
                 # Store INDIVIDUAL lipid info for THIS SPECIFIC integration area only
                 'lipid_info': {

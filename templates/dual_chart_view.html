@@ -47,9 +47,82 @@
     
     .charts-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr 300px;
         gap: 20px;
         margin-bottom: 20px;
+    }
+    
+    /* Professional Information Panel */
+    .lipid-info-panel {
+        background: #f8f9fa;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        padding: 20px;
+        height: fit-content;
+        min-height: 350px;
+        position: sticky;
+        top: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .info-panel-title {
+        font-weight: bold;
+        font-size: 16px;
+        color: #2c3e50;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #007bff;
+        text-align: center;
+    }
+    
+    .info-panel-content {
+        font-size: 13px;
+        line-height: 1.6;
+        color: #495057;
+    }
+    
+    .info-panel-empty {
+        text-align: center;
+        color: #6c757d;
+        font-style: italic;
+        margin-top: 50px;
+    }
+    
+    .info-panel-data {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        border-left: 4px solid #007bff;
+        box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+    }
+    
+    .info-panel-data .data-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #f1f3f4;
+    }
+    
+    .info-panel-data .data-row:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+    
+    .info-panel-data .label {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    .info-panel-data .value {
+        color: #495057;
+        font-family: 'Courier New', monospace;
+    }
+    
+    .dual-charts-container {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
     }
     
     /* Shared legend container */
@@ -95,35 +168,7 @@
         height: 1px;
     }
     
-    /* Custom tooltip styling */
-    .chartjs-tooltip {
-        position: absolute;
-        background: rgba(255, 255, 255, 0.98) !important;
-        border: 2px solid #007bff !important;
-        border-radius: 8px !important;
-        padding: 12px 15px !important;
-        font-size: 13px !important;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-        color: #2c3e50 !important;
-        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.3) !important;
-        z-index: 10000 !important;
-        pointer-events: none !important;
-        line-height: 1.4 !important;
-        max-width: 280px !important;
-        word-wrap: break-word !important;
-        white-space: normal !important;
-    }
-    
-    .chartjs-tooltip::before {
-        content: '';
-        position: absolute;
-        left: -8px;
-        top: 50%;
-        transform: translateY(-50%);
-        border-top: 8px solid transparent;
-        border-bottom: 8px solid transparent;
-        border-right: 8px solid #007bff;
-    }
+    /* Remove custom tooltip styling - using external panel instead */
     
     .single-chart-container {
         position: relative;
@@ -246,6 +291,12 @@
             grid-template-columns: 1fr !important;
         }
         
+        .lipid-info-panel {
+            position: relative;
+            top: 0;
+            min-height: 200px;
+        }
+        
         .legend-items {
             justify-content: flex-start;
             gap: 15px;
@@ -302,25 +353,44 @@
             </div>
         </div>
         
-        <!-- Dual Charts Grid -->
+        <!-- Charts and Info Panel Grid -->
         <div class="charts-grid">
-            <!-- Chart 1: Focused View -->
-            <div class="single-chart-container">
-                <div class="chart-title" id="chart1-title-{{ lipid.lipid_id }}">
-                    Chart 1: Loading...
+            <!-- Charts Container -->
+            <div class="dual-charts-container">
+                <!-- Chart 1: Focused View -->
+                <div class="single-chart-container">
+                    <div class="chart-title" id="chart1-title-{{ lipid.lipid_id }}">
+                        Chart 1: Loading...
+                    </div>
+                    <div class="chart-canvas">
+                        <canvas id="chart1-{{ lipid.lipid_id }}"></canvas>
+                    </div>
                 </div>
-                <div class="chart-canvas">
-                    <canvas id="chart1-{{ lipid.lipid_id }}"></canvas>
+                
+                <!-- Chart 2: Full Overview -->
+                <div class="single-chart-container">
+                    <div class="chart-title" id="chart2-title-{{ lipid.lipid_id }}">
+                        Chart 2: Loading...
+                    </div>
+                    <div class="chart-canvas">
+                        <canvas id="chart2-{{ lipid.lipid_id }}"></canvas>
+                    </div>
                 </div>
             </div>
             
-            <!-- Chart 2: Full Overview -->
-            <div class="single-chart-container">
-                <div class="chart-title" id="chart2-title-{{ lipid.lipid_id }}">
-                    Chart 2: Loading...
+            <!-- Professional Information Panel -->
+            <div class="lipid-info-panel" id="info-panel-{{ lipid.lipid_id }}">
+                <div class="info-panel-title">
+                    <i class="fas fa-info-circle"></i> Lipid Information
                 </div>
-                <div class="chart-canvas">
-                    <canvas id="chart2-{{ lipid.lipid_id }}"></canvas>
+                <div class="info-panel-content">
+                    <div class="info-panel-empty" id="info-panel-empty-{{ lipid.lipid_id }}">
+                        <i class="fas fa-mouse-pointer fa-2x mb-3" style="color: #dee2e6;"></i><br>
+                        Hover over colored integration areas in the charts to view detailed lipid information
+                    </div>
+                    <div class="info-panel-data" id="info-panel-data-{{ lipid.lipid_id }}" style="display: none;">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -490,123 +560,80 @@ function createChart(lipidId, chartType, chartConfig) {
         }
     };
     
-    // Enhanced tooltip callbacks for targeted lipid information only
-    if (chartConfig.options && chartConfig.options.plugins && chartConfig.options.plugins.tooltip) {
-        chartConfig.options.plugins.tooltip.external = function(context) {
-            // Custom external tooltip - CHART-SPECIFIC to avoid overlapping
-            const {chart, tooltip} = context;
+    // Professional 2D Area-Based Hover Detection System
+    if (chartConfig.options && chartConfig.options.plugins) {
+        // Disable tooltips completely - we're using onHover instead
+        chartConfig.options.plugins.tooltip = {
+            enabled: false
+        };
+        
+        // Add custom onHover event for 2D area detection
+        chartConfig.options.onHover = function(event, elements, chart) {
+            // Get mouse position relative to chart canvas
+            const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
             
-            // Create chart-specific tooltip ID
-            const tooltipId = `chartjs-tooltip-${chartType}-${lipidId}`;
+            // Convert canvas position to data coordinates
+            const mouseX = chart.scales.x.getValueForPixel(canvasPosition.x);
+            const mouseY = chart.scales.y.getValueForPixel(canvasPosition.y);
             
-            // PRECISE TOOLTIP: Only show for the EXACT integration area being hovered
-            let hoveredPoint = null;
+            console.log('=== 2D AREA HOVER DEBUG ===');
+            console.log(`Mouse position: X=${mouseX?.toFixed(2)}, Y=${mouseY?.toFixed(0)}`);
             
-            if (tooltip.dataPoints && tooltip.dataPoints.length > 0) {
-                // Find the specific dataset being hovered within its integration range
-                hoveredPoint = tooltip.dataPoints.find(point => {
-                    const dataset = point.dataset;
-                    return dataset.lipid_info && 
-                           !dataset.skip_tooltip && 
-                           !dataset.label?.startsWith('_boundary_line') &&
-                           dataset.integration_range &&
-                           point.parsed.x >= dataset.integration_range.start &&
-                           point.parsed.x <= dataset.integration_range.end;
-                });
-            }
+            // Find which integration area the mouse is within
+            let hoveredLipid = null;
             
-            const hasLipidInfo = !!hoveredPoint;
-            
-            // CRITICAL: Hide ALL other tooltips immediately
-            document.querySelectorAll('.chartjs-tooltip').forEach(tip => {
-                if (tip.id !== tooltipId) {
-                    tip.style.opacity = 0;
+            // Check each dataset for integration area bounds
+            chart.data.datasets.forEach((dataset, idx) => {
+                if (dataset.lipid_info && dataset.integration_range) {
+                    // Calculate 2D bounds for this integration area
+                    const timeStart = dataset.integration_range.start;
+                    const timeEnd = dataset.integration_range.end;
+                    
+                    // Find min/max intensity within this integration area
+                    let minIntensity = Infinity;
+                    let maxIntensity = -Infinity;
+                    
+                    dataset.data.forEach(point => {
+                        if (point.x >= timeStart && point.x <= timeEnd) {
+                            minIntensity = Math.min(minIntensity, point.y);
+                            maxIntensity = Math.max(maxIntensity, point.y);
+                        }
+                    });
+                    
+                    // Check if mouse is within this 2D rectangular area
+                    const inTimeRange = mouseX >= timeStart && mouseX <= timeEnd;
+                    const inIntensityRange = mouseY >= 0 && mouseY <= maxIntensity; // From baseline to peak
+                    
+                    console.log(`Dataset ${idx}: ${dataset.lipid_info.lipid_name} (${dataset.lipid_info.annotation})`);
+                    console.log(`  Time range: ${timeStart.toFixed(2)} - ${timeEnd.toFixed(2)} | In range: ${inTimeRange}`);
+                    console.log(`  Intensity range: 0 - ${maxIntensity.toFixed(0)} | In range: ${inIntensityRange}`);
+                    console.log(`  Mouse in 2D area: ${inTimeRange && inIntensityRange}`);
+                    
+                    if (inTimeRange && inIntensityRange) {
+                        // Mouse is within this integration area
+                        if (!hoveredLipid) {
+                            hoveredLipid = { dataset: dataset };
+                        } else {
+                            // Multiple matches - prefer the one with smaller area (more specific)
+                            const currentArea = (timeEnd - timeStart) * maxIntensity;
+                            const existingTimeRange = hoveredLipid.dataset.integration_range.end - hoveredLipid.dataset.integration_range.start;
+                            const existingMaxIntensity = Math.max(...hoveredLipid.dataset.data.map(p => p.y));
+                            const existingArea = existingTimeRange * existingMaxIntensity;
+                            
+                            if (currentArea < existingArea) {
+                                hoveredLipid = { dataset: dataset };
+                                console.log(`  -> Selected (smaller area: ${currentArea.toFixed(0)} vs ${existingArea.toFixed(0)})`);
+                            }
+                        }
+                    }
                 }
             });
             
-            // Get or create CHART-SPECIFIC tooltip element
-            let tooltipEl = document.getElementById(tooltipId);
-            if (!tooltipEl) {
-                tooltipEl = document.createElement('div');
-                tooltipEl.id = tooltipId;
-                tooltipEl.className = 'chartjs-tooltip';
-                tooltipEl.style.cssText = `
-                    position: absolute;
-                    background: rgba(255, 255, 255, 0.98);
-                    border: 2px solid #007bff;
-                    border-radius: 8px;
-                    padding: 12px 15px;
-                    font-size: 13px;
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    color: #2c3e50;
-                    box-shadow: 0 6px 20px rgba(0, 123, 255, 0.3);
-                    z-index: 10000;
-                    pointer-events: none;
-                    opacity: 0;
-                    transition: opacity 0.2s ease;
-                    max-width: 280px;
-                    white-space: normal;
-                    line-height: 1.4;
-                `;
-                chart.canvas.parentNode.appendChild(tooltipEl);
-            }
+            console.log(`Final selection: ${hoveredLipid ? hoveredLipid.dataset.lipid_info.annotation : 'None'}`);
             
-            // Already handled above
-            
-            // Hide tooltip if no content, no opacity, or no lipid info
-            if (tooltip.opacity === 0 || !hasLipidInfo) {
-                tooltipEl.style.opacity = 0;
-                return;
-            }
-            
-            // Get canvas position and size
-            const canvasRect = chart.canvas.getBoundingClientRect();
-            
-            // Position tooltip to the right of the cursor, but ensure it stays within bounds
-            let left = tooltip.caretX + 25; // 25px to the right of cursor
-            let top = tooltip.caretY - 20;  // Slightly above cursor
-            
-            // Adjust if tooltip would go off the right edge
-            if (left + 280 > canvasRect.width) {
-                left = tooltip.caretX - 305; // Position to the left instead
-            }
-            
-            // Adjust if tooltip would go off the bottom edge
-            if (top + 200 > canvasRect.height) {
-                top = canvasRect.height - 200 - 15;
-            }
-            
-            // Adjust if tooltip would go off the top edge
-            if (top < 0) {
-                top = 15;
-            }
-            
-            tooltipEl.style.left = left + 'px';
-            tooltipEl.style.top = top + 'px';
-            tooltipEl.style.opacity = 1;
-            
-            // Set STATIC tooltip content - ONLY for integration areas, NO dynamic RT info
-            if (hoveredPoint && hoveredPoint.dataset.lipid_info) {
-                const info = hoveredPoint.dataset.lipid_info;
-                const tooltipContent = [
-                    `<strong>Lipid name:</strong> ${info.lipid_name}`,
-                    `<strong>Lipid class:</strong> ${info.lipid_class}`,
-                    `<strong>Retention time:</strong> ${info.retention_time}`,
-                    `<strong>Integration start:</strong> ${info.integration_start}`,
-                    `<strong>Integration end:</strong> ${info.integration_end}`,
-                    `<strong>Precursor mass:</strong> ${info.precursor_mass}`,
-                    `<strong>Product mass:</strong> ${info.product_mass}`,
-                    `<strong>Annotation:</strong> ${info.annotation}`
-                ].join('<br>');
-                
-                tooltipEl.innerHTML = tooltipContent;
-            } else {
-                tooltipEl.style.opacity = 0; // Hide if not hovering over integration area
-            }
+            // Update information panel with the hovered lipid (or clear if none)
+            updateInfoPanel(lipidId, hoveredLipid, !!hoveredLipid);
         };
-        
-        // DISABLE all default tooltips - we only want static lipid info tooltips
-        chartConfig.options.plugins.tooltip.enabled = false;
     }
     
     // Store chart instance
@@ -736,6 +763,97 @@ function populateAnnotatedIons(lipidId, annotatedIons) {
     
     ionsSummary.innerHTML = summaryHTML;
     ionsSection.style.display = 'block';
+}
+
+// Professional External Information Panel Update System
+function updateInfoPanel(lipidId, hoveredPoint, isVisible) {
+    const infoPanelEmpty = document.getElementById(`info-panel-empty-${lipidId}`);
+    const infoPanelData = document.getElementById(`info-panel-data-${lipidId}`);
+    
+    if (!isVisible || !hoveredPoint || !hoveredPoint.dataset.lipid_info) {
+        // Show empty state
+        if (infoPanelEmpty) infoPanelEmpty.style.display = 'block';
+        if (infoPanelData) infoPanelData.style.display = 'none';
+        return;
+    }
+    
+    // Hide empty state and show data
+    if (infoPanelEmpty) infoPanelEmpty.style.display = 'none';
+    if (infoPanelData) {
+        infoPanelData.style.display = 'block';
+        
+        // Update panel content with EXACT hovered lipid information
+        const info = hoveredPoint.dataset.lipid_info;
+        const annotation = info.annotation || 'Current lipid';
+        const borderColor = hoveredPoint.dataset.borderColor || '#007bff';
+        
+        // Create annotation type badge with matching color
+        const annotationBadge = `
+            <div style="
+                background: ${borderColor}; 
+                color: white; 
+                padding: 4px 12px; 
+                border-radius: 20px; 
+                font-size: 11px; 
+                font-weight: bold; 
+                text-align: center; 
+                margin-bottom: 15px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            ">
+                📍 ${annotation}
+            </div>
+        `;
+        
+        infoPanelData.innerHTML = `
+            ${annotationBadge}
+            <div class="data-row">
+                <span class="label">Lipid Name:</span>
+                <span class="value">${info.lipid_name}</span>
+            </div>
+            <div class="data-row">
+                <span class="label">Lipid Class:</span>
+                <span class="value">${info.lipid_class}</span>
+            </div>
+            <div class="data-row">
+                <span class="label">Retention Time:</span>
+                <span class="value">${info.retention_time}</span>
+            </div>
+            <div class="data-row">
+                <span class="label">Integration Start:</span>
+                <span class="value">${info.integration_start}</span>
+            </div>
+            <div class="data-row">
+                <span class="label">Integration End:</span>
+                <span class="value">${info.integration_end}</span>
+            </div>
+            <div class="data-row">
+                <span class="label">Precursor Mass:</span>
+                <span class="value">${info.precursor_mass}</span>
+            </div>
+            <div class="data-row">
+                <span class="label">Product Mass:</span>
+                <span class="value">${info.product_mass}</span>
+            </div>
+            <div class="data-row" style="border-bottom: none; padding-bottom: 0;">
+                <span class="label">Type:</span>
+                <span class="value" style="font-weight: bold; color: ${borderColor};">${annotation}</span>
+            </div>
+        `;
+        
+        // Add dynamic visual highlight matching the exact lipid type
+        infoPanelData.style.borderLeftColor = borderColor;
+        infoPanelData.style.borderLeftWidth = '4px';
+        
+        // Add subtle background color based on annotation type
+        if (annotation === '+2 isotope') {
+            infoPanelData.style.backgroundColor = 'rgba(255, 71, 87, 0.05)'; // Light red tint
+        } else if (annotation === 'Similar MRM') {
+            infoPanelData.style.backgroundColor = 'rgba(46, 213, 115, 0.05)'; // Light green tint  
+        } else {
+            infoPanelData.style.backgroundColor = 'rgba(31, 119, 180, 0.05)'; // Light blue tint
+        }
+    }
 }
 
 // Chart interaction handlers

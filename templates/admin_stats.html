@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Statistics - Metabolomics Platform{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Admin Navigation Pills -->
+    <div class="admin-nav-pills">
+        <ul class="nav nav-pills">
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                    <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="{{ url_for('admin_stats') }}">
+                    <i class="fas fa-chart-bar me-1"></i>Statistics
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Statistics Content -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">📊 System Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h3>{{ stats.total_lipids or 0 }}</h3>
+                                <p>Total Lipids</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h3>{{ stats.total_classes or 0 }}</h3>
+                                <p>Lipid Classes</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h3>{{ stats.total_annotated_ions or 0 }}</h3>
+                                <p>Annotated Ions</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h3>{{ stats.successful_extractions or 0 }}</h3>
+                                <p>Successful Extractions</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.admin-nav-pills {
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    text-align: center;
+    padding: 1rem;
+}
+
+.stat-card h3 {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--primary-blue);
+    margin-bottom: 0.5rem;
+}
+
+.stat-card p {
+    color: #6c757d;
+    margin: 0;
+}
+</style>
+{% endblock %}

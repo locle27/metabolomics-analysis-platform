@@ -613,7 +613,7 @@
                                     
                                     <!-- Admin System -->
                                     <li class="nav-item">
-                                        <a class="nav-link {% if request.endpoint in ['admin_dashboard', 'admin_login'] %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">
+                                        <a class="nav-link {% if request.endpoint in ['admin_dashboard', 'admin_stats', 'backup_management'] %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">
                                             ADMIN
                                         </a>
                                     </li>
@@ -647,10 +647,10 @@
         {% endif %}
     {% endwith %}
 
-    <!-- Hero Section (Optional) -->
+    <!-- Hero Section (Only on Homepage) -->
     {% block hero %}
-    <!-- Default hero for pages that don't override it -->
-    {% if not request.endpoint in ['dual_chart_view', 'manage_lipids', 'browse_lipids'] %}
+    <!-- Hero section only appears on homepage -->
+    {% if request.endpoint == 'homepage' %}
     <section class="phenikaa-hero">
         <div class="container">
             <div class="row align-items-center">

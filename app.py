@@ -21,12 +21,16 @@ from sqlalchemy.orm import joinedload, selectinload
 from models_postgresql_optimized import (
     db, init_db, create_all_tables,
     MainLipid, LipidClass, AnnotatedIon, optimized_manager,
-    get_db_stats, get_lipids_by_class, search_lipids
+    get_db_stats, get_lipids_by_class, search_lipids,
+    BackupHistory, BackupSnapshots, BackupStats
 )
 
 # Import chart generation services  
 from simple_chart_service import SimpleChartGenerator
 from dual_chart_service import DualChartService
+
+# Import backup system
+from backup_system_postgresql import PostgreSQLBackupSystem, auto_backup_context
 
 # Configuration
 BASE_DIR = Path(__file__).resolve().parent
@@ -53,6 +57,9 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 
 # Initialize optimized database
 db = init_db(app)
+
+# Initialize backup system
+backup_system = PostgreSQLBackupSystem(app)
 
 # =====================================================
 # MAIN DASHBOARD ROUTE (OPTIMIZED)
@@ -421,11 +428,187 @@ def admin_dashboard():
             'last_backup': 'Not configured'
         }
         
-        return render_template('admin_dashboard.html', stats=stats, admin_info=admin_info)
+        # Get backup statistics for the admin dashboard
+        try:
+            backup_stats = backup_system.get_backup_statistics()
+        except:
+            backup_stats = None
+        
+        return render_template('admin_dashboard.html', stats=stats, admin_info=admin_info, backup_stats=backup_stats)
         
     except Exception as e:
         flash(f'Admin dashboard error: {str(e)}', 'error')
-        return render_template('admin_dashboard.html', stats={}, admin_info={})
+        return render_template('admin_dashboard.html', stats={}, admin_info={}, backup_stats=None)
+
+# =====================================================
+# BACKUP MANAGEMENT ROUTES
+# =====================================================
+
+@app.route('/backup-management')
+def backup_management():
+    """Backup management dashboard"""
+    try:
+        # Get backup statistics
+        stats = backup_system.get_backup_statistics()
+        
+        # Get recent backup history
+        recent_backups = backup_system.get_backup_history(limit=20)
+        
+        # Get recent snapshots
+        recent_snapshots = backup_system.get_snapshots(limit=10)
+        
+        return render_template('backup_management.html', 
+                             stats=stats, 
+                             recent_backups=recent_backups,
+                             recent_snapshots=recent_snapshots)
+        
+    except Exception as e:
+        flash(f'Backup management error: {str(e)}', 'error')
+        return render_template('backup_management.html', 
+                             stats={}, 
+                             recent_backups=[],
+                             recent_snapshots=[])
+
+@app.route('/api/create-snapshot', methods=['POST'])
+def create_snapshot():
+    """Create a manual database snapshot"""
+    try:
+        description = request.form.get('description', f'Manual snapshot created at {datetime.now()}')
+        
+        snapshot_id = backup_system.create_full_snapshot(description)
+        
+        return jsonify({
+            'status': 'success',
+            'snapshot_id': snapshot_id,
+            'message': f'Snapshot {snapshot_id} created successfully'
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Failed to create snapshot: {str(e)}'
+        }), 500
+
+@app.route('/api/backup-history')
+def backup_history_api():
+    """API endpoint for backup history with pagination"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 50, type=int)
+        table_filter = request.args.get('table', None)
+        
+        backups = backup_system.get_backup_history(
+            limit=per_page, 
+            table_name=table_filter
+        )
+        
+        backup_data = []
+        for backup in backups:
+            backup_data.append({
+                'backup_id': backup.backup_id,
+                'table_name': backup.table_name,
+                'record_id': backup.record_id,
+                'operation': backup.operation,
+                'timestamp': backup.timestamp,
+                'formatted_time': datetime.fromtimestamp(backup.timestamp).strftime('%Y-%m-%d %H:%M:%S'),
+                'user_id': backup.user_id or 'System',
+                'source': backup.source,
+                'has_old_data': backup.old_data is not None,
+                'has_new_data': backup.new_data is not None
+            })
+        
+        return jsonify({
+            'status': 'success',
+            'backups': backup_data,
+            'total': len(backup_data)
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Failed to get backup history: {str(e)}'
+        }), 500
+
+@app.route('/api/backup-details/<backup_id>')
+def backup_details(backup_id):
+    """Get detailed information about a specific backup"""
+    try:
+        backup = db.session.query(BackupHistory).filter_by(backup_id=backup_id).first()
+        
+        if not backup:
+            return jsonify({
+                'status': 'error',
+                'message': 'Backup not found'
+            }), 404
+        
+        return jsonify({
+            'status': 'success',
+            'backup': {
+                'backup_id': backup.backup_id,
+                'table_name': backup.table_name,
+                'record_id': backup.record_id,
+                'operation': backup.operation,
+                'old_data': backup.old_data,
+                'new_data': backup.new_data,
+                'timestamp': backup.timestamp,
+                'formatted_time': datetime.fromtimestamp(backup.timestamp).strftime('%Y-%m-%d %H:%M:%S'),
+                'user_id': backup.user_id or 'System',
+                'source': backup.source,
+                'backup_hash': backup.backup_hash
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Failed to get backup details: {str(e)}'
+        }), 500
+
+# =====================================================
+# ENHANCED ROUTES WITH AUTO-BACKUP
+# =====================================================
+
+@app.route('/update-lipid/<int:lipid_id>', methods=['POST'])
+def update_lipid(lipid_id):
+    """Update lipid with automatic backup"""
+    try:
+        lipid = MainLipid.query.get_or_404(lipid_id)
+        
+        # Get old data for backup
+        old_data = {
+            'lipid_name': lipid.lipid_name,
+            'lipid_class': lipid.lipid_class.class_name if lipid.lipid_class else None,
+            'retention_time': float(lipid.retention_time) if lipid.retention_time else None
+        }
+        
+        # Get new data from form
+        new_lipid_name = request.form.get('lipid_name')
+        if new_lipid_name:
+            new_data = old_data.copy()
+            new_data['lipid_name'] = new_lipid_name
+            
+            # Use auto-backup context
+            with auto_backup_context(
+                backup_system=backup_system,
+                table_name='main_lipids',
+                record_id=lipid_id,
+                operation='UPDATE',
+                old_data=old_data,
+                new_data=new_data,
+                user_id=request.remote_addr,  # Use IP as user ID for now
+                source='web_interface'
+            ):
+                lipid.lipid_name = new_lipid_name
+                db.session.commit()
+            
+            flash(f'Lipid {lipid_id} updated successfully (with backup)', 'success')
+        
+        return redirect(url_for('clean_dashboard'))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error updating lipid: {str(e)}', 'error')
+        return redirect(url_for('clean_dashboard'))
 
 # =====================================================
 # ERROR HANDLERS

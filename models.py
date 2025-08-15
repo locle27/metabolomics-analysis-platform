@@ -316,3 +316,66 @@ def search_lipids(search_term: str):
     return MainLipid.query.filter(
         MainLipid.lipid_name.ilike(f'%{search_term}%')
     ).all()
+
+
+# =====================================================
+# BACKUP SYSTEM MODELS - PostgreSQL-based backup
+# =====================================================
+
+class BackupHistory(db.Model):
+    """Track all data changes for backup/audit purposes"""
+    __tablename__ = 'backup_history'
+    
+    backup_id = Column(String(16), primary_key=True)
+    table_name = Column(String(100), nullable=False, index=True)
+    record_id = Column(Integer, nullable=False, index=True)
+    operation = Column(String(10), nullable=False, index=True)
+    old_data = Column(JSON)  # JSONB for PostgreSQL
+    new_data = Column(JSON)  # JSONB for PostgreSQL
+    timestamp = Column(Float, nullable=False, index=True)
+    user_id = Column(String(100))
+    source = Column(String(50), nullable=False, default='web_app')
+    backup_hash = Column(String(16), nullable=False)
+    created_at = Column(DateTime, default=func.current_timestamp())
+    
+    # Add check constraint for operation
+    __table_args__ = (
+        CheckConstraint("operation IN ('INSERT', 'UPDATE', 'DELETE')", name='valid_operation'),
+        Index('idx_backup_table_record', 'table_name', 'record_id'),
+        Index('idx_backup_timestamp', 'timestamp'),
+    )
+    
+    def __repr__(self):
+        return f'<BackupHistory {self.backup_id}: {self.operation} on {self.table_name}[{self.record_id}]>'
+
+
+class BackupSnapshots(db.Model):
+    """Store full database snapshots"""
+    __tablename__ = 'backup_snapshots'
+    
+    snapshot_id = Column(String(20), primary_key=True)
+    timestamp = Column(Float, nullable=False, index=True)
+    description = Column(Text, nullable=False)
+    tables_count = Column(Integer, nullable=False)
+    records_count = Column(Integer, nullable=False)
+    compressed_size = Column(Integer, nullable=False)  # in bytes
+    file_path = Column(String(500), nullable=False)
+    backup_hash = Column(String(16), nullable=False)
+    created_at = Column(DateTime, default=func.current_timestamp())
+    
+    def __repr__(self):
+        return f'<BackupSnapshot {self.snapshot_id}: {self.records_count} records>'
+
+
+class BackupStats(db.Model):
+    """Daily backup statistics"""
+    __tablename__ = 'backup_stats'
+    
+    stat_date = Column(DateTime, primary_key=True, default=func.current_date())
+    backups_created = Column(Integer, default=0)
+    data_changed_mb = Column(Float, default=0.0)
+    snapshots_created = Column(Integer, default=0)
+    total_backup_size_mb = Column(Float, default=0.0)
+    
+    def __repr__(self):
+        return f'<BackupStats {self.stat_date}: {self.backups_created} backups>'
