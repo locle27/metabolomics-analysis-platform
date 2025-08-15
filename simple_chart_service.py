@@ -15,8 +15,8 @@ from datetime import datetime
 import aiohttp
 import asyncio
 
-# Import models
-from models import db, MainLipid, AnnotatedIon
+# Import optimized PostgreSQL models
+from models_postgresql_optimized import db, MainLipid, AnnotatedIon
 
 class SimpleChartGenerator:
     """
