@@ -110,11 +110,21 @@
     }
     
     .lipid-class-badge {
-        display: none; /* Hidden to save space */
+        background: var(--phenikaa-blue);
+        color: white;
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: 500;
+        margin-left: 8px;
     }
     
     .lipid-details {
-        display: none; /* Hidden to save space */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 5px;
+        font-size: 11px;
     }
     
     .selected-lipids-panel {
@@ -409,19 +419,16 @@
             </small>
         </div>
         
-        <!-- Class Filter Bar -->
+        <!-- Class Filter -->
         <div class="class-filter-bar">
             <div class="text-center">
-                <strong>Filter by Lipid Class:</strong>
-                <div class="mt-2">
-                    <button class="class-filter-btn active" data-class="all">All Classes</button>
+                <strong>Class:</strong>
+                <select id="class-select" class="form-select d-inline-block mx-2" style="width: auto;">
+                    <option value="all">All Classes</option>
                     {% for cls in data.classes %}
-                    <button class="class-filter-btn" data-class="{{ cls.class_name }}">
-                        {{ cls.class_name }}
-                        <span class="badge bg-light text-dark ms-1">{{ cls.count or 0 }}</span>
-                    </button>
+                    <option value="{{ cls.class_name }}">{{ cls.class_name }} ({{ cls.count or 0 }})</option>
                     {% endfor %}
-                </div>
+                </select>
             </div>
         </div>
         
@@ -457,6 +464,7 @@
                 
                 <div class="selection-checkbox"></div>
                 <div class="lipid-name">{{ lipid.lipid_name }}</div>
+                <span class="lipid-class-badge">{{ lipid.class_name }}</span>
             </div>
             {% endfor %}
             {% endif %}
@@ -609,20 +617,18 @@ function setupSearch() {
 }
 
 function setupClassFilters() {
-    document.querySelectorAll('.class-filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            // Update active state
-            document.querySelectorAll('.class-filter-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            
+    const classSelect = document.getElementById('class-select');
+    if (classSelect) {
+        classSelect.addEventListener('change', function() {
             filterLipids();
         });
-    });
+    }
 }
 
 function filterLipids() {
     const searchTerm = document.getElementById('search-input').value.toLowerCase();
-    const selectedClass = document.querySelector('.class-filter-btn.active').dataset.class;
+    const classSelect = document.getElementById('class-select');
+    const selectedClass = classSelect ? classSelect.value : 'all';
     
     let visibleCount = 0;
     
@@ -874,15 +880,8 @@ function createLipidCard(lipid) {
     
     card.innerHTML = `
         <div class="selection-checkbox"></div>
-        <div class="card-content">
-            <div class="lipid-name">${lipid.lipid_name}</div>
-            ${statusIndicator}
-            <div class="lipid-details">
-                <span class="class-badge">${lipid.class_name}</span>
-                <span class="rt-info">${lipid.retention_time ? lipid.retention_time.toFixed(2) + ' min' : 'N/A'}</span>
-            </div>
-            <div class="ions-count">${lipid.annotated_ions_count} ions</div>
-        </div>
+        <div class="lipid-name">${lipid.lipid_name}</div>
+        <span class="lipid-class-badge">${lipid.class_name}</span>
     `;
     
     return card;
