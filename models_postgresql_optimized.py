@@ -119,57 +119,6 @@ class AnnotatedIon(db.Model):
             'is_main_lipid': self.is_main_lipid
         }
 
-class User(db.Model):
-    """User model for authentication with Gmail OAuth"""
-    __tablename__ = 'users'
-    
-    user_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    email = db.Column(db.String(255), nullable=False, unique=True)
-    full_name = db.Column(db.String(255), nullable=False)
-    picture = db.Column(db.String(500))  # URL to user's profile picture
-    role = db.Column(db.String(50), default='user')  # 'admin', 'manager', 'user'
-    is_active = db.Column(db.Boolean, default=True)
-    last_login = db.Column(db.DateTime)
-    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
-    
-    def __repr__(self):
-        return f'<User {self.email}>'
-    
-    def to_dict(self):
-        return {
-            'user_id': self.user_id,
-            'email': self.email,
-            'full_name': self.full_name,
-            'picture': self.picture,
-            'role': self.role,
-            'is_active': self.is_active,
-            'last_login': self.last_login,
-            'created_at': self.created_at
-        }
-    
-    # Flask-Login required methods
-    def is_authenticated(self):
-        return True
-    
-    def is_active_user(self):
-        return self.is_active
-    
-    def is_anonymous(self):
-        return False
-    
-    def get_id(self):
-        return str(self.user_id)
-    
-    def has_role(self, role):
-        return self.role == role
-    
-    def is_admin(self):
-        return self.role == 'admin'
-    
-    def is_manager(self):
-        return self.role in ['admin', 'manager']
-
 class ScheduleRequest(db.Model):
     """Model for appointment/consultation scheduling requests"""
     __tablename__ = 'schedule_requests'
