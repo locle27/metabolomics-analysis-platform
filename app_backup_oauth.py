@@ -6,7 +6,6 @@ Fixes N+1 query problems with proper eager loading
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response, send_file, session
 from dotenv import load_dotenv
-from werkzeug.middleware.proxy_fix import ProxyFix
 import json
 from functools import lru_cache, wraps
 from pathlib import Path
@@ -23,14 +22,10 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from authlib.integrations.flask_client import OAuth
 from flask_mail import Mail, Message
 
-# Appwrite authentication
-from appwrite.client import Client
-from appwrite.services.account import Account
-
 # Import optimized PostgreSQL models
 from models_postgresql_optimized import (
     db, init_db, create_all_tables,
-    MainLipid, LipidClass, AnnotatedIon, User, ScheduleRequest, AdminSettings, optimized_manager,
+    MainLipid, LipidClass, AnnotatedIon, User, ScheduleRequest, optimized_manager,
     get_db_stats, get_lipids_by_class, search_lipids,
     BackupHistory, BackupSnapshots, BackupStats
 )
@@ -49,10 +44,6 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
 app = Flask(__name__, template_folder=BASE_DIR / "templates", static_folder=BASE_DIR / "static")
-
-# Fix for Railway HTTPS proxy - This tells Flask to trust the headers sent by the Railway proxy
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-
 app.secret_key = os.getenv('SECRET_KEY', 'metabolomics-dev-key-change-in-production')
 
 # Authentication Configuration
@@ -73,12 +64,6 @@ google = oauth.register(
         'scope': 'openid email profile'
     }
 )
-
-# Appwrite Configuration
-appwrite_client = Client()
-appwrite_client.set_endpoint('https://fra.cloud.appwrite.io/v1')
-appwrite_client.set_project('689f6b2e0028c3763654')
-appwrite_account = Account(appwrite_client)
 
 # Email Configuration with SMTP hostname fix
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
@@ -132,138 +117,7 @@ backup_system = PostgreSQLBackupSystem(app)
 @app.route('/login')
 def login():
     """Display login page"""
-    return render_template('login_exact.html')
-
-@app.route('/demo-login')
-def demo_login():
-    """Demo login for deployment testing - bypasses OAuth"""
-    try:
-        # Create or get demo user
-        demo_email = "demo@metabolomics-platform.com"
-        demo_user = User.query.filter_by(email=demo_email).first()
-        
-        if not demo_user:
-            # Create demo admin user
-            demo_user = User(
-                email=demo_email,
-                full_name="Demo Admin User",
-                picture="",
-                role='admin',
-                is_active=True
-            )
-            db.session.add(demo_user)
-            db.session.commit()
-        
-        # Log in the demo user
-        login_user(demo_user, remember=True)
-        flash('🎯 Demo login successful! You have admin access.', 'success')
-        return redirect(url_for('homepage'))
-        
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Demo login failed: {str(e)}', 'error')
-        return redirect(url_for('homepage'))
-
-@app.route('/recovery-mode')
-def recovery_mode():
-    """Emergency recovery: disable authentication completely"""
-    try:
-        # Create emergency admin session
-        session['emergency_admin'] = True
-        session['recovery_mode'] = True
-        flash('🚨 RECOVERY MODE ACTIVE - All authentication bypassed for debugging', 'warning')
-        return redirect(url_for('homepage'))
-    except Exception as e:
-        return f"Recovery mode failed: {str(e)}"
-
-@app.route('/appwrite-login')
-def appwrite_login():
-    """Initiate Appwrite Google OAuth login"""
-    try:
-        # Determine the correct base URL for callbacks
-        if 'railway.app' in request.host:
-            # Production Railway deployment
-            base_url = f"https://{request.host}"
-        else:
-            # Local development
-            base_url = url_for('appwrite_callback', _external=True).replace('/appwrite-callback', '')
-        
-        success_url = f"{base_url}/appwrite-callback"
-        failure_url = f"{base_url}/login"
-        
-        print(f"Appwrite OAuth URLs - Success: {success_url}, Failure: {failure_url}")
-        
-        # Redirect to Appwrite OAuth
-        oauth_url = f"https://fra.cloud.appwrite.io/v1/account/sessions/oauth2/google?project=689f6b2e0028c3763654&success={success_url}&failure={failure_url}"
-        return redirect(oauth_url)
-        
-    except Exception as e:
-        flash(f'Appwrite login failed: {str(e)}', 'error')
-        return redirect(url_for('login'))
-
-@app.route('/appwrite-callback')
-def appwrite_callback():
-    """Handle Appwrite OAuth callback"""
-    try:
-        # Get session info from Appwrite using cookies
-        # The session should be in the cookies set by Appwrite
-        session_cookies = request.cookies
-        
-        if 'a_session_689f6b2e0028c3763654' in session_cookies:
-            # Set session cookie for Appwrite client
-            appwrite_client.set_session(session_cookies['a_session_689f6b2e0028c3763654'])
-            
-            # Get user info from Appwrite
-            user_info = appwrite_account.get()
-            
-            email = user_info['email']
-            full_name = user_info['name']
-            user_id = user_info['$id']
-            
-            # Find or create user in our database
-            user = User.query.filter_by(email=email).first()
-            if not user:
-                # Check if this is the first user - make them admin
-                user_count = User.query.count()
-                default_role = 'admin' if user_count == 0 else 'user'
-                
-                # Create new user
-                user = User(
-                    email=email,
-                    full_name=full_name,
-                    picture='',  # Appwrite might not provide picture URL
-                    role=default_role,
-                    is_active=True
-                )
-                db.session.add(user)
-                db.session.commit()
-                
-                if default_role == 'admin':
-                    flash(f'Welcome {full_name}! You have been granted admin access as the first user.', 'success')
-                else:
-                    flash(f'Welcome {full_name}! Your account has been created.', 'success')
-            else:
-                # Update existing user info
-                user.full_name = full_name
-                user.last_login = datetime.now()
-                db.session.commit()
-                flash(f'Welcome back, {full_name}!', 'success')
-            
-            # Log the user in with Flask-Login
-            login_user(user, remember=True)
-            
-            # Store Appwrite session in Flask session for future API calls
-            session['appwrite_session'] = session_cookies['a_session_689f6b2e0028c3763654']
-            
-            return redirect(url_for('homepage'))
-        else:
-            flash('Authentication failed. Please try again.', 'error')
-            return redirect(url_for('login'))
-            
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Authentication failed: {str(e)}', 'error')
-        return redirect(url_for('login'))
+    return render_template('login.html')
 
 @app.route('/login/callback')
 def login_callback():
@@ -889,68 +743,6 @@ def admin_dashboard():
     except Exception as e:
         flash(f'Admin dashboard error: {str(e)}', 'error')
         return render_template('admin_dashboard.html', stats={}, admin_info={}, backup_stats=None)
-
-@app.route('/admin/zoom-settings')
-@admin_required
-def admin_zoom_settings():
-    """Admin zoom settings configuration"""
-    try:
-        # Get current zoom settings
-        zoom_start = AdminSettings.get_setting('chart_zoom_start', 0.0)
-        zoom_end = AdminSettings.get_setting('chart_zoom_end', 16.0)
-        
-        return render_template('admin_zoom_settings.html', 
-                             zoom_start=zoom_start, 
-                             zoom_end=zoom_end)
-    except Exception as e:
-        flash(f'Error loading zoom settings: {str(e)}', 'error')
-        return redirect(url_for('admin_dashboard'))
-
-@app.route('/admin/zoom-settings', methods=['POST'])
-@admin_required
-def update_zoom_settings():
-    """Update admin zoom settings"""
-    try:
-        zoom_start = float(request.form.get('zoom_start', 0.0))
-        zoom_end = float(request.form.get('zoom_end', 16.0))
-        
-        # Validate settings
-        if zoom_start < 0 or zoom_end <= zoom_start:
-            flash('Invalid zoom range. End time must be greater than start time.', 'error')
-            return redirect(url_for('admin_zoom_settings'))
-        
-        # Save settings
-        AdminSettings.set_setting('chart_zoom_start', zoom_start, 'number', 
-                                'Default chart zoom start time (minutes)', current_user.user_id)
-        AdminSettings.set_setting('chart_zoom_end', zoom_end, 'number', 
-                                'Default chart zoom end time (minutes)', current_user.user_id)
-        
-        flash(f'Zoom settings updated: {zoom_start:.2f} - {zoom_end:.2f} minutes', 'success')
-        return redirect(url_for('admin_zoom_settings'))
-        
-    except Exception as e:
-        flash(f'Error updating zoom settings: {str(e)}', 'error')
-        return redirect(url_for('admin_zoom_settings'))
-
-@app.route('/api/zoom-settings')
-def get_zoom_settings():
-    """API endpoint to get current zoom settings for charts"""
-    try:
-        zoom_start = AdminSettings.get_setting('chart_zoom_start', 0.0)
-        zoom_end = AdminSettings.get_setting('chart_zoom_end', 16.0)
-        
-        return jsonify({
-            'status': 'success',
-            'data': {
-                'zoom_start': zoom_start,
-                'zoom_end': zoom_end
-            }
-        })
-    except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'message': str(e)
-        }), 500
 
 # =====================================================
 # BACKUP MANAGEMENT ROUTES

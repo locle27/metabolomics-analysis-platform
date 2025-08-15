@@ -68,6 +68,110 @@
         background: #c82333;
     }
     
+    .zoom-settings-btn {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+        margin-left: 8px;
+    }
+    
+    .zoom-settings-btn:hover {
+        background: #0056b3;
+    }
+    
+    .zoom-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+    
+    .zoom-modal-content {
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        max-width: 500px;
+        width: 90%;
+    }
+    
+    .zoom-form {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .zoom-form h3 {
+        margin: 0 0 15px 0;
+        color: #2c3e50;
+        text-align: center;
+    }
+    
+    .zoom-form label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 5px;
+    }
+    
+    .zoom-form input {
+        padding: 10px;
+        border: 2px solid #e9ecef;
+        border-radius: 6px;
+        font-size: 14px;
+        font-family: 'Courier New', monospace;
+    }
+    
+    .zoom-form input:focus {
+        border-color: #007bff;
+        outline: none;
+    }
+    
+    .zoom-form-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 15px;
+    }
+    
+    .zoom-form-buttons button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-save {
+        background: #28a745;
+        color: white;
+    }
+    
+    .btn-save:hover {
+        background: #218838;
+    }
+    
+    .btn-cancel {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .btn-cancel:hover {
+        background: #545b62;
+    }
+    
     .detailed-info-panel {
         background: #f8f9fa;
         border: 1px solid #e9ecef;
@@ -165,6 +269,24 @@
         cursor: pointer;
     }
     
+    .chart-lipid-name {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255, 255, 255, 0.9);
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        font-size: 12px;
+        color: #2c3e50;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        pointer-events: none;
+        border: 1px solid #e9ecef;
+    }
+    
     .chart-canvas canvas {
         transition: border 0.2s ease;
     }
@@ -236,6 +358,56 @@
     .ion-details {
         color: #666;
         margin-top: 4px;
+    }
+    
+    .lipid-details-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 15px;
+    }
+    
+    .detail-card {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 15px;
+        border-left: 4px solid #007bff;
+    }
+    
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px solid #f8f9fa;
+    }
+    
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+    
+    .detail-label {
+        font-weight: 600;
+        color: #495057;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .detail-value {
+        color: #2c3e50;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        font-weight: 500;
+        background: #f8f9fa;
+        padding: 2px 8px;
+        border-radius: 4px;
+    }
+    
+    .detail-value.highlight {
+        background: #e3f2fd;
+        color: #1976d2;
+        font-weight: 600;
     }
     
     .back-button {
@@ -329,6 +501,11 @@
                 <button class="info-toggle-btn" onclick="toggleDetailedInfo({{ lipid.lipid_id }})" id="toggle-btn-{{ lipid.lipid_id }}">
                     <i class="fas fa-info-circle"></i> Show Details
                 </button>
+                {% if current_user.is_authenticated and current_user.is_admin() %}
+                <button class="zoom-settings-btn" onclick="showZoomSettings({{ lipid.lipid_id }})" id="zoom-btn-{{ lipid.lipid_id }}">
+                    <i class="fas fa-search-plus"></i> Set Zoom
+                </button>
+                {% endif %}
             </div>
         </div>
         
@@ -348,6 +525,7 @@
                 <div class="single-chart-container">
                     <div class="chart-canvas">
                         <canvas id="chart1-{{ lipid.lipid_id }}"></canvas>
+                        <div class="chart-lipid-name">{{ lipid.lipid_name }}</div>
                     </div>
                 </div>
                 
@@ -355,6 +533,7 @@
                 <div class="single-chart-container">
                     <div class="chart-canvas">
                         <canvas id="chart2-{{ lipid.lipid_id }}"></canvas>
+                        <div class="chart-lipid-name">{{ lipid.lipid_name }}</div>
                     </div>
                 </div>
             </div>
@@ -362,11 +541,11 @@
         
         <!-- Detailed Information Panel (Hidden by default) -->
         <div class="detailed-info-panel" id="detailed-info-{{ lipid.lipid_id }}" style="display: none;">
-            <!-- Shared Legend -->
+            <!-- Comprehensive Lipid Information -->
             <div class="info-section">
-                <h4>Chart Legend</h4>
-                <div class="legend-items" id="detailed-legend-{{ lipid.lipid_id }}">
-                    <!-- Will be populated by JavaScript -->
+                <h4>Lipid Details</h4>
+                <div id="detailed-lipid-info-{{ lipid.lipid_id }}" class="lipid-details-grid">
+                    <!-- Will be populated by JavaScript with comprehensive lipid data -->
                 </div>
             </div>
             
@@ -404,6 +583,27 @@
         </div>
     </div>
     {% endfor %}
+    
+    <!-- Individual Zoom Settings Modal -->
+    <div class="zoom-modal" id="zoom-modal">
+        <div class="zoom-modal-content">
+            <div class="zoom-form">
+                <h3 id="zoom-modal-title">Set Zoom Range for Lipid</h3>
+                <div>
+                    <label for="zoom-start">Start Time (minutes):</label>
+                    <input type="number" id="zoom-start" step="0.01" min="0" max="20" placeholder="0.00">
+                </div>
+                <div>
+                    <label for="zoom-end">End Time (minutes):</label>
+                    <input type="number" id="zoom-end" step="0.01" min="0.1" max="30" placeholder="16.00">
+                </div>
+                <div class="zoom-form-buttons">
+                    <button class="btn-cancel" onclick="closeZoomModal()">Cancel</button>
+                    <button class="btn-save" onclick="saveZoomSettings()">Save & Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -419,12 +619,144 @@ const chartData = {};
 // Register Chart.js zoom plugin
 Chart.register(ChartZoom);
 
+// Individual zoom settings storage
+let individualZoomSettings = {};
+let currentZoomLipidId = null;
+
 // Initialize all charts when page loads
 document.addEventListener('DOMContentLoaded', function() {
     {% for lipid in selected_lipids %}
         initializeDualCharts({{ lipid.lipid_id }});
     {% endfor %}
 });
+
+// Individual zoom modal functions
+function showZoomSettings(lipidId) {
+    currentZoomLipidId = lipidId;
+    const modal = document.getElementById('zoom-modal');
+    const title = document.getElementById('zoom-modal-title');
+    const startInput = document.getElementById('zoom-start');
+    const endInput = document.getElementById('zoom-end');
+    
+    // Get lipid name
+    const lipidName = document.querySelector(`#lipid-container-${lipidId} .lipid-title`).textContent;
+    title.textContent = `Set Zoom Range for ${lipidName}`;
+    
+    // Load existing settings if any
+    const existing = individualZoomSettings[lipidId];
+    if (existing) {
+        startInput.value = existing.start;
+        endInput.value = existing.end;
+    } else {
+        startInput.value = '';
+        endInput.value = '';
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function closeZoomModal() {
+    document.getElementById('zoom-modal').style.display = 'none';
+    currentZoomLipidId = null;
+}
+
+function saveZoomSettings() {
+    if (!currentZoomLipidId) return;
+    
+    const startValue = parseFloat(document.getElementById('zoom-start').value);
+    const endValue = parseFloat(document.getElementById('zoom-end').value);
+    
+    if (isNaN(startValue) || isNaN(endValue) || startValue >= endValue) {
+        alert('Please enter valid start and end times (start must be less than end)');
+        return;
+    }
+    
+    // Save individual zoom settings
+    individualZoomSettings[currentZoomLipidId] = {
+        start: startValue,
+        end: endValue
+    };
+    
+    // Apply zoom immediately
+    applyIndividualZoom(currentZoomLipidId);
+    
+    closeZoomModal();
+}
+
+// Apply individual zoom to specific lipid chart
+function applyIndividualZoom(lipidId) {
+    const settings = individualZoomSettings[lipidId];
+    if (!settings || !chartInstances[lipidId]) return;
+    
+    try {
+        const chart2 = chartInstances[lipidId]['chart2'];
+        if (chart2) {
+            console.log(`🎯 Applying individual zoom to ${lipidId}: ${settings.start.toFixed(2)} - ${settings.end.toFixed(2)} minutes`);
+            
+            // Reset and apply zoom
+            chart2.resetZoom('none');
+            chart2.zoomScale('x', {
+                min: settings.start,
+                max: settings.end
+            }, 'none');
+            
+            // Add visual indicator
+            const canvas = chart2.canvas;
+            canvas.style.borderTop = '3px solid #007bff';
+            canvas.style.borderLeft = '3px solid #007bff';
+            canvas.title = `Individual Zoom: ${settings.start.toFixed(2)} - ${settings.end.toFixed(2)} minutes`;
+            
+            // Add individual zoom badge
+            addIndividualZoomBadge(lipidId);
+        }
+    } catch (error) {
+        console.error(`Failed to apply individual zoom to ${lipidId}:`, error);
+    }
+}
+
+// Add visual badge for individual zoom
+function addIndividualZoomBadge(lipidId) {
+    try {
+        const chartContainer = document.querySelector(`#lipid-container-${lipidId} .single-chart-container:nth-child(2)`);
+        if (!chartContainer) return;
+        
+        // Remove existing badge
+        const existingBadge = chartContainer.querySelector('.individual-zoom-badge');
+        if (existingBadge) {
+            existingBadge.remove();
+        }
+        
+        const settings = individualZoomSettings[lipidId];
+        if (!settings) return;
+        
+        // Create individual zoom badge
+        const badge = document.createElement('div');
+        badge.className = 'individual-zoom-badge';
+        badge.innerHTML = `
+            <i class="fas fa-user-cog"></i> 
+            Individual: ${settings.start.toFixed(1)}-${settings.end.toFixed(1)}min
+        `;
+        badge.style.cssText = `
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+            pointer-events: none;
+        `;
+        
+        chartContainer.style.position = 'relative';
+        chartContainer.appendChild(badge);
+    } catch (error) {
+        console.warn('Could not add individual zoom badge:', error);
+    }
+}
 
 async function initializeDualCharts(lipidId) {
     try {
@@ -460,6 +792,13 @@ async function initializeDualCharts(lipidId) {
         // Add double-click reset functionality
         addDoubleClickReset(lipidId, 'chart1');
         addDoubleClickReset(lipidId, 'chart2');
+        
+        // Apply individual zoom settings if any exist
+        setTimeout(() => {
+            if (individualZoomSettings[lipidId]) {
+                applyIndividualZoom(lipidId);
+            }
+        }, 500);
         
         // Store data for detailed info panel
         window.chartData = window.chartData || {};
@@ -752,9 +1091,9 @@ function toggleDetailedInfo(lipidId) {
         toggleBtn.innerHTML = '<i class="fas fa-eye-slash"></i> Hide Details';
         toggleBtn.classList.add('active');
         
-        // Populate detailed legend and ions
+        // Populate detailed lipid information and ions
         if (window.chartData && window.chartData[lipidId]) {
-            populateDetailedLegend(lipidId, window.chartData[lipidId].datasets);
+            populateDetailedLipidInfo(lipidId, window.chartData[lipidId].datasets, window.chartData[lipidId].mainLipidData);
             populateDetailedIons(lipidId, window.chartData[lipidId].annotatedIons);
         }
     } else {
@@ -765,46 +1104,94 @@ function toggleDetailedInfo(lipidId) {
     }
 }
 
-function populateDetailedLegend(lipidId, datasets) {
-    const legendContainer = document.getElementById(`detailed-legend-${lipidId}`);
+function populateDetailedLipidInfo(lipidId, datasets, mainLipidData) {
+    const infoContainer = document.getElementById(`detailed-lipid-info-${lipidId}`);
     
-    if (!legendContainer || !datasets) return;
+    if (!infoContainer || !datasets) return;
     
-    let legendHTML = '';
+    // Find the main lipid dataset (Current lipid annotation)
+    const mainDataset = datasets.find(dataset => 
+        dataset.lipid_info && dataset.lipid_info.annotation === 'Current lipid'
+    );
     
-    // Add main chromatogram line
-    legendHTML += `
-        <div class="legend-item">
-            <div class="legend-color" style="background-color: #1f77b4;"></div>
-            <span>Chromatogram</span>
+    if (!mainDataset) return;
+    
+    const lipidInfo = mainDataset.lipid_info;
+    
+    // Create comprehensive lipid information display
+    let detailsHTML = `
+        <div class="detail-card">
+            <div class="detail-row">
+                <span class="detail-label">Code</span>
+                <span class="detail-value highlight">${lipidInfo.lipidcode || 'N/A'}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Name</span>
+                <span class="detail-value highlight">${lipidInfo.lipidstring || lipidInfo.lipid_name}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Class</span>
+                <span class="detail-value">${lipidInfo.class || 'N/A'}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Precursor Ion</span>
+                <span class="detail-value">${lipidInfo.precursor_ion || 'N/A'} m/z</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Product Ion</span>
+                <span class="detail-value">${lipidInfo.product_ion || 'N/A'} m/z</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Retention Time</span>
+                <span class="detail-value highlight">${parseFloat(lipidInfo.retention_time).toFixed(5)} min</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Collision Energy</span>
+                <span class="detail-value">${lipidInfo.collision_energy || 'N/A'} eV</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Polarity</span>
+                <span class="detail-value">${lipidInfo.polarity || 'N/A'}</span>
+            </div>
+        </div>
+        
+        <div class="detail-card">
+            <div class="detail-row">
+                <span class="detail-label">Fragmentation</span>
+                <span class="detail-value">${lipidInfo.fragmentation || 'N/A'}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">ISTD</span>
+                <span class="detail-value">${lipidInfo.istd || 'N/A'}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Response Factor</span>
+                <span class="detail-value">${lipidInfo.response_factor || 'N/A'}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Integration Start</span>
+                <span class="detail-value highlight">${parseFloat(lipidInfo.int_start).toFixed(7)} min</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Integration End</span>
+                <span class="detail-value highlight">${parseFloat(lipidInfo.int_end).toFixed(7)} min</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">XIC Data Points</span>
+                <span class="detail-value">${lipidInfo.xic_data_points || 'N/A'}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Max Intensity</span>
+                <span class="detail-value">${parseFloat(lipidInfo.max_intensity).toFixed(1)}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Avg Intensity</span>
+                <span class="detail-value">${parseFloat(lipidInfo.avg_intensity).toFixed(2)}</span>
+            </div>
         </div>
     `;
     
-    // Add integration areas (skip boundary lines and chromatogram)
-    datasets.forEach(dataset => {
-        if (dataset.label !== 'Chromatogram' && 
-            !dataset.label.startsWith('_boundary_line') && 
-            dataset.lipid_info) {
-            
-            const color = dataset.borderColor || '#40E0D0';
-            legendHTML += `
-                <div class="legend-item">
-                    <div class="legend-color" style="background-color: ${color}; opacity: 0.3;"></div>
-                    <span>${dataset.lipid_info.lipid_name}</span>
-                </div>
-            `;
-        }
-    });
-    
-    // Add boundary lines
-    legendHTML += `
-        <div class="legend-item">
-            <div class="legend-color dashed" style="border-color: rgba(70, 130, 180, 0.9);"></div>
-            <span>Integration Boundaries</span>
-        </div>
-    `;
-    
-    legendContainer.innerHTML = legendHTML;
+    infoContainer.innerHTML = detailsHTML;
 }
 
 function populateDetailedIons(lipidId, annotatedIons) {
@@ -851,6 +1238,13 @@ function resetZoom(lipidId) {
         }
         if (chartInstances[lipidId].chart2) {
             chartInstances[lipidId].chart2.resetZoom();
+            
+            // Reapply individual zoom settings after reset
+            setTimeout(() => {
+                if (individualZoomSettings[lipidId]) {
+                    applyIndividualZoom(lipidId);
+                }
+            }, 100);
         }
     }
 }
@@ -858,12 +1252,12 @@ function resetZoom(lipidId) {
 // Keyboard shortcuts for zoom control
 document.addEventListener('keydown', function(e) {
     if (e.key === 'r' || e.key === 'R') {
-        // Reset all charts zoom
+        // Reset all charts zoom and reapply admin settings
         Object.keys(chartInstances).forEach(lipidId => {
             resetZoom(lipidId);
         });
     } else if (e.key === '0') {
-        // Reset all charts zoom with 0 key
+        // Reset all charts zoom with 0 key and reapply admin settings
         Object.keys(chartInstances).forEach(lipidId => {
             resetZoom(lipidId);
         });
@@ -877,6 +1271,15 @@ function addDoubleClickReset(lipidId, chartType) {
         canvas.addEventListener('dblclick', function() {
             if (chartInstances[lipidId] && chartInstances[lipidId][chartType]) {
                 chartInstances[lipidId][chartType].resetZoom();
+                
+                // Reapply individual zoom settings for Chart 2
+                if (chartType === 'chart2') {
+                    setTimeout(() => {
+                        if (individualZoomSettings[lipidId]) {
+                            applyIndividualZoom(lipidId);
+                        }
+                    }, 100);
+                }
             }
         });
     }
@@ -892,6 +1295,18 @@ function deactivateChart(chart, canvas) {
     canvas.style.borderRadius = '';
     chart.resetZoom();
     chart.update('none');
+    
+    // Reapply individual zoom settings if this is Chart 2
+    const canvasId = canvas.id;
+    const matches = canvasId.match(/chart2-(\d+)/);
+    if (matches) {
+        const lipidId = matches[1];
+        setTimeout(() => {
+            if (individualZoomSettings[lipidId]) {
+                applyIndividualZoom(lipidId);
+            }
+        }, 100);
+    }
 }
 
 // Global click handler to deactivate charts when clicking outside
@@ -912,6 +1327,14 @@ document.addEventListener('click', function(event) {
                 deactivateChart(chart, canvas);
             });
         }
+    }
+});
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('zoom-modal');
+    if (event.target === modal) {
+        closeZoomModal();
     }
 });
 

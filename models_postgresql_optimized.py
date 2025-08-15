@@ -471,3 +471,92 @@ class ScheduleRequest(db.Model):
             'contacted_at': self.contacted_at.isoformat() if self.contacted_at else None,
             'notes': self.notes
         }
+
+class AdminSettings(db.Model):
+    """Admin settings for chart zoom ranges and other configurations"""
+    __tablename__ = 'admin_settings'
+    
+    setting_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    setting_key = db.Column(db.String(100), unique=True, nullable=False)
+    setting_value = db.Column(db.Text, nullable=False)
+    setting_type = db.Column(db.String(50), default='string')  # string, number, json, boolean
+    description = db.Column(db.Text)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.user_id'))
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    
+    # Relationship to user
+    creator = db.relationship('User', backref='created_settings')
+    
+    def __repr__(self):
+        return f'<AdminSetting {self.setting_key}: {self.setting_value}>'
+    
+    def to_dict(self):
+        return {
+            'setting_id': self.setting_id,
+            'setting_key': self.setting_key,
+            'setting_value': self.setting_value,
+            'setting_type': self.setting_type,
+            'description': self.description,
+            'created_by': self.created_by,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+    
+    @staticmethod
+    def get_setting(key, default_value=None):
+        """Get a setting value by key"""
+        setting = AdminSettings.query.filter_by(setting_key=key).first()
+        if setting:
+            # Convert based on type
+            if setting.setting_type == 'number':
+                try:
+                    return float(setting.setting_value)
+                except ValueError:
+                    return default_value
+            elif setting.setting_type == 'boolean':
+                return setting.setting_value.lower() in ['true', '1', 'yes']
+            elif setting.setting_type == 'json':
+                try:
+                    import json
+                    return json.loads(setting.setting_value)
+                except (ValueError, json.JSONDecodeError):
+                    return default_value
+            else:
+                return setting.setting_value
+        return default_value
+    
+    @staticmethod
+    def set_setting(key, value, setting_type='string', description=None, created_by=None):
+        """Set or update a setting"""
+        setting = AdminSettings.query.filter_by(setting_key=key).first()
+        
+        # Convert value to string for storage
+        if setting_type == 'json':
+            import json
+            value_str = json.dumps(value)
+        elif setting_type == 'boolean':
+            value_str = str(bool(value)).lower()
+        else:
+            value_str = str(value)
+        
+        if setting:
+            # Update existing
+            setting.setting_value = value_str
+            setting.setting_type = setting_type
+            if description:
+                setting.description = description
+            setting.updated_at = db.func.current_timestamp()
+        else:
+            # Create new
+            setting = AdminSettings(
+                setting_key=key,
+                setting_value=value_str,
+                setting_type=setting_type,
+                description=description,
+                created_by=created_by
+            )
+            db.session.add(setting)
+        
+        db.session.commit()
+        return setting
