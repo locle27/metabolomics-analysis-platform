@@ -69,12 +69,11 @@ backup_system = PostgreSQLBackupSystem(app)
 def homepage():
     """University-style homepage with project overview."""
     try:
-        # Get basic stats with optimized queries
+        # Get basic stats with optimized queries (cached)
         stats = get_db_stats()
         
-        # Get sample recent data (first 3 lipids) - OPTIMIZED: No N+1
-        all_lipids = optimized_manager.get_all_lipids_optimized()
-        recent_lipids = all_lipids[:3]
+        # Get sample recent data (ONLY first 3 lipids) - ULTRA FAST
+        recent_lipids = optimized_manager.get_lipids_sample(limit=3)
         
         homepage_data = {
             'stats': stats,
@@ -104,27 +103,25 @@ def homepage():
 @app.route('/lipid-selection')
 @app.route('/dashboard')
 def clean_dashboard():
-    """Lipid selection page with OPTIMIZED PostgreSQL queries."""
+    """Lipid selection page with LAZY LOADING for instant startup."""
     try:
         start_time = time.time()
         
-        # Get database statistics
+        # Get database statistics (fast query)
         stats = get_db_stats()
         
-        # OPTIMIZED: Get all lipids with single query (no N+1)
-        lipids_data = optimized_manager.get_all_lipids_optimized()
-        
-        # OPTIMIZED: Get class distribution with efficient COUNT query
+        # LAZY LOADING: Only get class data initially, load lipids via AJAX
         classes_data = optimized_manager.get_lipid_classes_optimized()
         
         query_time = time.time() - start_time
-        print(f"🚀 Dashboard loaded in {query_time:.3f}s (PostgreSQL optimized)")
+        print(f"🚀 Dashboard loaded in {query_time:.3f}s (lazy loading)")
         
         dashboard_data = {
             'stats': stats,
-            'lipids': lipids_data,
+            'lipids': [],  # Empty initially - loaded via AJAX
             'classes': classes_data,
-            'query_time': f"{query_time:.3f}s"
+            'query_time': f"{query_time:.3f}s",
+            'lazy_loading': True  # Flag for frontend
         }
         
         return render_template('clean_dashboard.html', data=dashboard_data)
@@ -282,6 +279,31 @@ def api_dual_chart_data(lipid_id):
         return jsonify({
             'status': 'success',
             'data': dual_chart_data
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/load-lipids')
+def api_load_lipids():
+    """AJAX endpoint to load all lipids asynchronously for dashboard."""
+    try:
+        start_time = time.time()
+        
+        # Load all lipids with optimized query
+        lipids_data = optimized_manager.get_all_lipids_optimized()
+        
+        query_time = time.time() - start_time
+        print(f"🚀 AJAX lipids loaded in {query_time:.3f}s")
+        
+        return jsonify({
+            'status': 'success',
+            'lipids': lipids_data,
+            'query_time': f"{query_time:.3f}s",
+            'count': len(lipids_data)
         })
         
     except Exception as e:

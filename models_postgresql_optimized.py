@@ -276,6 +276,27 @@ class OptimizedDataManager:
             }
             for lipid in lipids
         ]
+    
+    def get_lipids_sample(self, limit=3):
+        """
+        Get a small sample of lipids for homepage - ULTRA FAST
+        """
+        lipids = MainLipid.query.options(
+            joinedload(MainLipid.lipid_class)
+        ).filter(
+            MainLipid.extraction_success == True
+        ).limit(limit).all()
+        
+        return [
+            {
+                'lipid_id': lipid.lipid_id,
+                'lipid_name': lipid.lipid_name,
+                'api_code': lipid.api_code,
+                'retention_time': lipid.retention_time,
+                'class_name': lipid.lipid_class.class_name if lipid.lipid_class else 'Unknown'
+            }
+            for lipid in lipids
+        ]
 
 # Create global optimized manager
 optimized_manager = OptimizedDataManager()

@@ -258,6 +258,85 @@
         -webkit-filter: none !important;
         blur: none !important;
     }
+    
+    /* Professional Loading Indicator */
+    .loading-indicator {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 400px;
+        padding: 60px 20px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 15px;
+        margin: 20px 0;
+    }
+    
+    .loading-content {
+        text-align: center;
+        max-width: 400px;
+    }
+    
+    .spinner-container {
+        margin-bottom: 30px;
+    }
+    
+    .metabolomics-spinner {
+        width: 60px;
+        height: 60px;
+        border: 4px solid #e9ecef;
+        border-top: 4px solid var(--primary-blue);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .loading-title {
+        color: var(--primary-blue);
+        font-family: Inter;
+        font-weight: 600;
+        margin-bottom: 20px;
+    }
+    
+    .loading-text {
+        color: #6c757d;
+        font-family: Inter;
+        font-size: 14px;
+        line-height: 1.6;
+        margin-bottom: 25px;
+    }
+    
+    .loading-text i {
+        color: var(--primary-orange);
+        margin-right: 8px;
+        width: 16px;
+    }
+    
+    .loading-progress {
+        width: 100%;
+        height: 4px;
+        background: #e9ecef;
+        border-radius: 2px;
+        overflow: hidden;
+        margin-top: 10px;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary-blue), var(--primary-orange));
+        border-radius: 2px;
+        animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 0.7; transform: scaleX(0.8); }
+        50% { opacity: 1; transform: scaleX(1); }
+    }
 </style>
 {% endblock %}
 
@@ -300,8 +379,29 @@
             </div>
         </div>
         
+        <!-- Professional Loading Indicator -->
+        {% if data.lazy_loading %}
+        <div id="loading-indicator" class="loading-indicator" style="display: flex;">
+            <div class="loading-content">
+                <div class="spinner-container">
+                    <div class="metabolomics-spinner"></div>
+                </div>
+                <h4 class="loading-title">Loading Metabolomics Database</h4>
+                <p class="loading-text">
+                    <i class="fas fa-database"></i> Connecting to PostgreSQL...<br>
+                    <i class="fas fa-flask"></i> Loading 800+ lipid compounds...<br>
+                    <i class="fas fa-chart-line"></i> Preparing interactive analysis...
+                </p>
+                <div class="loading-progress">
+                    <div class="progress-bar"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
         <!-- Lipid Grid -->
         <div id="lipid-grid" class="lipid-grid">
+            {% if not data.lazy_loading %}
             {% for lipid in data.lipids %}
             <div class="lipid-card" 
                  data-lipid-id="{{ lipid.lipid_id }}" 
@@ -313,6 +413,7 @@
                 <div class="lipid-name">{{ lipid.lipid_name }}</div>
             </div>
             {% endfor %}
+            {% endif %}
         </div>
         
         <!-- No Results Message -->
@@ -638,6 +739,139 @@ function selectAllVisible() {
             toggleLipidSelection(card);
         }
     });
+}
+
+// Lazy Loading System for Instant Page Load
+document.addEventListener('DOMContentLoaded', function() {
+    {% if data.lazy_loading %}
+    // Show loading indicator and load lipids asynchronously
+    loadLipidsAsync();
+    {% endif %}
+});
+
+function loadLipidsAsync() {
+    const lipidGrid = document.querySelector('.lipid-grid');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    
+    // Show professional loading indicator
+    if (loadingIndicator) {
+        loadingIndicator.style.display = 'flex';
+    }
+    
+    // Disable filter controls while loading
+    const searchInput = document.querySelector('#search-input');
+    const classFilters = document.querySelectorAll('.class-filter');
+    if (searchInput) searchInput.disabled = true;
+    classFilters.forEach(filter => filter.disabled = true);
+    
+    console.log('🚀 Loading lipids asynchronously...');
+    
+    fetch('/api/load-lipids')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                console.log(`✅ Loaded ${data.count} lipids in ${data.query_time}`);
+                
+                // Populate lipid grid
+                populateLipidGrid(data.lipids);
+                
+                // Hide loading indicator
+                if (loadingIndicator) {
+                    loadingIndicator.style.display = 'none';
+                }
+                
+                // Re-enable controls
+                if (searchInput) searchInput.disabled = false;
+                classFilters.forEach(filter => filter.disabled = false);
+                
+                // Initialize all lipids for filtering
+                initializeLipidsData(data.lipids);
+                
+                console.log('🎉 Dashboard ready for interaction');
+                
+            } else {
+                console.error('❌ Failed to load lipids:', data.message);
+                showErrorMessage('Failed to load lipids: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('❌ Network error loading lipids:', error);
+            showErrorMessage('Network error loading lipids. Please refresh the page.');
+        });
+}
+
+function populateLipidGrid(lipids) {
+    const lipidGrid = document.querySelector('.lipid-grid');
+    if (!lipidGrid) return;
+    
+    // Clear existing placeholder content
+    lipidGrid.innerHTML = '';
+    
+    // Add each lipid card
+    lipids.forEach(lipid => {
+        const card = createLipidCard(lipid);
+        lipidGrid.appendChild(card);
+    });
+}
+
+function createLipidCard(lipid) {
+    const card = document.createElement('div');
+    card.className = 'lipid-card';
+    card.setAttribute('data-lipid-id', lipid.lipid_id);
+    card.setAttribute('data-class', lipid.class_name);
+    card.onclick = () => toggleLipidSelection(card);
+    
+    const statusBadge = lipid.extraction_success ? 
+        '<span class="status-badge success">✓ Ready</span>' :
+        '<span class="status-badge failed">✗ Failed</span>';
+    
+    card.innerHTML = `
+        <div class="card-header">
+            <span class="lipid-name">${lipid.lipid_name}</span>
+            ${statusBadge}
+        </div>
+        <div class="card-body">
+            <div class="lipid-info">
+                <span class="class-badge">${lipid.class_name}</span>
+                <span class="rt-info">${lipid.retention_time ? lipid.retention_time.toFixed(2) + ' min' : 'N/A'}</span>
+            </div>
+            <div class="ions-count">${lipid.annotated_ions_count} ions</div>
+        </div>
+        <div class="card-footer">
+            <small>ID: ${lipid.lipid_id}</small>
+        </div>
+    `;
+    
+    return card;
+}
+
+function initializeLipidsData(lipids) {
+    // Store lipids data globally for filtering
+    window.allLipids = lipids.map(lipid => ({
+        ...lipid,
+        element: document.querySelector(`[data-lipid-id="${lipid.lipid_id}"]`)
+    }));
+}
+
+function showErrorMessage(message) {
+    const lipidGrid = document.querySelector('.lipid-grid');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    
+    if (loadingIndicator) loadingIndicator.style.display = 'none';
+    
+    if (lipidGrid) {
+        lipidGrid.innerHTML = `
+            <div class="error-message" style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #dc3545;">
+                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i><br>
+                <strong>Error Loading Data</strong><br>
+                ${message}
+                <br><br>
+                <button onclick="location.reload()" class="btn btn-phenikaa">
+                    <i class="fas fa-refresh"></i> Reload Page
+                </button>
+            </div>
+        `;
+    }
 }
 </script>
 {% endblock %}
