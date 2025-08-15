@@ -119,43 +119,6 @@ class AnnotatedIon(db.Model):
             'is_main_lipid': self.is_main_lipid
         }
 
-class ScheduleRequest(db.Model):
-    """Model for appointment/consultation scheduling requests"""
-    __tablename__ = 'schedule_requests'
-    
-    request_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    email = db.Column(db.String(255), nullable=False)
-    full_name = db.Column(db.String(255), nullable=False)
-    phone = db.Column(db.String(50))
-    organization = db.Column(db.String(255))
-    request_type = db.Column(db.String(100), default='consultation')  # 'consultation', 'training', 'collaboration'
-    message = db.Column(db.Text)
-    preferred_date = db.Column(db.Date)
-    preferred_time = db.Column(db.String(50))
-    status = db.Column(db.String(50), default='pending')  # 'pending', 'approved', 'rejected', 'completed'
-    admin_notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
-    
-    def __repr__(self):
-        return f'<ScheduleRequest {self.full_name} - {self.email}>'
-    
-    def to_dict(self):
-        return {
-            'request_id': self.request_id,
-            'email': self.email,
-            'full_name': self.full_name,
-            'phone': self.phone,
-            'organization': self.organization,
-            'request_type': self.request_type,
-            'message': self.message,
-            'preferred_date': self.preferred_date,
-            'preferred_time': self.preferred_time,
-            'status': self.status,
-            'admin_notes': self.admin_notes,
-            'created_at': self.created_at,
-            'updated_at': self.updated_at
-        }
 
 class OptimizedDataManager:
     """
