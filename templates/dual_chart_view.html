@@ -47,81 +47,9 @@
     
     .charts-grid {
         display: grid;
-        grid-template-columns: 1fr 250px;
+        grid-template-columns: 1fr;
         gap: 15px;
         margin-bottom: 20px;
-    }
-    
-    /* Compact Professional Information Panel */
-    .lipid-info-panel {
-        background: #f8f9fa;
-        border: 2px solid #e9ecef;
-        border-radius: 8px;
-        padding: 15px;
-        height: fit-content;
-        min-height: 200px;
-        max-height: 400px;
-        overflow-y: auto;
-        position: sticky;
-        top: 20px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-    
-    .info-panel-title {
-        font-weight: bold;
-        font-size: 14px;
-        color: #2c3e50;
-        margin-bottom: 10px;
-        padding-bottom: 6px;
-        border-bottom: 2px solid #007bff;
-        text-align: center;
-    }
-    
-    .info-panel-content {
-        font-size: 12px;
-        line-height: 1.4;
-        color: #495057;
-    }
-    
-    .info-panel-empty {
-        text-align: center;
-        color: #6c757d;
-        font-style: italic;
-        margin-top: 20px;
-        font-size: 11px;
-    }
-    
-    .info-panel-data {
-        background: white;
-        border-radius: 6px;
-        padding: 10px;
-        border-left: 3px solid #007bff;
-        box-shadow: 0 1px 4px rgba(0, 123, 255, 0.1);
-    }
-    
-    .info-panel-data .data-row {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 6px;
-        padding-bottom: 3px;
-        border-bottom: 1px solid #f1f3f4;
-    }
-    
-    .info-panel-data .data-row:last-child {
-        border-bottom: none;
-        margin-bottom: 0;
-    }
-    
-    .info-panel-data .label {
-        font-weight: 600;
-        color: #2c3e50;
-        font-size: 11px;
-    }
-    
-    .info-panel-data .value {
-        color: #495057;
-        font-family: 'Courier New', monospace;
-        font-size: 11px;
     }
     
     .dual-charts-container {
@@ -301,13 +229,6 @@
             gap: 10px;
         }
         
-        .lipid-info-panel {
-            position: relative;
-            top: 0;
-            min-height: 150px;
-            max-height: 300px;
-        }
-        
         .legend-items {
             justify-content: flex-start;
             gap: 15px;
@@ -389,22 +310,6 @@
                     </div>
                     <div class="chart-canvas">
                         <canvas id="chart2-{{ lipid.lipid_id }}"></canvas>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Professional Information Panel -->
-            <div class="lipid-info-panel" id="info-panel-{{ lipid.lipid_id }}">
-                <div class="info-panel-title">
-                    <i class="fas fa-info-circle"></i> Lipid Information
-                </div>
-                <div class="info-panel-content">
-                    <div class="info-panel-empty" id="info-panel-empty-{{ lipid.lipid_id }}">
-                        <i class="fas fa-mouse-pointer fa-2x mb-3" style="color: #dee2e6;"></i><br>
-                        Hover over colored integration areas in the charts to view detailed lipid information
-                    </div>
-                    <div class="info-panel-data" id="info-panel-data-{{ lipid.lipid_id }}" style="display: none;">
-                        <!-- Will be populated by JavaScript -->
                     </div>
                 </div>
             </div>
@@ -645,9 +550,6 @@ function createChart(lipidId, chartType, chartConfig) {
             });
             
             console.log(`Final selection: ${hoveredLipid ? hoveredLipid.dataset.lipid_info.annotation : 'None'}`);
-            
-            // Update information panel with the hovered lipid (or clear if none)
-            updateInfoPanel(lipidId, hoveredLipid, !!hoveredLipid);
         };
     }
     
@@ -780,96 +682,6 @@ function populateAnnotatedIons(lipidId, annotatedIons) {
     ionsSection.style.display = 'block';
 }
 
-// Professional External Information Panel Update System
-function updateInfoPanel(lipidId, hoveredPoint, isVisible) {
-    const infoPanelEmpty = document.getElementById(`info-panel-empty-${lipidId}`);
-    const infoPanelData = document.getElementById(`info-panel-data-${lipidId}`);
-    
-    if (!isVisible || !hoveredPoint || !hoveredPoint.dataset.lipid_info) {
-        // Show empty state
-        if (infoPanelEmpty) infoPanelEmpty.style.display = 'block';
-        if (infoPanelData) infoPanelData.style.display = 'none';
-        return;
-    }
-    
-    // Hide empty state and show data
-    if (infoPanelEmpty) infoPanelEmpty.style.display = 'none';
-    if (infoPanelData) {
-        infoPanelData.style.display = 'block';
-        
-        // Update panel content with EXACT hovered lipid information
-        const info = hoveredPoint.dataset.lipid_info;
-        const annotation = info.annotation || 'Current lipid';
-        const borderColor = hoveredPoint.dataset.borderColor || '#007bff';
-        
-        // Create annotation type badge with matching color
-        const annotationBadge = `
-            <div style="
-                background: ${borderColor}; 
-                color: white; 
-                padding: 4px 12px; 
-                border-radius: 20px; 
-                font-size: 11px; 
-                font-weight: bold; 
-                text-align: center; 
-                margin-bottom: 15px;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            ">
-                📍 ${annotation}
-            </div>
-        `;
-        
-        infoPanelData.innerHTML = `
-            ${annotationBadge}
-            <div class="data-row">
-                <span class="label">Lipid Name:</span>
-                <span class="value">${info.lipid_name}</span>
-            </div>
-            <div class="data-row">
-                <span class="label">Lipid Class:</span>
-                <span class="value">${info.lipid_class}</span>
-            </div>
-            <div class="data-row">
-                <span class="label">Retention Time:</span>
-                <span class="value">${info.retention_time}</span>
-            </div>
-            <div class="data-row">
-                <span class="label">Integration Start:</span>
-                <span class="value">${info.integration_start}</span>
-            </div>
-            <div class="data-row">
-                <span class="label">Integration End:</span>
-                <span class="value">${info.integration_end}</span>
-            </div>
-            <div class="data-row">
-                <span class="label">Precursor Mass:</span>
-                <span class="value">${info.precursor_mass}</span>
-            </div>
-            <div class="data-row">
-                <span class="label">Product Mass:</span>
-                <span class="value">${info.product_mass}</span>
-            </div>
-            <div class="data-row" style="border-bottom: none; padding-bottom: 0;">
-                <span class="label">Type:</span>
-                <span class="value" style="font-weight: bold; color: ${borderColor};">${annotation}</span>
-            </div>
-        `;
-        
-        // Add dynamic visual highlight matching the exact lipid type
-        infoPanelData.style.borderLeftColor = borderColor;
-        infoPanelData.style.borderLeftWidth = '4px';
-        
-        // Add subtle background color based on annotation type
-        if (annotation === '+2 isotope') {
-            infoPanelData.style.backgroundColor = 'rgba(255, 71, 87, 0.05)'; // Light red tint
-        } else if (annotation === 'Similar MRM') {
-            infoPanelData.style.backgroundColor = 'rgba(46, 213, 115, 0.05)'; // Light green tint  
-        } else {
-            infoPanelData.style.backgroundColor = 'rgba(31, 119, 180, 0.05)'; // Light blue tint
-        }
-    }
-}
 
 // Chart interaction handlers
 function resetZoom(lipidId) {
