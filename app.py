@@ -22,6 +22,10 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from authlib.integrations.flask_client import OAuth
 from flask_mail import Mail, Message
 
+# Appwrite authentication
+from appwrite.client import Client
+from appwrite.services.account import Account
+
 # Import optimized PostgreSQL models
 from models_postgresql_optimized import (
     db, init_db, create_all_tables,
@@ -64,6 +68,12 @@ google = oauth.register(
         'scope': 'openid email profile'
     }
 )
+
+# Appwrite Configuration
+appwrite_client = Client()
+appwrite_client.set_endpoint('https://fra.cloud.appwrite.io/v1')
+appwrite_client.set_project('689f6b2e0028c3763654')
+appwrite_account = Account(appwrite_client)
 
 # Email Configuration with SMTP hostname fix
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
@@ -160,6 +170,86 @@ def recovery_mode():
         return redirect(url_for('homepage'))
     except Exception as e:
         return f"Recovery mode failed: {str(e)}"
+
+@app.route('/appwrite-login')
+def appwrite_login():
+    """Initiate Appwrite Google OAuth login"""
+    try:
+        # Create OAuth2 session with Appwrite
+        success_url = url_for('appwrite_callback', _external=True)
+        failure_url = url_for('login', _external=True)
+        
+        # Redirect to Appwrite OAuth
+        oauth_url = f"https://fra.cloud.appwrite.io/v1/account/sessions/oauth2/google?project=689f6b2e0028c3763654&success={success_url}&failure={failure_url}"
+        return redirect(oauth_url)
+        
+    except Exception as e:
+        flash(f'Appwrite login failed: {str(e)}', 'error')
+        return redirect(url_for('login'))
+
+@app.route('/appwrite-callback')
+def appwrite_callback():
+    """Handle Appwrite OAuth callback"""
+    try:
+        # Get session info from Appwrite using cookies
+        # The session should be in the cookies set by Appwrite
+        session_cookies = request.cookies
+        
+        if 'a_session_689f6b2e0028c3763654' in session_cookies:
+            # Set session cookie for Appwrite client
+            appwrite_client.set_session(session_cookies['a_session_689f6b2e0028c3763654'])
+            
+            # Get user info from Appwrite
+            user_info = appwrite_account.get()
+            
+            email = user_info['email']
+            full_name = user_info['name']
+            user_id = user_info['$id']
+            
+            # Find or create user in our database
+            user = User.query.filter_by(email=email).first()
+            if not user:
+                # Check if this is the first user - make them admin
+                user_count = User.query.count()
+                default_role = 'admin' if user_count == 0 else 'user'
+                
+                # Create new user
+                user = User(
+                    email=email,
+                    full_name=full_name,
+                    picture='',  # Appwrite might not provide picture URL
+                    role=default_role,
+                    is_active=True
+                )
+                db.session.add(user)
+                db.session.commit()
+                
+                if default_role == 'admin':
+                    flash(f'Welcome {full_name}! You have been granted admin access as the first user.', 'success')
+                else:
+                    flash(f'Welcome {full_name}! Your account has been created.', 'success')
+            else:
+                # Update existing user info
+                user.full_name = full_name
+                user.last_login = datetime.now()
+                db.session.commit()
+                flash(f'Welcome back, {full_name}!', 'success')
+            
+            # Log the user in with Flask-Login
+            login_user(user, remember=True)
+            
+            # Store Appwrite session in Flask session for future API calls
+            session['appwrite_session'] = session_cookies['a_session_689f6b2e0028c3763654']
+            
+            return redirect(url_for('homepage'))
+        else:
+            flash('Authentication failed. Please try again.', 'error')
+            return redirect(url_for('login'))
+            
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Authentication failed: {str(e)}', 'error')
+        return redirect(url_for('login'))
 
 @app.route('/login/callback')
 def login_callback():

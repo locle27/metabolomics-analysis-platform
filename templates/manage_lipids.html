@@ -325,8 +325,34 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Management Container -->
-    <div class="management-container">
+    <!-- Management Navigation Tabs -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav>
+                <div class="nav nav-tabs justify-content-center" id="management-tabs" role="tablist">
+                    <button class="nav-link active" id="database-tab" data-bs-toggle="tab" data-bs-target="#database-panel" 
+                            type="button" role="tab" aria-controls="database-panel" aria-selected="true">
+                        <i class="fas fa-database"></i> Database Management
+                    </button>
+                    <button class="nav-link" id="schedule-tab" data-bs-toggle="tab" data-bs-target="#schedule-panel" 
+                            type="button" role="tab" aria-controls="schedule-panel" aria-selected="false">
+                        <i class="fas fa-calendar-alt"></i> Schedule Management
+                    </button>
+                    <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users-panel" 
+                            type="button" role="tab" aria-controls="users-panel" aria-selected="false">
+                        <i class="fas fa-users"></i> User Management
+                    </button>
+                </div>
+            </nav>
+        </div>
+    </div>
+    
+    <!-- Tab Content -->
+    <div class="tab-content" id="management-content">
+        <!-- Database Management Panel -->
+        <div class="tab-pane fade show active" id="database-panel" role="tabpanel" aria-labelledby="database-tab">
+            <!-- Management Container -->
+            <div class="management-container">
         <!-- Header -->
         <div class="management-header">
             <div class="row align-items-center">
@@ -545,6 +571,211 @@
                 </tbody>
             </table>
         </div>
+            </div>
+        </div>
+        
+        <!-- Schedule Management Panel -->
+        <div class="tab-pane fade" id="schedule-panel" role="tabpanel" aria-labelledby="schedule-tab">
+            <div class="management-container">
+                <!-- Schedule Header -->
+                <div class="management-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h4 class="mb-1">Schedule Management</h4>
+                            <p class="mb-0 opacity-75">Manage consultation requests and appointments</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="text-white">
+                                <i class="fas fa-calendar-alt fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Schedule Statistics -->
+                <div class="stats-overview">
+                    <div class="stat-item">
+                        <i class="fas fa-clock text-warning"></i>
+                        <span>Pending Requests:</span>
+                        <span class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <span>Approved:</span>
+                        <span class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-calendar-check text-info"></i>
+                        <span>Completed:</span>
+                        <span class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-times-circle text-danger"></i>
+                        <span>Rejected:</span>
+                        <span class="stat-value">0</span>
+                    </div>
+                </div>
+                
+                <!-- Schedule Content -->
+                <div class="p-4">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5><i class="fas fa-list"></i> Recent Consultation Requests</h5>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                No consultation requests yet. Schedule requests will appear here when submitted through the 
+                                <a href="{{ url_for('schedule_form') }}" target="_blank">scheduling form</a>.
+                            </div>
+                            
+                            <!-- Schedule Requests Table (placeholder) -->
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Type</th>
+                                            <th>Preferred Date</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted py-4">
+                                                <i class="fas fa-calendar fa-3x mb-3 opacity-25"></i><br>
+                                                No consultation requests found
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <h5><i class="fas fa-plus-circle"></i> Quick Actions</h5>
+                            <div class="d-grid gap-3">
+                                <a href="{{ url_for('schedule_form') }}" class="btn btn-primary" target="_blank">
+                                    <i class="fas fa-calendar-plus"></i> New Consultation Request
+                                </a>
+                                <button class="btn btn-outline-secondary" onclick="refreshSchedule()">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                                <button class="btn btn-outline-success" onclick="exportSchedule()">
+                                    <i class="fas fa-download"></i> Export Schedule
+                                </button>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <h6><i class="fas fa-info-circle"></i> Schedule Information</h6>
+                                <div class="small text-muted">
+                                    <p><strong>Consultation Types:</strong></p>
+                                    <ul class="mb-2">
+                                        <li>General Consultation</li>
+                                        <li>Platform Training</li>
+                                        <li>Research Collaboration</li>
+                                        <li>Technical Support</li>
+                                    </ul>
+                                    <p><strong>Response Time:</strong> 24-48 hours</p>
+                                    <p><strong>Duration:</strong> 30-60 minutes</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- User Management Panel -->
+        <div class="tab-pane fade" id="users-panel" role="tabpanel" aria-labelledby="users-tab">
+            <div class="management-container">
+                <!-- Users Header -->
+                <div class="management-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h4 class="mb-1">User Management</h4>
+                            <p class="mb-0 opacity-75">Manage user accounts and permissions</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="text-white">
+                                <i class="fas fa-users fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- User Content -->
+                <div class="p-4">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        User management functionality will be implemented in a future update. 
+                        Currently, users are automatically created when they log in with Gmail.
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-shield-alt"></i> Role Descriptions</h5>
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="text-primary">Admin</h6>
+                                    <ul class="small">
+                                        <li>Full platform access</li>
+                                        <li>User management</li>
+                                        <li>System administration</li>
+                                        <li>Backup management</li>
+                                    </ul>
+                                    
+                                    <h6 class="text-success">Manager</h6>
+                                    <ul class="small">
+                                        <li>Database management</li>
+                                        <li>Schedule management</li>
+                                        <li>Data export/import</li>
+                                    </ul>
+                                    
+                                    <h6 class="text-info">User</h6>
+                                    <ul class="small">
+                                        <li>Analysis tools</li>
+                                        <li>Data visualization</li>
+                                        <li>Basic platform access</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-cog"></i> Authentication Settings</h5>
+                            <div class="card">
+                                <div class="card-body">
+                                    <p class="small text-muted">
+                                        <strong>Authentication Method:</strong> Gmail OAuth<br>
+                                        <strong>Default Role:</strong> User<br>
+                                        <strong>Registration:</strong> Automatic on first login
+                                    </p>
+                                    
+                                    <div class="mt-3">
+                                        <h6>Current User:</h6>
+                                        <div class="d-flex align-items-center">
+                                            {% if current_user.picture %}
+                                            <img src="{{ current_user.picture }}" alt="Profile" 
+                                                 class="rounded-circle me-2" width="32" height="32">
+                                            {% endif %}
+                                            <div>
+                                                <div class="fw-bold">{{ current_user.full_name }}</div>
+                                                <div class="small text-muted">{{ current_user.email }}</div>
+                                                <span class="badge bg-{{ 'danger' if current_user.role == 'admin' else 'success' if current_user.role == 'manager' else 'primary' }}">
+                                                    {{ current_user.role.title() }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -632,6 +863,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // Refresh data function
     window.refreshData = function() {
         location.reload();
+    };
+    
+    // Schedule management functions
+    window.refreshSchedule = function() {
+        // Implement schedule refresh
+        location.reload();
+    };
+    
+    window.exportSchedule = function() {
+        // Implement schedule export
+        alert('Schedule export functionality would be implemented here');
     };
 });
 </script>

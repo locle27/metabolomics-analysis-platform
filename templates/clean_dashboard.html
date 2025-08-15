@@ -40,10 +40,134 @@
     .class-filter-bar {
         background: var(--phenikaa-light);
         border-radius: var(--dl-layout-radius-cardradius);
-        padding: var(--dl-layout-space-unit);
+        padding: var(--dl-layout-space-twounits);
         margin-bottom: var(--dl-layout-space-unit);
         border: 1px solid #e9ecef;
     }
+    
+    /* Search and Database Section */
+    .search-and-database-section {
+        margin-bottom: 25px;
+        padding: 20px;
+        background: var(--phenikaa-white);
+        border-radius: 12px;
+        border: 1px solid #e9ecef;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    .btn-database {
+        border: 2px solid var(--phenikaa-blue);
+        color: var(--phenikaa-blue);
+        font-weight: 600;
+        padding: 10px 20px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+    }
+    
+    .btn-database:hover {
+        background: var(--phenikaa-blue);
+        color: var(--phenikaa-white);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(46, 76, 146, 0.3);
+    }
+    
+    /* Professional Class Filter Section */
+    .class-filter-section {
+        background: var(--phenikaa-white);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 25px;
+        border: 1px solid #e9ecef;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    .class-filter-header {
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #f8f9fa;
+    }
+    
+    .class-filter-header h6 {
+        color: var(--phenikaa-blue);
+        font-weight: 600;
+        margin: 0;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .class-filter-header i {
+        color: var(--phenikaa-orange);
+        font-size: 14px;
+    }
+    
+    /* Class Pills Container */
+    .class-pills-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+    }
+    
+    .class-pill {
+        background: #f8f9fa;
+        border: 2px solid #e9ecef;
+        border-radius: 25px;
+        padding: 8px 16px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        display: flex;
+        align-items: center;
+        min-height: 36px;
+    }
+    
+    .class-pill:hover {
+        border-color: var(--phenikaa-orange);
+        background: rgba(233, 75, 0, 0.05);
+        transform: translateY(-2px);
+        box-shadow: 0 3px 10px rgba(233, 75, 0, 0.15);
+    }
+    
+    .class-pill.active {
+        background: var(--phenikaa-blue);
+        border-color: var(--phenikaa-blue);
+        color: var(--phenikaa-white);
+        box-shadow: 0 3px 12px rgba(46, 76, 146, 0.3);
+    }
+    
+    .class-pill-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .class-label {
+        font-family: Inter;
+        font-weight: 600;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .class-count-badge {
+        background: var(--phenikaa-orange);
+        color: var(--phenikaa-white);
+        padding: 2px 6px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        min-width: 20px;
+        text-align: center;
+    }
+    
+    .class-pill.active .class-count-badge {
+        background: var(--phenikaa-white);
+        color: var(--phenikaa-blue);
+    }
+    
     
     .lipid-grid {
         display: grid;
@@ -393,6 +517,63 @@
         font-weight: 500;
         margin-left: 5px;
     }
+    
+    /* Responsive Design for Pills */
+    @media (max-width: 768px) {
+        .search-and-database-section .row {
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .search-and-database-section .col-md-3 {
+            text-align: center !important;
+        }
+        
+        .btn-database {
+            width: 100%;
+            max-width: 200px;
+        }
+        
+        .class-pills-container {
+            justify-content: center;
+        }
+        
+        .class-pill {
+            font-size: 12px;
+            padding: 6px 12px;
+            min-height: 32px;
+        }
+        
+        .class-label {
+            font-size: 12px;
+        }
+        
+        .class-count-badge {
+            font-size: 10px;
+            padding: 1px 4px;
+        }
+        
+        .select-all-mini {
+            width: 18px;
+            height: 18px;
+            font-size: 7px;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .class-filter-section {
+            padding: 15px;
+        }
+        
+        .class-pills-container {
+            gap: 6px;
+        }
+        
+        .class-pill {
+            font-size: 11px;
+            padding: 4px 10px;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -408,27 +589,53 @@
     <div class="lipid-selector">
         <h2 class="text-center mb-4">🧬 Select Lipids for Analysis</h2>
         
-        <!-- Search Bar -->
-        <div class="search-bar">
-            <input type="text" id="search-input" class="form-control" 
-                   placeholder="🔍 Search lipids (e.g., ac120, tg480, pc341, or full names...)"
-                   autocomplete="off">
-            <small class="form-text text-muted mt-1">
-                💡 <strong>Quick search tips:</strong> 
-                Type "ac120" for AC(12:0), "tg480" for TG(48:0), "180" for any 18:0 lipid
-            </small>
+        <!-- Search Bar and Database Button -->
+        <div class="search-and-database-section">
+            <div class="row align-items-center">
+                <div class="col-md-9">
+                    <div class="search-bar">
+                        <input type="text" id="search-input" class="form-control" 
+                               placeholder="🔍 Search lipids (e.g., ac120, tg480, pc341, or full names...)"
+                               autocomplete="off">
+                        <small class="form-text text-muted mt-1">
+                            💡 <strong>Quick search tips:</strong> 
+                            Type "ac120" for AC(12:0), "tg480" for TG(48:0), "180" for any 18:0 lipid
+                        </small>
+                    </div>
+                </div>
+                <div class="col-md-3 text-end">
+                    <button class="btn btn-outline-primary btn-database" onclick="openDatabaseModal()">
+                        <i class="fas fa-table"></i> Database View
+                    </button>
+                </div>
+            </div>
         </div>
         
-        <!-- Class Filter -->
-        <div class="class-filter-bar">
-            <div class="text-center">
-                <strong>Class:</strong>
-                <select id="class-select" class="form-select d-inline-block mx-2" style="width: auto;">
-                    <option value="all">All Classes</option>
-                    {% for cls in data.classes %}
-                    <option value="{{ cls.class_name }}">{{ cls.class_name }} ({{ cls.count or 0 }})</option>
-                    {% endfor %}
-                </select>
+        <!-- Professional Class Filter -->
+        <div class="class-filter-section">
+            <div class="class-filter-header">
+                <h6><i class="fas fa-filter"></i> Filter by Lipid Class</h6>
+            </div>
+            
+            <!-- Class Pills Container -->
+            <div class="class-pills-container" id="class-boxes">
+                <!-- All Classes Pill -->
+                <div class="class-pill active" data-class="all" onclick="selectClassBox(this, 'all')">
+                    <div class="class-pill-content">
+                        <span class="class-label">All Classes</span>
+                        <span class="class-count-badge">{{ data.classes | sum(attribute='count') or 0 }}</span>
+                    </div>
+                </div>
+                
+                <!-- Individual Class Pills -->
+                {% for cls in data.classes %}
+                <div class="class-pill" data-class="{{ cls.class_name }}" onclick="selectClassBox(this, '{{ cls.class_name }}')">
+                    <div class="class-pill-content">
+                        <span class="class-label">{{ cls.class_name }}</span>
+                        <span class="class-count-badge">{{ cls.count or 0 }}</span>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
         </div>
         
@@ -470,6 +677,7 @@
             {% endif %}
         </div>
         
+        
         <!-- No Results Message -->
         <div id="no-results" class="text-center py-5" style="display: none;">
             <i class="fas fa-search fa-3x text-muted mb-3"></i>
@@ -498,6 +706,38 @@
         </button>
     </div>
 </div>
+
+<!-- Database Table Modal -->
+<div class="modal fade" id="databaseModal" tabindex="-1" aria-labelledby="databaseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-fullscreen-lg-down">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="databaseModalLabel">
+                    <i class="fas fa-database"></i> Lipid Database Overview
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <!-- Database table content will be loaded here -->
+                <div id="modal-table-container">
+                    <div class="text-center p-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading database table...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="exportDatabaseData()">
+                    <i class="fas fa-download"></i> Export Data
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -508,6 +748,8 @@ let allLipids = [];
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
+    // Only initialize if NOT using lazy loading
+    {% if not data.lazy_loading %}
     // Store all lipid data for filtering
     document.querySelectorAll('.lipid-card').forEach(card => {
         allLipids.push({
@@ -517,6 +759,7 @@ document.addEventListener('DOMContentLoaded', function() {
             element: card
         });
     });
+    {% endif %}
     
     // Setup search functionality
     setupSearch();
@@ -617,52 +860,81 @@ function setupSearch() {
 }
 
 function setupClassFilters() {
-    const classSelect = document.getElementById('class-select');
-    if (classSelect) {
-        classSelect.addEventListener('change', function() {
-            filterLipids();
-        });
-    }
+    // Initialize class boxes instead of dropdown
+    initializeClassBoxes();
 }
+
+function initializeClassBoxes() {
+    const classPills = document.querySelectorAll('.class-pill');
+    classPills.forEach(pill => {
+        pill.addEventListener('click', function(e) {
+            const className = this.dataset.class;
+            selectClassBox(this, className);
+        });
+    });
+    
+    console.log(`✅ Initialized ${classPills.length} class filter pills`);
+}
+
+function selectClassBox(pillElement, className) {
+    // Remove active class from all pills
+    document.querySelectorAll('.class-pill').forEach(pill => {
+        pill.classList.remove('active');
+    });
+    
+    // Add active class to selected pill
+    pillElement.classList.add('active');
+    
+    // Update global filter state
+    window.selectedClass = className;
+    
+    console.log('Class filter changed to:', className);
+    
+    // Apply filtering
+    filterLipids();
+}
+
 
 function filterLipids() {
     const searchTerm = document.getElementById('search-input').value.toLowerCase();
-    const classSelect = document.getElementById('class-select');
-    const selectedClass = classSelect ? classSelect.value : 'all';
+    const selectedClass = window.selectedClass || 'all';
     
     let visibleCount = 0;
     
-    allLipids.forEach(lipid => {
+    // Get all lipid cards from DOM (works with both lazy and non-lazy loading)
+    const lipidCards = document.querySelectorAll('.lipid-card');
+    
+    lipidCards.forEach(card => {
         let visible = true;
         
-        // Class filter
-        if (selectedClass !== 'all' && lipid.class !== selectedClass) {
-            visible = false;
-        }
+        const lipidName = card.dataset.name || card.querySelector('.lipid-name')?.textContent?.toLowerCase() || '';
+        const lipidClass = card.dataset.class || '';
         
-        // Enhanced search filter with shorthand support
-        if (searchTerm && visible) {
-            const lipidNameLower = lipid.name.toLowerCase();
-            const classLower = lipid.class.toLowerCase();
-            
-            // Direct match (existing functionality)
-            if (lipidNameLower.includes(searchTerm) || classLower.includes(searchTerm)) {
+        // If there's a search term, ignore class filter and search across all classes
+        if (searchTerm) {
+            // Enhanced search filter with shorthand support - searches ALL classes
+            if (lipidName.includes(searchTerm) || lipidClass.toLowerCase().includes(searchTerm)) {
                 visible = true;
             }
             // Shorthand lipid code matching (new feature)
-            else if (matchesShorthandCode(lipidNameLower, searchTerm)) {
+            else if (matchesShorthandCode(lipidName, searchTerm)) {
                 visible = true;
             }
             else {
                 visible = false;
             }
+        } else {
+            // Only apply class filter when there's no search term
+            if (selectedClass !== 'all' && selectedClass !== '' && lipidClass !== selectedClass) {
+                visible = false;
+            }
         }
         
         if (visible) {
-            lipid.element.style.display = 'block';
+            card.style.display = 'block';
             visibleCount++;
         } else {
-            lipid.element.style.display = 'none';
+            card.style.display = 'none';
         }
     });
     
@@ -672,6 +944,24 @@ function filterLipids() {
         noResults.style.display = 'block';
     } else {
         noResults.style.display = 'none';
+    }
+    
+    // Visual feedback: highlight "All Classes" pill when searching
+    if (searchTerm) {
+        // When searching, visually indicate we're searching all classes
+        const allClassesPill = document.querySelector('.class-pill[data-class="all"]');
+        if (allClassesPill && !allClassesPill.classList.contains('active')) {
+            // Add subtle visual cue that we're searching across all classes
+            allClassesPill.style.border = '2px dashed var(--phenikaa-orange)';
+            allClassesPill.style.opacity = '0.7';
+        }
+    } else {
+        // Reset visual state when not searching
+        const allClassesPill = document.querySelector('.class-pill[data-class="all"]');
+        if (allClassesPill) {
+            allClassesPill.style.border = '';
+            allClassesPill.style.opacity = '';
+        }
     }
 }
 
@@ -889,10 +1179,14 @@ function createLipidCard(lipid) {
 
 function initializeLipidsData(lipids) {
     // Store lipids data globally for filtering
-    window.allLipids = lipids.map(lipid => ({
-        ...lipid,
+    allLipids = lipids.map(lipid => ({
+        id: lipid.lipid_id,
+        name: lipid.lipid_name.toLowerCase(),
+        class: lipid.class_name,
         element: document.querySelector(`[data-lipid-id="${lipid.lipid_id}"]`)
     }));
+    
+    console.log(`✅ Initialized ${allLipids.length} lipids for filtering`);
 }
 
 function showErrorMessage(message) {
@@ -914,6 +1208,201 @@ function showErrorMessage(message) {
             </div>
         `;
     }
+}
+
+// Database Modal Functions
+function openDatabaseModal() {
+    const modal = new bootstrap.Modal(document.getElementById('databaseModal'));
+    modal.show();
+    
+    // Load database table content
+    loadDatabaseTable();
+}
+
+function loadDatabaseTable() {
+    const container = document.getElementById('modal-table-container');
+    
+    // Show loading state
+    container.innerHTML = `
+        <div class="text-center p-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading database table...</p>
+        </div>
+    `;
+    
+    // Fetch database content from the public API
+    fetch('/api/database-view')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Build table HTML
+                const tableHTML = buildDatabaseTable(data);
+                container.innerHTML = tableHTML;
+                
+                // Initialize search functionality
+                initializeModalTableSearch();
+            } else {
+                container.innerHTML = `
+                    <div class="alert alert-danger m-3">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Error: ${data.message}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading database table:', error);
+            container.innerHTML = `
+                <div class="alert alert-danger m-3">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Error loading database table: ${error.message}
+                </div>
+            `;
+        });
+}
+
+function buildDatabaseTable(data) {
+    const stats = data.stats;
+    const lipids = data.lipids;
+    const classes = data.classes;
+    
+    const classOptions = classes.map(cls => 
+        `<option value="${cls.class_name}">${cls.class_name} (${cls.count})</option>`
+    ).join('');
+    
+    const lipidRows = lipids.map(lipid => `
+        <tr data-lipid-id="${lipid.lipid_id}" data-name="${lipid.lipid_name.toLowerCase()}" 
+            data-class="${lipid.class_name}" data-api="${lipid.api_code}" data-status="success">
+            <td>${lipid.lipid_id}</td>
+            <td class="lipid-name">${lipid.lipid_name}</td>
+            <td>${lipid.api_code || 'N/A'}</td>
+            <td><span class="badge bg-primary">${lipid.class_name}</span></td>
+            <td>${lipid.retention_time ? parseFloat(lipid.retention_time).toFixed(2) + ' min' : 'N/A'}</td>
+            <td>${lipid.precursor_ion || 'N/A'}</td>
+            <td>${lipid.product_ion || 'N/A'}</td>
+            <td><span class="badge bg-success">✓ Success</span></td>
+        </tr>
+    `).join('');
+    
+    return `
+        <div class="management-container p-3">
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <h6>Total Lipids</h6>
+                            <h3>${data.total_count}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <h6>Classes</h6>
+                            <h3>${classes.length}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <h6>Success Rate</h6>
+                            <h3>100%</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search lipids...">
+                </div>
+                <div class="col-md-4">
+                    <select id="classFilter" class="form-control">
+                        <option value="">All Classes</option>
+                        ${classOptions}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select id="statusFilter" class="form-control">
+                        <option value="">All Status</option>
+                        <option value="success">Success</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Lipid Name</th>
+                            <th>API Code</th>
+                            <th>Class</th>
+                            <th>Retention Time</th>
+                            <th>Precursor Ion</th>
+                            <th>Product Ion</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${lipidRows}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function initializeModalTableSearch() {
+    // Reinitialize the search functionality for the modal table
+    const searchInput = document.querySelector('#databaseModal #searchInput');
+    const classFilter = document.querySelector('#databaseModal #classFilter');
+    const statusFilter = document.querySelector('#databaseModal #statusFilter');
+    
+    if (searchInput && classFilter && statusFilter) {
+        const tableRows = Array.from(document.querySelectorAll('#databaseModal tbody tr[data-lipid-id]'));
+        
+        function applyModalFilters() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const selectedClass = classFilter.value.toLowerCase();
+            const selectedStatus = statusFilter.value;
+            
+            let visibleCount = 0;
+            
+            tableRows.forEach(row => {
+                const lipidName = row.dataset.name || '';
+                const apiCode = row.dataset.api || '';
+                const className = row.dataset.class || '';
+                const status = row.dataset.status || '';
+                
+                const matchesSearch = !searchTerm || 
+                                     lipidName.includes(searchTerm) ||
+                                     apiCode.includes(searchTerm);
+                
+                const matchesClass = !selectedClass || className === selectedClass;
+                const matchesStatus = !selectedStatus || status === selectedStatus;
+                
+                if (matchesSearch && matchesClass && matchesStatus) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        searchInput.addEventListener('input', applyModalFilters);
+        classFilter.addEventListener('change', applyModalFilters);
+        statusFilter.addEventListener('change', applyModalFilters);
+    }
+}
+
+function exportDatabaseData() {
+    // Implement data export functionality
+    alert('Export functionality would be implemented here');
 }
 </script>
 {% endblock %}

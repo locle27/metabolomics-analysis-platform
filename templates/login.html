@@ -282,11 +282,23 @@
                     Please sign in with your Gmail account to access the management and analysis tools.
                 </p>
                 
-                <!-- Gmail Login Button -->
-                <a href="{{ url_for('login_callback') }}" class="google-login-btn">
+                <!-- Appwrite Google Login Button (Primary) -->
+                <a href="{{ url_for('appwrite_login') }}" class="google-login-btn">
                     <div class="google-logo"></div>
-                    <span>Continue with Gmail</span>
+                    <span>Continue with Google (Appwrite)</span>
                 </a>
+                
+                <!-- Alternative Login Methods -->
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                    <p style="font-size: 12px; color: #888; margin-bottom: 10px; text-align: center;">
+                        <i class="fas fa-tools"></i> Alternative Login Methods
+                    </p>
+                    
+                    <!-- Legacy Gmail OAuth -->
+                    <a href="{{ url_for('login_callback') }}" class="btn btn-outline-secondary" style="width: 100%; max-width: 300px; padding: 8px 15px; border-radius: 20px; margin-bottom: 8px; font-size: 13px;">
+                        <i class="fab fa-google"></i> Legacy Gmail OAuth
+                    </a>
+                </div>
                 
                 <!-- Demo Login Button (Temporary) -->
                 <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
