@@ -1,0 +1,499 @@
+{% extends "base.html" %}
+
+{% block title %}Schedule Consultation - Metabolomics Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+    .schedule-container {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .schedule-header {
+        background: linear-gradient(135deg, var(--primary-blue), var(--light-blue));
+        color: white;
+        padding: 40px 30px;
+        text-align: center;
+        position: relative;
+    }
+    
+    .schedule-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100%;
+        height: 100%;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="10" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="80" r="15" fill="rgba(255,255,255,0.05)"/></svg>');
+        opacity: 0.3;
+    }
+    
+    .schedule-icon {
+        width: 80px;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        font-size: 32px;
+        color: white;
+        backdrop-filter: blur(10px);
+    }
+    
+    .schedule-title {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        position: relative;
+        z-index: 2;
+    }
+    
+    .schedule-subtitle {
+        font-size: 16px;
+        opacity: 0.9;
+        margin-bottom: 0;
+        position: relative;
+        z-index: 2;
+    }
+    
+    .schedule-body {
+        padding: 40px;
+    }
+    
+    .form-section {
+        margin-bottom: 30px;
+    }
+    
+    .section-title {
+        color: var(--primary-blue);
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .section-title i {
+        color: var(--primary-orange);
+    }
+    
+    .form-label {
+        color: var(--dark-text);
+        font-weight: 500;
+        margin-bottom: 8px;
+    }
+    
+    .form-control, .form-select {
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 12px 15px;
+        font-size: 15px;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 0.2rem rgba(46, 76, 146, 0.15);
+    }
+    
+    .form-control.is-invalid {
+        border-color: #dc3545;
+    }
+    
+    .invalid-feedback {
+        display: block;
+        color: #dc3545;
+        font-size: 14px;
+        margin-top: 5px;
+    }
+    
+    .required-field::after {
+        content: ' *';
+        color: var(--primary-orange);
+        font-weight: bold;
+    }
+    
+    .schedule-info {
+        background: rgba(46, 76, 146, 0.05);
+        border-radius: 12px;
+        padding: 20px;
+        border-left: 4px solid var(--primary-orange);
+        margin-bottom: 30px;
+    }
+    
+    .schedule-info h6 {
+        color: var(--primary-blue);
+        font-weight: 600;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .info-list {
+        margin: 0;
+        padding-left: 0;
+        list-style: none;
+    }
+    
+    .info-list li {
+        color: var(--dark-text);
+        font-size: 14px;
+        margin: 8px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .info-list li i {
+        color: var(--primary-orange);
+        font-size: 12px;
+        width: 16px;
+        text-align: center;
+    }
+    
+    .submit-section {
+        text-align: center;
+        padding-top: 20px;
+        border-top: 1px solid #e9ecef;
+    }
+    
+    .submit-btn {
+        background: linear-gradient(135deg, var(--primary-orange), var(--light-orange));
+        border: 2px solid var(--primary-orange);
+        color: white;
+        padding: 15px 40px;
+        border-radius: 50px;
+        font-size: 16px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(233, 75, 0, 0.2);
+    }
+    
+    .submit-btn:hover {
+        background: linear-gradient(135deg, var(--light-orange), var(--primary-orange));
+        border-color: var(--light-orange);
+        color: white;
+        transform: translateY(-3px);
+        box-shadow: 0 6px 25px rgba(233, 75, 0, 0.4);
+    }
+    
+    .cancel-btn {
+        background: transparent;
+        border: 2px solid #6c757d;
+        color: #6c757d;
+        padding: 15px 30px;
+        border-radius: 50px;
+        font-size: 16px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        margin-right: 15px;
+    }
+    
+    .cancel-btn:hover {
+        background: #6c757d;
+        color: white;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .schedule-body {
+            padding: 30px 20px;
+        }
+        
+        .schedule-title {
+            font-size: 24px;
+        }
+        
+        .submit-btn, .cancel-btn {
+            padding: 12px 30px;
+            font-size: 15px;
+            margin-bottom: 10px;
+        }
+    }
+    
+    /* Animation */
+    .schedule-container {
+        animation: slideUp 0.6s ease-out;
+    }
+    
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5">
+    <div class="schedule-container">
+        <!-- Header Section -->
+        <div class="schedule-header">
+            <div class="schedule-icon">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <h1 class="schedule-title">Schedule Consultation</h1>
+            <p class="schedule-subtitle">Book a meeting with our metabolomics research team</p>
+        </div>
+        
+        <!-- Body Section -->
+        <div class="schedule-body">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="mb-4">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else 'success' if category == 'success' else 'info' }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            <!-- Information Section -->
+            <div class="schedule-info">
+                <h6>
+                    <i class="fas fa-info-circle"></i>
+                    Consultation Information
+                </h6>
+                <ul class="info-list">
+                    <li>
+                        <i class="fas fa-circle"></i>
+                        <strong>Consultation Types:</strong> Data Analysis, Platform Training, Research Collaboration
+                    </li>
+                    <li>
+                        <i class="fas fa-circle"></i>
+                        <strong>Duration:</strong> 30-60 minutes depending on consultation type
+                    </li>
+                    <li>
+                        <i class="fas fa-circle"></i>
+                        <strong>Response Time:</strong> We'll respond within 24-48 hours
+                    </li>
+                    <li>
+                        <i class="fas fa-circle"></i>
+                        <strong>Format:</strong> Video call, phone call, or in-person (if available)
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Schedule Form -->
+            <form method="POST" action="{{ url_for('submit_schedule_request') }}" novalidate>
+                <!-- Personal Information -->
+                <div class="form-section">
+                    <h5 class="section-title">
+                        <i class="fas fa-user"></i>
+                        Personal Information
+                    </h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="fullName" class="form-label required-field">Full Name</label>
+                                <input type="text" class="form-control" id="fullName" name="full_name" 
+                                       value="{{ request.form.get('full_name', '') }}" required>
+                                <div class="invalid-feedback">Please provide your full name.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email" class="form-label required-field">Email Address</label>
+                                <input type="email" class="form-control" id="email" name="email" 
+                                       value="{{ request.form.get('email', '') }}" required>
+                                <div class="invalid-feedback">Please provide a valid email address.</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="phone" name="phone" 
+                                       value="{{ request.form.get('phone', '') }}" placeholder="+1 (555) 123-4567">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="organization" class="form-label">Organization/Institution</label>
+                                <input type="text" class="form-control" id="organization" name="organization" 
+                                       value="{{ request.form.get('organization', '') }}" placeholder="University, Company, etc.">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Consultation Details -->
+                <div class="form-section">
+                    <h5 class="section-title">
+                        <i class="fas fa-cogs"></i>
+                        Consultation Details
+                    </h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="requestType" class="form-label required-field">Consultation Type</label>
+                                <select class="form-select" id="requestType" name="request_type" required>
+                                    <option value="">Choose consultation type...</option>
+                                    <option value="consultation" {{ 'selected' if request.form.get('request_type') == 'consultation' }}>
+                                        General Consultation
+                                    </option>
+                                    <option value="training" {{ 'selected' if request.form.get('request_type') == 'training' }}>
+                                        Platform Training
+                                    </option>
+                                    <option value="collaboration" {{ 'selected' if request.form.get('request_type') == 'collaboration' }}>
+                                        Research Collaboration
+                                    </option>
+                                    <option value="support" {{ 'selected' if request.form.get('request_type') == 'support' }}>
+                                        Technical Support
+                                    </option>
+                                </select>
+                                <div class="invalid-feedback">Please select a consultation type.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="preferredDate" class="form-label">Preferred Date</label>
+                                <input type="date" class="form-control" id="preferredDate" name="preferred_date" 
+                                       value="{{ request.form.get('preferred_date', '') }}" min="{{ today }}">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="preferredTime" class="form-label">Preferred Time</label>
+                                <select class="form-select" id="preferredTime" name="preferred_time">
+                                    <option value="">Any time</option>
+                                    <option value="morning" {{ 'selected' if request.form.get('preferred_time') == 'morning' }}>
+                                        Morning (9:00 AM - 12:00 PM)
+                                    </option>
+                                    <option value="afternoon" {{ 'selected' if request.form.get('preferred_time') == 'afternoon' }}>
+                                        Afternoon (12:00 PM - 5:00 PM)
+                                    </option>
+                                    <option value="evening" {{ 'selected' if request.form.get('preferred_time') == 'evening' }}>
+                                        Evening (5:00 PM - 8:00 PM)
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="message" class="form-label required-field">Message</label>
+                        <textarea class="form-control" id="message" name="message" rows="5" required 
+                                  placeholder="Please describe your research interests, specific questions, or what you'd like to discuss during the consultation...">{{ request.form.get('message', '') }}</textarea>
+                        <div class="invalid-feedback">Please provide details about your consultation needs.</div>
+                    </div>
+                </div>
+                
+                <!-- Submit Section -->
+                <div class="submit-section">
+                    <button type="button" class="cancel-btn" onclick="window.history.back()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="submit" class="submit-btn">
+                        <i class="fas fa-paper-plane"></i> Submit Request
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Enhanced form validation with real-time feedback
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const inputs = form.querySelectorAll('input[required], select[required], textarea[required]');
+    
+    // Set minimum date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('preferredDate').setAttribute('min', today);
+    
+    // Real-time validation for each input
+    inputs.forEach(input => {
+        // Clear invalid state on input/change
+        input.addEventListener('input', function() {
+            validateField(this);
+        });
+        
+        input.addEventListener('change', function() {
+            validateField(this);
+        });
+        
+        // Clear invalid state when field gets focus
+        input.addEventListener('focus', function() {
+            this.classList.remove('is-invalid');
+        });
+    });
+    
+    function validateField(field) {
+        const value = field.value.trim();
+        
+        // Check if required field is empty
+        if (field.hasAttribute('required') && !value) {
+            field.classList.add('is-invalid');
+            return false;
+        }
+        
+        // Email validation
+        if (field.type === 'email' && value) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(value)) {
+                field.classList.add('is-invalid');
+                return false;
+            }
+        }
+        
+        // If we get here, field is valid
+        field.classList.remove('is-invalid');
+        field.classList.add('is-valid');
+        return true;
+    }
+    
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+        
+        inputs.forEach(input => {
+            if (!validateField(input)) {
+                isValid = false;
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            document.querySelector('.is-invalid').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+        }
+    });
+    
+    // Real-time validation
+    inputs.forEach(input => {
+        input.addEventListener('blur', function() {
+            if (this.value.trim()) {
+                this.classList.remove('is-invalid');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -45,6 +45,54 @@
         font-weight: bold;
     }
     
+    .info-toggle-btn {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+    
+    .info-toggle-btn:hover {
+        background: #218838;
+    }
+    
+    .info-toggle-btn.active {
+        background: #dc3545;
+    }
+    
+    .info-toggle-btn.active:hover {
+        background: #c82333;
+    }
+    
+    .detailed-info-panel {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 15px;
+        display: none;
+    }
+    
+    .info-section {
+        margin-bottom: 20px;
+    }
+    
+    .info-section:last-child {
+        margin-bottom: 0;
+    }
+    
+    .info-section h4 {
+        color: #2c3e50;
+        font-size: 16px;
+        margin-bottom: 10px;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 5px;
+    }
+    
     .charts-grid {
         display: grid;
         grid-template-columns: 1fr;
@@ -264,8 +312,8 @@
     
     <!-- Instructions -->
     <div class="instructions">
-        <strong>📊 Dual Chart View:</strong> Chart 1 shows focused view (RT ± 0.6 min) | Chart 2 shows full overview (0-16 min)<br>
-        <strong>🖱️ Interactive:</strong> Hover over colored areas for lipid details | <strong>Click chart to activate zoom</strong> | Mouse wheel to zoom | Shift+drag to pan | Double-click to deactivate zoom
+        <strong>📊 Interactive Charts:</strong> Dual chart visualization with zoom functionality<br>
+        <strong>🖱️ Controls:</strong> Click chart to activate zoom | Mouse wheel to zoom | Shift+drag to pan | Double-click to deactivate zoom
     </div>
 
     <!-- Charts for each selected lipid -->
@@ -278,6 +326,9 @@
                 <span class="info-badge">{{ lipid.class_name }}</span>
                 <span class="info-badge">ID: {{ lipid.lipid_id }}</span>
                 <span class="info-badge">{{ lipid.annotated_ions_count }} Ions</span>
+                <button class="info-toggle-btn" onclick="toggleDetailedInfo({{ lipid.lipid_id }})" id="toggle-btn-{{ lipid.lipid_id }}">
+                    <i class="fas fa-info-circle"></i> Show Details
+                </button>
             </div>
         </div>
         
@@ -295,9 +346,6 @@
             <div class="dual-charts-container">
                 <!-- Chart 1: Focused View -->
                 <div class="single-chart-container">
-                    <div class="chart-title" id="chart1-title-{{ lipid.lipid_id }}">
-                        Chart 1: Loading...
-                    </div>
                     <div class="chart-canvas">
                         <canvas id="chart1-{{ lipid.lipid_id }}"></canvas>
                     </div>
@@ -305,12 +353,28 @@
                 
                 <!-- Chart 2: Full Overview -->
                 <div class="single-chart-container">
-                    <div class="chart-title" id="chart2-title-{{ lipid.lipid_id }}">
-                        Chart 2: Loading...
-                    </div>
                     <div class="chart-canvas">
                         <canvas id="chart2-{{ lipid.lipid_id }}"></canvas>
                     </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Detailed Information Panel (Hidden by default) -->
+        <div class="detailed-info-panel" id="detailed-info-{{ lipid.lipid_id }}" style="display: none;">
+            <!-- Shared Legend -->
+            <div class="info-section">
+                <h4>Chart Legend</h4>
+                <div class="legend-items" id="detailed-legend-{{ lipid.lipid_id }}">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+            
+            <!-- Annotated Ions Section -->
+            <div class="info-section" id="detailed-ions-{{ lipid.lipid_id }}">
+                <h4>Annotated Ions: <span id="detailed-ions-count-{{ lipid.lipid_id }}">0</span></h4>
+                <div class="ions-summary" id="detailed-ions-summary-{{ lipid.lipid_id }}">
+                    <!-- Will be populated by JavaScript -->
                 </div>
             </div>
         </div>
@@ -389,12 +453,6 @@ async function initializeDualCharts(lipidId) {
         // Show charts
         chartsGrid.style.display = 'grid';
         
-        // Update chart titles
-        document.getElementById(`chart1-title-${lipidId}`).textContent = 
-            `Chart 1: Focused View (${result.data.lipid_info.chart1_range})`;
-        document.getElementById(`chart2-title-${lipidId}`).textContent = 
-            `Chart 2: Full Overview (${result.data.lipid_info.chart2_range})`;
-        
         // Create both charts
         createChart(lipidId, 'chart1', result.data.chart1);
         createChart(lipidId, 'chart2', result.data.chart2);
@@ -403,11 +461,12 @@ async function initializeDualCharts(lipidId) {
         addDoubleClickReset(lipidId, 'chart1');
         addDoubleClickReset(lipidId, 'chart2');
         
-        // Create shared legend
-        createSharedLegend(lipidId, result.data.chart1.data.datasets);
-        
-        // Populate annotated ions section
-        populateAnnotatedIons(lipidId, result.data.annotated_ions);
+        // Store data for detailed info panel
+        window.chartData = window.chartData || {};
+        window.chartData[lipidId] = {
+            datasets: result.data.chart1.data.datasets,
+            annotatedIons: result.data.annotated_ions
+        };
         
     } catch (error) {
         console.error(`Error initializing charts for lipid ${lipidId}:`, error);
@@ -629,7 +688,7 @@ function createSharedLegend(lipidId, datasets) {
             legendHTML += `
                 <div class="legend-item">
                     <div class="legend-color" style="background-color: ${color}; opacity: 0.3;"></div>
-                    <span>${dataset.lipid_info.lipid_name} (${dataset.lipid_info.annotation})</span>
+                    <span>${dataset.lipid_info.lipid_name}</span>
                 </div>
             `;
         }
@@ -651,6 +710,107 @@ function populateAnnotatedIons(lipidId, annotatedIons) {
     const ionsSection = document.getElementById(`ions-section-${lipidId}`);
     const ionsCount = document.getElementById(`ions-count-${lipidId}`);
     const ionsSummary = document.getElementById(`ions-summary-${lipidId}`);
+    
+    if (!annotatedIons || annotatedIons.length === 0) {
+        ionsSection.style.display = 'none';
+        return;
+    }
+    
+    // Update count
+    ionsCount.textContent = annotatedIons.length;
+    
+    // Build ions summary
+    let summaryHTML = '';
+    annotatedIons.forEach(ion => {
+        const borderColor = ion.color || '#007bff';
+        
+        summaryHTML += `
+            <div class="ion-item" style="border-left-color: ${borderColor};">
+                <div class="ion-name">${ion.lipid_name}</div>
+                <div class="ion-details">
+                    <div><strong>Type:</strong> ${ion.annotation_type}</div>
+                    <div><strong>RT:</strong> ${ion.retention_time} min</div>
+                    <div><strong>MS/MS:</strong> ${ion.precursor_ion} → ${ion.product_ion} m/z</div>
+                    <div><strong>Integration:</strong> ${ion.integration_start} - ${ion.integration_end} min</div>
+                </div>
+            </div>
+        `;
+    });
+    
+    ionsSummary.innerHTML = summaryHTML;
+    ionsSection.style.display = 'block';
+}
+
+// Toggle detailed information panel
+function toggleDetailedInfo(lipidId) {
+    const detailedPanel = document.getElementById(`detailed-info-${lipidId}`);
+    const toggleBtn = document.getElementById(`toggle-btn-${lipidId}`);
+    
+    if (detailedPanel.style.display === 'none' || detailedPanel.style.display === '') {
+        // Show detailed info
+        detailedPanel.style.display = 'block';
+        toggleBtn.innerHTML = '<i class="fas fa-eye-slash"></i> Hide Details';
+        toggleBtn.classList.add('active');
+        
+        // Populate detailed legend and ions
+        if (window.chartData && window.chartData[lipidId]) {
+            populateDetailedLegend(lipidId, window.chartData[lipidId].datasets);
+            populateDetailedIons(lipidId, window.chartData[lipidId].annotatedIons);
+        }
+    } else {
+        // Hide detailed info
+        detailedPanel.style.display = 'none';
+        toggleBtn.innerHTML = '<i class="fas fa-info-circle"></i> Show Details';
+        toggleBtn.classList.remove('active');
+    }
+}
+
+function populateDetailedLegend(lipidId, datasets) {
+    const legendContainer = document.getElementById(`detailed-legend-${lipidId}`);
+    
+    if (!legendContainer || !datasets) return;
+    
+    let legendHTML = '';
+    
+    // Add main chromatogram line
+    legendHTML += `
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #1f77b4;"></div>
+            <span>Chromatogram</span>
+        </div>
+    `;
+    
+    // Add integration areas (skip boundary lines and chromatogram)
+    datasets.forEach(dataset => {
+        if (dataset.label !== 'Chromatogram' && 
+            !dataset.label.startsWith('_boundary_line') && 
+            dataset.lipid_info) {
+            
+            const color = dataset.borderColor || '#40E0D0';
+            legendHTML += `
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: ${color}; opacity: 0.3;"></div>
+                    <span>${dataset.lipid_info.lipid_name}</span>
+                </div>
+            `;
+        }
+    });
+    
+    // Add boundary lines
+    legendHTML += `
+        <div class="legend-item">
+            <div class="legend-color dashed" style="border-color: rgba(70, 130, 180, 0.9);"></div>
+            <span>Integration Boundaries</span>
+        </div>
+    `;
+    
+    legendContainer.innerHTML = legendHTML;
+}
+
+function populateDetailedIons(lipidId, annotatedIons) {
+    const ionsSection = document.getElementById(`detailed-ions-${lipidId}`);
+    const ionsCount = document.getElementById(`detailed-ions-count-${lipidId}`);
+    const ionsSummary = document.getElementById(`detailed-ions-summary-${lipidId}`);
     
     if (!annotatedIons || annotatedIons.length === 0) {
         ionsSection.style.display = 'none';
