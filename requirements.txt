@@ -19,5 +19,5 @@ Flask-WTF==1.1.1
 email-validator==2.0.0
 
 # Core data processing
-pandas==2.1.1
 python-dotenv==1.0.0
+# pandas==2.1.1  # Removed - not used and causes numpy compatibility issues in Railway

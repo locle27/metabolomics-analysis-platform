@@ -10,7 +10,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import json
 from functools import lru_cache, wraps
 from pathlib import Path
-import pandas as pd
+# import pandas as pd  # Removed - not used and causes numpy compatibility issues
 from datetime import datetime
 import base64
 import time
