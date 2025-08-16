@@ -597,11 +597,25 @@
                                         </a>
                                     </li>
                                     
-                                    <!-- Analysis/Lipid Selection -->
-                                    <li class="nav-item">
-                                        <a class="nav-link {% if request.endpoint in ['clean_dashboard', 'dual_chart_view'] %}active{% endif %}" href="{{ url_for('clean_dashboard') }}">
-                                            ANALYSIS
+                                    <!-- Lipidomics Section with Dropdown -->
+                                    <li class="nav-item has-submenu">
+                                        <a class="nav-link {% if request.endpoint in ['clean_dashboard', 'dual_chart_view', 'manage_lipids', 'analysis_tools', 'lcms_tools', 'protocols'] %}active{% endif %}" href="#">
+                                            LIPIDOMICS
+                                            <span class="sub-nav-toggler"></span>
                                         </a>
+                                        <div class="sub-menu">
+                                            <div class="sub-menu-content">
+                                                <div class="sub-links">
+                                                    <ul>
+                                                        <li><a href="{{ url_for('clean_dashboard') }}"><i class="fas fa-search"></i> Lipids</a></li>
+                                                        <li><a href="{{ url_for('manage_lipids') }}"><i class="fas fa-database"></i> Database</a></li>
+                                                        <li><a href="{{ url_for('analysis_tools') }}"><i class="fas fa-chart-line"></i> Analysis Tools</a></li>
+                                                        <li><a href="{{ url_for('lcms_tools') }}"><i class="fas fa-flask"></i> LC-MS/MS Tools</a></li>
+                                                        <li><a href="{{ url_for('protocols') }}"><i class="fas fa-file-alt"></i> Protocols</a></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </li>
                                     
                                     <!-- Schedule Consultation (Public - No Login Required) -->
@@ -613,7 +627,7 @@
                                     
                                     <!-- Management System (renamed from Admin) -->
                                     <li class="nav-item has-submenu">
-                                        <a class="nav-link {% if request.endpoint in ['admin_dashboard', 'admin_stats', 'backup_management', 'manage_lipids'] %}active{% endif %}" href="#">
+                                        <a class="nav-link {% if request.endpoint in ['admin_dashboard', 'admin_stats', 'backup_management', 'patient_management', 'equipment_management'] %}active{% endif %}" href="#">
                                             MANAGEMENT
                                             <span class="sub-nav-toggler"></span>
                                         </a>
@@ -622,8 +636,6 @@
                                                 <div class="sub-links">
                                                     <ul>
                                                         <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                                                        <li><a href="{{ url_for('manage_lipids') }}"><i class="fas fa-database"></i> Database Management</a></li>
-                                                        <li><a href="{{ url_for('admin_zoom_settings') }}"><i class="fas fa-search-plus"></i> Chart Zoom Settings</a></li>
                                                         <li><a href="{{ url_for('patient_management') }}"><i class="fas fa-users"></i> Patient Management</a></li>
                                                         <li><a href="{{ url_for('equipment_management') }}"><i class="fas fa-cogs"></i> Equipment Management</a></li>
                                                         <li><hr class="dropdown-divider"></li>
@@ -646,6 +658,7 @@
                                     {% if current_user.is_authenticated %}
                                     <li class="nav-item has-submenu">
                                         <a class="nav-link" href="#">
+                                            <i class="fas fa-user"></i>
                                             {{ current_user.full_name.split()[0] }}
                                             <span class="sub-nav-toggler"></span>
                                         </a>
@@ -653,35 +666,26 @@
                                             <div class="sub-menu-content">
                                                 <div class="sub-links">
                                                     <ul>
-                                                        <li><a href="#"><i class="fas fa-user"></i> Profile</a></li>
+                                                        <li><a href="{{ url_for('auth.profile') }}"><i class="fas fa-user-circle"></i> Profile</a></li>
+                                                        <li><a href="{{ url_for('auth.change_password') }}"><i class="fas fa-key"></i> Change Password</a></li>
                                                         {% if current_user.is_admin() %}
-                                                        <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-shield-alt"></i> Management</a></li>
+                                                        <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-shield-alt"></i> Admin Dashboard</a></li>
                                                         {% endif %}
+                                                        <li><a href="{{ url_for('user_debug') }}"><i class="fas fa-info-circle"></i> Account Info</a></li>
                                                         <li><hr class="dropdown-divider"></li>
-                                                        <li><a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                                                        <li><a href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                                                     </ul>
                                                 </div>
                                             </div>
                                         </div>
                                     </li>
                                     {% else %}
-                                    <li class="nav-item has-submenu">
-                                        <a class="nav-link" href="#">
+                                    <!-- Simple LOGIN button when not authenticated -->
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="{{ url_for('auth.login') }}">
+                                            <i class="fas fa-sign-in-alt"></i>
                                             LOGIN
-                                            <span class="sub-nav-toggler"></span>
                                         </a>
-                                        <div class="sub-menu">
-                                            <div class="sub-menu-content">
-                                                <div class="sub-links">
-                                                    <ul>
-                                                        <li><a href="{{ url_for('appwrite_login') }}"><i class="fab fa-google"></i> Google Login (Appwrite)</a></li>
-                                                        <li><a href="{{ url_for('login') }}"><i class="fas fa-cog"></i> Gmail Login (Legacy)</a></li>
-                                                        <li><hr class="dropdown-divider"></li>
-                                                        <li><a href="{{ url_for('demo_login') }}" style="color: #28a745;"><i class="fas fa-play-circle"></i> Demo Access</a></li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                        </div>
                                     </li>
                                     {% endif %}
                                 </ul>

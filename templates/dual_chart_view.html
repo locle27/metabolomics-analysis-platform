@@ -296,11 +296,7 @@
     }
     
     .chart-title {
-        font-size: 12px;
-        font-weight: bold;
-        color: #495057;
-        margin-bottom: 8px;
-        text-align: center;
+        display: none !important; /* Hide chart titles completely */
     }
     
     .loading-state {
@@ -502,8 +498,14 @@
                     <i class="fas fa-info-circle"></i> Show Details
                 </button>
                 {% if current_user.is_authenticated and current_user.is_admin() %}
-                <button class="zoom-settings-btn" onclick="showZoomSettings({{ lipid.lipid_id }})" id="zoom-btn-{{ lipid.lipid_id }}">
-                    <i class="fas fa-search-plus"></i> Set Zoom
+                <button class="zoom-settings-btn" onclick="showZoomSettings({{ lipid.lipid_id }}, 'chart1')" id="zoom-btn-chart1-{{ lipid.lipid_id }}">
+                    <i class="fas fa-search-plus"></i> Set Zoom Chart 1
+                </button>
+                <button class="zoom-settings-btn" onclick="showZoomSettings({{ lipid.lipid_id }}, 'chart2')" id="zoom-btn-chart2-{{ lipid.lipid_id }}">
+                    <i class="fas fa-search-plus"></i> Set Zoom Chart 2
+                </button>
+                <button class="zoom-settings-btn" onclick="restoreDefaults({{ lipid.lipid_id }})" id="restore-btn-{{ lipid.lipid_id }}" style="background: #dc3545;">
+                    <i class="fas fa-undo"></i> Restore Defaults
                 </button>
                 {% endif %}
             </div>
@@ -521,19 +523,15 @@
         <div class="charts-grid">
             <!-- Charts Container -->
             <div class="dual-charts-container">
-                <!-- Chart 1: Focused View -->
                 <div class="single-chart-container">
                     <div class="chart-canvas">
                         <canvas id="chart1-{{ lipid.lipid_id }}"></canvas>
-                        <div class="chart-lipid-name">{{ lipid.lipid_name }}</div>
                     </div>
                 </div>
                 
-                <!-- Chart 2: Full Overview -->
                 <div class="single-chart-container">
                     <div class="chart-canvas">
                         <canvas id="chart2-{{ lipid.lipid_id }}"></canvas>
-                        <div class="chart-lipid-name">{{ lipid.lipid_name }}</div>
                     </div>
                 </div>
             </div>
@@ -599,7 +597,7 @@
                 </div>
                 <div class="zoom-form-buttons">
                     <button class="btn-cancel" onclick="closeZoomModal()">Cancel</button>
-                    <button class="btn-save" onclick="saveZoomSettings()">Save & Apply</button>
+                    <button class="btn-save" onclick="saveZoomModalSettings()">Save & Apply</button>
                 </div>
             </div>
         </div>
@@ -619,20 +617,49 @@ const chartData = {};
 // Register Chart.js zoom plugin
 Chart.register(ChartZoom);
 
-// Individual zoom settings storage
+// Individual zoom settings storage with localStorage persistence
 let individualZoomSettings = {};
 let currentZoomLipidId = null;
+let currentZoomChart = null;
+
+// Load zoom settings from localStorage
+function loadZoomSettings() {
+    try {
+        const saved = localStorage.getItem('metabolomics_zoom_settings');
+        if (saved) {
+            individualZoomSettings = JSON.parse(saved);
+            console.log('🔄 Loaded zoom settings from localStorage:', individualZoomSettings);
+        }
+    } catch (error) {
+        console.warn('Failed to load zoom settings from localStorage:', error);
+        individualZoomSettings = {};
+    }
+}
+
+// Save zoom settings to localStorage
+function saveZoomSettings() {
+    try {
+        localStorage.setItem('metabolomics_zoom_settings', JSON.stringify(individualZoomSettings));
+        console.log('💾 Saved zoom settings to localStorage:', individualZoomSettings);
+    } catch (error) {
+        console.warn('Failed to save zoom settings to localStorage:', error);
+    }
+}
 
 // Initialize all charts when page loads
 document.addEventListener('DOMContentLoaded', function() {
+    // Load saved zoom settings first
+    loadZoomSettings();
+    
     {% for lipid in selected_lipids %}
         initializeDualCharts({{ lipid.lipid_id }});
     {% endfor %}
 });
 
 // Individual zoom modal functions
-function showZoomSettings(lipidId) {
+function showZoomSettings(lipidId, chartType) {
     currentZoomLipidId = lipidId;
+    currentZoomChart = chartType;
     const modal = document.getElementById('zoom-modal');
     const title = document.getElementById('zoom-modal-title');
     const startInput = document.getElementById('zoom-start');
@@ -640,10 +667,11 @@ function showZoomSettings(lipidId) {
     
     // Get lipid name
     const lipidName = document.querySelector(`#lipid-container-${lipidId} .lipid-title`).textContent;
-    title.textContent = `Set Zoom Range for ${lipidName}`;
+    const chartName = chartType === 'chart1' ? 'Chart 1' : 'Chart 2';
+    title.textContent = `Set Zoom Range for ${lipidName} - ${chartName}`;
     
     // Load existing settings if any
-    const existing = individualZoomSettings[lipidId];
+    const existing = individualZoomSettings[`${lipidId}_${chartType}`];
     if (existing) {
         startInput.value = existing.start;
         endInput.value = existing.end;
@@ -658,10 +686,11 @@ function showZoomSettings(lipidId) {
 function closeZoomModal() {
     document.getElementById('zoom-modal').style.display = 'none';
     currentZoomLipidId = null;
+    currentZoomChart = null;
 }
 
-function saveZoomSettings() {
-    if (!currentZoomLipidId) return;
+function saveZoomModalSettings() {
+    if (!currentZoomLipidId || !currentZoomChart) return;
     
     const startValue = parseFloat(document.getElementById('zoom-start').value);
     const endValue = parseFloat(document.getElementById('zoom-end').value);
@@ -671,53 +700,59 @@ function saveZoomSettings() {
         return;
     }
     
-    // Save individual zoom settings
-    individualZoomSettings[currentZoomLipidId] = {
+    // Save individual zoom settings with chart type
+    const settingsKey = `${currentZoomLipidId}_${currentZoomChart}`;
+    individualZoomSettings[settingsKey] = {
         start: startValue,
         end: endValue
     };
     
+    // Save to localStorage
+    saveZoomSettings();
+    
     // Apply zoom immediately
-    applyIndividualZoom(currentZoomLipidId);
+    applyIndividualZoom(currentZoomLipidId, currentZoomChart);
     
     closeZoomModal();
 }
 
 // Apply individual zoom to specific lipid chart
-function applyIndividualZoom(lipidId) {
-    const settings = individualZoomSettings[lipidId];
+function applyIndividualZoom(lipidId, chartType) {
+    const settingsKey = `${lipidId}_${chartType}`;
+    const settings = individualZoomSettings[settingsKey];
     if (!settings || !chartInstances[lipidId]) return;
     
     try {
-        const chart2 = chartInstances[lipidId]['chart2'];
-        if (chart2) {
-            console.log(`🎯 Applying individual zoom to ${lipidId}: ${settings.start.toFixed(2)} - ${settings.end.toFixed(2)} minutes`);
+        const chart = chartInstances[lipidId][chartType];
+        if (chart) {
+            console.log(`🎯 Applying individual zoom to ${lipidId} ${chartType}: ${settings.start.toFixed(2)} - ${settings.end.toFixed(2)} minutes`);
             
             // Reset and apply zoom
-            chart2.resetZoom('none');
-            chart2.zoomScale('x', {
+            chart.resetZoom('none');
+            chart.zoomScale('x', {
                 min: settings.start,
                 max: settings.end
             }, 'none');
             
             // Add visual indicator
-            const canvas = chart2.canvas;
+            const canvas = chart.canvas;
             canvas.style.borderTop = '3px solid #007bff';
             canvas.style.borderLeft = '3px solid #007bff';
             canvas.title = `Individual Zoom: ${settings.start.toFixed(2)} - ${settings.end.toFixed(2)} minutes`;
             
             // Add individual zoom badge
-            addIndividualZoomBadge(lipidId);
+            addIndividualZoomBadge(lipidId, chartType);
         }
     } catch (error) {
-        console.error(`Failed to apply individual zoom to ${lipidId}:`, error);
+        console.error(`Failed to apply individual zoom to ${lipidId} ${chartType}:`, error);
     }
 }
 
 // Add visual badge for individual zoom
-function addIndividualZoomBadge(lipidId) {
+function addIndividualZoomBadge(lipidId, chartType) {
     try {
-        const chartContainer = document.querySelector(`#lipid-container-${lipidId} .single-chart-container:nth-child(2)`);
+        const chartIndex = chartType === 'chart1' ? 1 : 2;
+        const chartContainer = document.querySelector(`#lipid-container-${lipidId} .single-chart-container:nth-child(${chartIndex})`);
         if (!chartContainer) return;
         
         // Remove existing badge
@@ -726,7 +761,8 @@ function addIndividualZoomBadge(lipidId) {
             existingBadge.remove();
         }
         
-        const settings = individualZoomSettings[lipidId];
+        const settingsKey = `${lipidId}_${chartType}`;
+        const settings = individualZoomSettings[settingsKey];
         if (!settings) return;
         
         // Create individual zoom badge
@@ -734,7 +770,7 @@ function addIndividualZoomBadge(lipidId) {
         badge.className = 'individual-zoom-badge';
         badge.innerHTML = `
             <i class="fas fa-user-cog"></i> 
-            Individual: ${settings.start.toFixed(1)}-${settings.end.toFixed(1)}min
+            ${chartType.toUpperCase()}: ${settings.start.toFixed(1)}-${settings.end.toFixed(1)}min
         `;
         badge.style.cssText = `
             position: absolute;
@@ -756,6 +792,47 @@ function addIndividualZoomBadge(lipidId) {
     } catch (error) {
         console.warn('Could not add individual zoom badge:', error);
     }
+}
+
+// Restore defaults function
+function restoreDefaults(lipidId) {
+    // Remove zoom settings for both charts
+    delete individualZoomSettings[`${lipidId}_chart1`];
+    delete individualZoomSettings[`${lipidId}_chart2`];
+    
+    // Save updated settings to localStorage
+    saveZoomSettings();
+    
+    // Reset both charts to default zoom
+    if (chartInstances[lipidId]) {
+        if (chartInstances[lipidId].chart1) {
+            chartInstances[lipidId].chart1.resetZoom();
+            chartInstances[lipidId].chart1.canvas.style.borderTop = '';
+            chartInstances[lipidId].chart1.canvas.style.borderLeft = '';
+            chartInstances[lipidId].chart1.canvas.title = '';
+        }
+        if (chartInstances[lipidId].chart2) {
+            chartInstances[lipidId].chart2.resetZoom();
+            chartInstances[lipidId].chart2.canvas.style.borderTop = '';
+            chartInstances[lipidId].chart2.canvas.style.borderLeft = '';
+            chartInstances[lipidId].chart2.canvas.title = '';
+        }
+    }
+    
+    // Remove badges
+    const chart1Container = document.querySelector(`#lipid-container-${lipidId} .single-chart-container:nth-child(1)`);
+    const chart2Container = document.querySelector(`#lipid-container-${lipidId} .single-chart-container:nth-child(2)`);
+    
+    if (chart1Container) {
+        const badge1 = chart1Container.querySelector('.individual-zoom-badge');
+        if (badge1) badge1.remove();
+    }
+    if (chart2Container) {
+        const badge2 = chart2Container.querySelector('.individual-zoom-badge');
+        if (badge2) badge2.remove();
+    }
+    
+    console.log(`🔄 Restored defaults for lipid ${lipidId} and saved to localStorage`);
 }
 
 async function initializeDualCharts(lipidId) {
@@ -795,8 +872,11 @@ async function initializeDualCharts(lipidId) {
         
         // Apply individual zoom settings if any exist
         setTimeout(() => {
-            if (individualZoomSettings[lipidId]) {
-                applyIndividualZoom(lipidId);
+            if (individualZoomSettings[`${lipidId}_chart1`]) {
+                applyIndividualZoom(lipidId, 'chart1');
+            }
+            if (individualZoomSettings[`${lipidId}_chart2`]) {
+                applyIndividualZoom(lipidId, 'chart2');
             }
         }, 500);
         

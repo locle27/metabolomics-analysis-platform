@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultation Request Received</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #2E4C92 0%, #E94B00 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+            border-radius: 12px 12px 0 0;
+        }
+        .content {
+            background: #fff;
+            padding: 40px 30px;
+            border: 1px solid #e0e0e0;
+            border-radius: 0 0 12px 12px;
+        }
+        .success-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        .summary-box {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            border-left: 4px solid #2E4C92;
+            margin: 25px 0;
+        }
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+        .label {
+            font-weight: 600;
+            color: #2E4C92;
+        }
+        .value {
+            color: #333;
+            text-align: right;
+        }
+        .next-steps {
+            background: #fff8f0;
+            border: 1px solid #E94B00;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+        .next-steps h3 {
+            color: #E94B00;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 1px solid #e0e0e0;
+            color: #666;
+            font-size: 14px;
+        }
+        .contact-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #E94B00, #ff6b35);
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(233, 75, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="success-icon">✅</div>
+        <h1 style="margin: 0; font-size: 28px;">Request Received!</h1>
+        <p style="margin: 15px 0 0 0; opacity: 0.9; font-size: 16px;">Thank you for your interest in our Metabolomics Research Platform</p>
+    </div>
+    
+    <div class="content">
+        <p style="font-size: 18px; margin-bottom: 25px;">
+            Hello <strong>{{ request.full_name }}</strong>,
+        </p>
+        
+        <p>We have successfully received your consultation request for the <strong>Metabolomics Research Platform</strong>. Our research team will review your inquiry and contact you within <strong>24-48 hours</strong>.</p>
+        
+        <div class="summary-box">
+            <h3 style="margin-top: 0; color: #2E4C92;">📋 Request Summary</h3>
+            
+            <div class="summary-item">
+                <span class="label">Request Type:</span>
+                <span class="value">{{ request.request_type|title }}</span>
+            </div>
+            
+            <div class="summary-item">
+                <span class="label">Preferred Date:</span>
+                <span class="value">{{ request.preferred_date.strftime('%B %d, %Y') if request.preferred_date else 'Flexible' }}</span>
+            </div>
+            
+            {% if request.preferred_time %}
+            <div class="summary-item">
+                <span class="label">Preferred Time:</span>
+                <span class="value">{{ request.preferred_time }}</span>
+            </div>
+            {% endif %}
+            
+            <div class="summary-item">
+                <span class="label">Contact Email:</span>
+                <span class="value">{{ request.email }}</span>
+            </div>
+            
+            {% if request.phone %}
+            <div class="summary-item">
+                <span class="label">Phone:</span>
+                <span class="value">{{ request.phone }}</span>
+            </div>
+            {% endif %}
+            
+            <div class="summary-item">
+                <span class="label">Submitted:</span>
+                <span class="value">{{ request.created_at.strftime('%B %d, %Y at %I:%M %p') if request.created_at else 'Now' }}</span>
+            </div>
+        </div>
+        
+        <div class="next-steps">
+            <h3>🚀 What Happens Next?</h3>
+            <ol style="margin: 0; padding-left: 20px;">
+                <li><strong>Review</strong> - Our team will review your consultation request</li>
+                <li><strong>Contact</strong> - We'll reach out within 24-48 hours via email or phone</li>
+                <li><strong>Schedule</strong> - We'll coordinate a convenient time for your consultation</li>
+                <li><strong>Consultation</strong> - Meet with our experts to discuss your research needs</li>
+            </ol>
+        </div>
+        
+        <div class="contact-info">
+            <h4 style="margin-top: 0; color: #2E4C92;">📞 Need Immediate Assistance?</h4>
+            <p style="margin: 0; color: #666;">
+                If you have urgent questions or need to modify your request, please contact us directly:
+            </p>
+            <p style="margin: 10px 0 0 0;">
+                <strong>Email:</strong> metabolomics@phenikaa.edu.vn<br>
+                <strong>Response Time:</strong> Within 24-48 hours
+            </p>
+        </div>
+        
+        <div class="footer">
+            <h4 style="color: #2E4C92;">🔬 About Our Platform</h4>
+            <p>The Metabolomics Research Platform provides advanced lipid chromatography data analysis and visualization tools for researchers worldwide. Our LC-MS/MS analysis capabilities support cutting-edge metabolomics research.</p>
+            
+            <p style="margin-top: 20px;">
+                <strong>Metabolomics Research Platform</strong><br>
+                Advanced Lipid Chromatography Data Analysis & Visualization<br>
+                <em>Precision • Innovation • Discovery</em>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

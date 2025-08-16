@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - Metabolomics Platform{% endblock %}
+
+{% block body_class %}profile-page{% endblock %}
+
+{% block hero %}
+<div class="hero-section">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-6 text-center">
+                <h1 class="hero-title">User Profile</h1>
+                <p class="hero-subtitle">Manage your account information and settings</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Profile Header -->
+            <div class="profile-header mb-4">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h2>
+                            <i class="fas fa-user-circle text-primary me-2"></i>
+                            {{ current_user.full_name }}
+                        </h2>
+                        <p class="text-muted mb-1">
+                            <i class="fas fa-envelope me-2"></i>{{ current_user.email }}
+                        </p>
+                        <div class="profile-badges">
+                            <span class="badge bg-primary">{{ current_user.role.title() }}</span>
+                            {% if current_user.email_verified %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle me-1"></i>Verified
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>Unverified
+                                </span>
+                            {% endif %}
+                            <span class="badge bg-info">{{ current_user.auth_method.title() }} Auth</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <div class="profile-stats">
+                            <small class="text-muted">Member since</small><br>
+                            <strong>{{ current_user.created_at.strftime('%B %Y') if current_user.created_at else 'Unknown' }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Profile Form -->
+                <div class="col-lg-8">
+                    <div class="auth-card">
+                        <div class="auth-header">
+                            <h3 class="mb-3">
+                                <i class="fas fa-edit text-primary me-2"></i>
+                                Edit Profile Information
+                            </h3>
+                        </div>
+
+                        <form method="POST" class="auth-form">
+                            {{ form.hidden_tag() }}
+                            
+                            <!-- Full Name Field -->
+                            <div class="form-group mb-3">
+                                {{ form.full_name.label(class="form-label") }}
+                                {{ form.full_name(class="form-control" + (" is-invalid" if form.full_name.errors else "")) }}
+                                {% if form.full_name.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.full_name.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Email Field -->
+                            <div class="form-group mb-4">
+                                {{ form.email.label(class="form-label") }}
+                                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
+                                {% if form.email.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.email.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Changing your email will require re-verification
+                                </small>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="d-grid">
+                                {{ form.submit(class="btn btn-primary btn-lg") }}
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Profile Actions -->
+                <div class="col-lg-4">
+                    <div class="profile-actions">
+                        <!-- Account Security -->
+                        <div class="action-card mb-3">
+                            <h5>
+                                <i class="fas fa-shield-alt text-success me-2"></i>
+                                Account Security
+                            </h5>
+                            <p class="text-muted small">Manage your password and security settings</p>
+                            <a href="{{ url_for('auth.change_password') }}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-key me-2"></i>Change Password
+                            </a>
+                        </div>
+
+                        <!-- Account Info -->
+                        <div class="action-card mb-3">
+                            <h5>
+                                <i class="fas fa-info-circle text-info me-2"></i>
+                                Account Details
+                            </h5>
+                            <ul class="list-unstyled mb-3">
+                                <li><strong>User ID:</strong> #{{ current_user.user_id }}</li>
+                                <li><strong>Role:</strong> {{ current_user.role.title() }}</li>
+                                <li><strong>Status:</strong> 
+                                    {% if current_user.is_active %}
+                                        <span class="text-success">Active</span>
+                                    {% else %}
+                                        <span class="text-danger">Inactive</span>
+                                    {% endif %}
+                                </li>
+                                {% if current_user.last_login %}
+                                <li><strong>Last Login:</strong> {{ current_user.last_login.strftime('%Y-%m-%d %H:%M') }}</li>
+                                {% endif %}
+                            </ul>
+                            <a href="{{ url_for('user_debug') }}" class="btn btn-outline-info w-100">
+                                <i class="fas fa-cog me-2"></i>System Info
+                            </a>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="action-card">
+                            <h5>
+                                <i class="fas fa-bolt text-warning me-2"></i>
+                                Quick Actions
+                            </h5>
+                            <div class="d-grid gap-2">
+                                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-success">
+                                    <i class="fas fa-chart-line me-2"></i>Dashboard
+                                </a>
+                                {% if current_user.is_admin() %}
+                                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-dark">
+                                    <i class="fas fa-tools me-2"></i>Admin Panel
+                                </a>
+                                {% endif %}
+                                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.profile-header {
+    background: linear-gradient(135deg, #2E4C92 0%, #213671 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 30px;
+    margin-bottom: 30px;
+}
+
+.profile-badges .badge {
+    margin-right: 8px;
+    margin-bottom: 4px;
+    font-size: 11px;
+    padding: 6px 12px;
+}
+
+.profile-stats {
+    text-align: center;
+    padding: 20px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+}
+
+.auth-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    padding: 30px;
+    margin-bottom: 20px;
+}
+
+.action-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 20px;
+    border-left: 4px solid #2E4C92;
+}
+
+.action-card h5 {
+    color: #2E4C92;
+    margin-bottom: 10px;
+}
+
+.form-control {
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    padding: 12px 16px;
+}
+
+.form-control:focus {
+    border-color: #2E4C92;
+    box-shadow: 0 0 0 0.2rem rgba(46, 76, 146, 0.25);
+}
+
+.btn-primary {
+    background-color: #2E4C92;
+    border-color: #2E4C92;
+    border-radius: 8px;
+    font-weight: 500;
+    padding: 12px;
+}
+
+.btn-primary:hover {
+    background-color: #213671;
+    border-color: #213671;
+}
+
+.btn-outline-primary {
+    color: #2E4C92;
+    border-color: #2E4C92;
+}
+
+.btn-outline-primary:hover {
+    background-color: #2E4C92;
+    border-color: #2E4C92;
+}
+
+.text-primary {
+    color: #2E4C92 !important;
+}
+</style>
+{% endblock %}

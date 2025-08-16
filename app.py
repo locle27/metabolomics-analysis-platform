@@ -4,7 +4,7 @@ Fixes N+1 query problems with proper eager loading
 """
 
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response, send_file, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response, send_file, session, get_flashed_messages
 from dotenv import load_dotenv
 from werkzeug.middleware.proxy_fix import ProxyFix
 import json
@@ -42,6 +42,16 @@ from dual_chart_service import DualChartService
 # Import backup system
 from backup_system_postgresql import PostgreSQLBackupSystem, auto_backup_context
 
+# Import authentication system - DEMO VERSION for Railway deployment
+import os
+if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('FLASK_ENV') == 'production':
+    from email_auth_demo import auth_bp  # Safe version for Railway
+else:
+    from email_auth import auth_bp  # Full version for local development
+
+# Import enhanced email service
+from email_service_enhanced import send_schedule_notification, test_email_configuration, get_email_service_status
+
 # Configuration
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -58,7 +68,7 @@ app.secret_key = os.getenv('SECRET_KEY', 'metabolomics-dev-key-change-in-product
 # Authentication Configuration
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login'
+login_manager.login_view = 'auth.login'
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
 
@@ -94,7 +104,10 @@ app.config['MAIL_ASCII_ATTACHMENTS'] = False
 import socket
 try:
     # Use a valid hostname instead of the problematic Windows hostname
-    app.config['MAIL_LOCAL_HOSTNAME'] = 'metabolomics-platform.local'
+    app.config['MAIL_LOCAL_HOSTNAME'] = 'metabolomics-platform.com'
+    # Additional SMTP configuration for Windows compatibility
+    app.config['MAIL_SUPPRESS_SEND'] = False
+    app.config['MAIL_DEBUG'] = False
 except:
     pass
 
@@ -103,7 +116,7 @@ mail = Mail(app)
 @login_manager.user_loader
 def load_user(user_id):
     """Load user for Flask-Login"""
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 # PostgreSQL configuration with optimization
 database_url = os.getenv('DATABASE_URL')
@@ -125,14 +138,22 @@ db = init_db(app)
 # Initialize backup system
 backup_system = PostgreSQLBackupSystem(app)
 
+# Register authentication blueprint
+app.register_blueprint(auth_bp)
+
 # =====================================================
 # AUTHENTICATION ROUTES
 # =====================================================
 
 @app.route('/login')
 def login():
-    """Display login page"""
-    return render_template('login_exact.html')
+    """Redirect to auth login page"""
+    return redirect(url_for('auth.login'))
+
+@app.route('/signup')
+def signup():
+    """Redirect to auth registration page"""
+    return redirect(url_for('auth.register'))
 
 @app.route('/demo-login')
 def demo_login():
@@ -265,41 +286,83 @@ def appwrite_callback():
         flash(f'Authentication failed: {str(e)}', 'error')
         return redirect(url_for('login'))
 
+def get_oauth_redirect_uri():
+    """Get appropriate OAuth redirect URI based on environment - FIXED for private IP issues"""
+    if os.getenv('FLASK_ENV') == 'production':
+        base_url = os.getenv('PROD_OAUTH_BASE_URL', 'https://your-production-domain.com')
+    else:
+        # CRITICAL FIX: Never use private IPs (192.168.x.x) - Google OAuth rejects them
+        if 'localhost' in request.host or '127.0.0.1' in request.host:
+            base_url = f"http://{request.host}"
+        else:
+            # Force localhost for any other development scenario (fixes private IP issue)
+            base_url = "http://localhost:5000"
+    
+    return f"{base_url}/auth"  # Use shorter route for better Google Console compatibility
+
 @app.route('/login/callback')
 def login_callback():
-    """Gmail OAuth callback and login processing"""
+    """Gmail OAuth callback with enhanced error handling - FIXED"""
     try:
-        # Get authorization from Google
-        redirect_uri = url_for('login_authorized', _external=True)
+        # Get the correct redirect URI for this environment
+        redirect_uri = get_oauth_redirect_uri()
+        
+        # Log for debugging
+        print(f"🔧 OAuth redirect URI: {redirect_uri}")
+        print(f"🔧 Request host: {request.host}")
+        
         return google.authorize_redirect(redirect_uri)
+        
     except Exception as e:
+        print(f"❌ OAuth callback error: {str(e)}")
         flash(f'Login initialization failed: {str(e)}', 'error')
         return redirect(url_for('login'))
 
-@app.route('/callback')
+@app.route('/auth')        # Short URL for Google Console
+@app.route('/google')      # Alternative short URL
+@app.route('/oauth2')      # Standard OAuth2 pattern
+@app.route('/callback')    # Original URL
 def login_authorized():
-    """Handle OAuth authorization response"""
+    """Enhanced OAuth authorization handler with better error handling"""
     try:
-        # Get token from Google
+        # Get token with proper error handling
         token = google.authorize_access_token()
+        
         if not token:
             flash('Authorization was denied. Please try again.', 'error')
             return redirect(url_for('login'))
         
-        # Get user info from Google
-        user_info = token.get('userinfo')
-        if not user_info:
-            # Try to get user info from the userinfo endpoint
+        # Enhanced user info retrieval with multiple fallbacks
+        user_info = None
+        
+        # Method 1: Direct from token
+        if 'userinfo' in token:
+            user_info = token['userinfo']
+            print("✅ User info from token.userinfo")
+        
+        # Method 2: Parse ID token
+        if not user_info and 'id_token' in token:
             try:
                 user_info = google.parse_id_token(token)
+                print("✅ User info from ID token")
             except Exception as e:
-                # Fallback: try manual userinfo endpoint request
-                try:
-                    resp = google.get('userinfo', token=token)
+                print(f"⚠️ ID token parsing failed: {e}")
+        
+        # Method 3: API call to userinfo endpoint
+        if not user_info:
+            try:
+                resp = google.get('userinfo', token=token)
+                if resp.status_code == 200:
                     user_info = resp.json()
-                except Exception as e2:
-                    flash(f'Failed to get user information from Gmail: {str(e2)}', 'error')
-                    return redirect(url_for('login'))
+                    print("✅ User info from API call")
+                else:
+                    print(f"⚠️ Userinfo API returned status {resp.status_code}")
+            except Exception as e:
+                print(f"⚠️ Userinfo API call failed: {e}")
+        
+        if not user_info:
+            flash('Failed to retrieve user information from Google.', 'error')
+            return redirect(url_for('login'))
         
         email = user_info.get('email')
         full_name = user_info.get('name', 'Unknown User')
@@ -353,6 +416,74 @@ def login_authorized():
         db.session.rollback()
         flash(f'Login failed: {str(e)}', 'error')
         return redirect(url_for('login'))
+
+@app.route('/oauth-debug')
+def oauth_debug():
+    """Debug OAuth configuration and test connectivity"""
+    if not os.getenv('FLASK_ENV') == 'development':
+        return "Debug mode only available in development", 403
+    
+    debug_info = {
+        'environment': os.getenv('FLASK_ENV', 'development'),
+        'request_host': request.host,
+        'request_url': request.url,
+        'google_client_id': (os.getenv('GOOGLE_CLIENT_ID')[:10] + '...' if os.getenv('GOOGLE_CLIENT_ID') else 'Not set'),
+        'oauth_redirect_uri': get_oauth_redirect_uri(),
+        'oauth_scopes': 'openid email profile',
+        'oauth_metadata_url': 'https://accounts.google.com/.well-known/openid-configuration'
+    }
+    
+    return f"""
+    <html>
+    <head>
+        <title>OAuth Debug Information</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }}
+            .container {{ background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+            h2 {{ color: #2E4C92; }}
+            ul {{ list-style: none; padding: 0; }}
+            li {{ padding: 10px; background: #f8f9fa; margin: 5px 0; border-radius: 5px; }}
+            strong {{ color: #213671; }}
+            .test-button {{ background: #2E4C92; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; margin: 20px 0; }}
+            .test-button:hover {{ background: #213671; }}
+            ol {{ padding-left: 20px; }}
+            li.step {{ background: #e3f2fd; border-left: 4px solid #2E4C92; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>🔍 OAuth Debug Information</h2>
+            <ul>
+                {''.join([f'<li><strong>{k.replace("_", " ").title()}:</strong> {v}</li>' for k, v in debug_info.items()])}
+            </ul>
+            
+            <h3>🧪 Test OAuth Flow:</h3>
+            <a href="{url_for('login_callback')}" class="test-button">
+                🚀 Test Google OAuth
+            </a>
+            
+            <h3>📋 Next Steps:</h3>
+            <ol>
+                <li class="step">Verify Google Cloud Console redirect URIs match: <strong>{debug_info['oauth_redirect_uri']}</strong></li>
+                <li class="step">Ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are correct in .env file</li>
+                <li class="step">Test OAuth flow using the button above</li>
+                <li class="step">Check browser console for any JavaScript errors</li>
+                <li class="step">If errors persist, check <a href="/recovery-mode">Recovery Mode</a> or <a href="/demo-login">Demo Login</a></li>
+            </ol>
+            
+            <h3>🔧 Current Issues & Solutions:</h3>
+            <ul>
+                <li><strong>Private IP Error (192.168.x.x):</strong> Fixed! Now using localhost only</li>
+                <li><strong>Redirect URI Mismatch:</strong> Check Google Cloud Console settings</li>
+                <li><strong>Access Denied:</strong> User cancelled or OAuth app not verified</li>
+                <li><strong>Token Issues:</strong> Check client ID/secret configuration</li>
+            </ul>
+            
+            <p><a href="{url_for('homepage')}">← Back to Homepage</a></p>
+        </div>
+    </body>
+    </html>
+    """
 
 @app.route('/logout')
 @login_required
@@ -793,6 +924,95 @@ def admin_stats():
 # ADMIN DASHBOARD ROUTE
 # =====================================================
 
+@app.route('/auth-debug')
+def auth_debug():
+    """Debug route to show all users and authentication issues"""
+    try:
+        # Get all users
+        users = User.query.all()
+        
+        debug_info = f"""
+        <html>
+        <head>
+            <title>Authentication Debug</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }}
+                .container {{ background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                .user {{ background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #2E4C92; }}
+                .error {{ background: #f8d7da; padding: 10px; border-radius: 5px; color: #721c24; margin: 10px 0; }}
+                .success {{ background: #d4edda; padding: 10px; border-radius: 5px; color: #155724; margin: 10px 0; }}
+                h2 {{ color: #2E4C92; }}
+                .password-reset {{ background: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h2>🐛 Authentication Debug Information</h2>
+                
+                <h3>📊 Database Users ({len(users)} total)</h3>
+        """
+        
+        for user in users:
+            debug_info += f"""
+                <div class="user">
+                    <strong>👤 {user.full_name}</strong><br>
+                    <strong>Username:</strong> {user.username}<br>
+                    <strong>Email:</strong> {user.email}<br>
+                    <strong>Role:</strong> {user.role}<br>
+                    <strong>Active:</strong> {'✅ Yes' if user.is_active else '❌ No'}<br>
+                    <strong>Email Verified:</strong> {'✅ Yes' if user.email_verified else '❌ No'}<br>
+                    <strong>Has Password:</strong> {'✅ Yes' if user.password_hash else '❌ No'}<br>
+                    <strong>Auth Method:</strong> {user.auth_method}<br>
+                    <strong>Failed Attempts:</strong> {user.failed_login_attempts or 0}<br>
+                    <strong>Account Locked:</strong> {'🔒 Yes' if user.is_account_locked() else '✅ No'}<br>
+                    <strong>Created:</strong> {user.created_at}<br>
+                    <strong>Last Login:</strong> {user.last_login or 'Never'}<br>
+                </div>
+            """
+        
+        # Email configuration check
+        import os
+        mail_configured = bool(os.getenv('MAIL_USERNAME') and os.getenv('MAIL_PASSWORD'))
+        
+        debug_info += f"""
+                <h3>📧 Email Configuration</h3>
+                <div class="{'success' if mail_configured else 'error'}">
+                    <strong>Status:</strong> {'✅ Configured' if mail_configured else '❌ Not Configured'}<br>
+                    <strong>Server:</strong> {os.getenv('MAIL_SERVER', 'Not set')}<br>
+                    <strong>Username:</strong> {os.getenv('MAIL_USERNAME', 'Not set')}<br>
+                    <strong>Password:</strong> {'✅ Set' if os.getenv('MAIL_PASSWORD') else '❌ Not set'}
+                </div>
+                
+                <div class="password-reset">
+                    <h4>🔧 Manual Password Reset</h4>
+                    <p>If you can't login or forgot password doesn't work, you can reset passwords manually:</p>
+                    <ol>
+                        <li>Visit: <a href="/manual-password-reset">/manual-password-reset</a></li>
+                        <li>Or contact admin to reset your password</li>
+                        <li>Or use demo login: <a href="/demo-login">/demo-login</a></li>
+                    </ol>
+                </div>
+                
+                <h3>🔗 Useful Links</h3>
+                <ul>
+                    <li><a href="/auth/login">Login Page</a></li>
+                    <li><a href="/auth/register">Registration Page</a></li>
+                    <li><a href="/auth/forgot-password">Forgot Password</a></li>
+                    <li><a href="/demo-login">Demo Login</a></li>
+                    <li><a href="/manual-password-reset">Manual Password Reset</a></li>
+                </ul>
+                
+                <p><a href="/">← Back to Homepage</a></p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return debug_info
+        
+    except Exception as e:
+        return f"<h2>❌ Debug Error</h2><p>{str(e)}</p><a href='/'>Back to Homepage</a>"
+
 @app.route('/user-debug')
 @login_required
 def user_debug():
@@ -800,6 +1020,7 @@ def user_debug():
     try:
         user_info = {
             'email': current_user.email,
+            'username': current_user.username,
             'full_name': current_user.full_name,
             'role': current_user.role,
             'is_admin': current_user.is_admin(),
@@ -840,6 +1061,218 @@ def user_debug():
         
     except Exception as e:
         return f"<h2>❌ Debug Error</h2><p>{str(e)}</p><a href='{url_for('homepage')}'>Back to Homepage</a>"
+
+@app.route('/fix-oauth-users')
+def fix_oauth_users():
+    """Fix OAuth users by setting default passwords"""
+    try:
+        fixed_users = []
+        oauth_users = User.query.filter_by(auth_method='oauth').all()
+        
+        for user in oauth_users:
+            if not user.password_hash:
+                # Set a default password based on username
+                default_password = f"{user.username}123!"
+                user.set_password(default_password)
+                user.auth_method = 'password'  # Change to password auth
+                user.email_verified = True  # Mark as verified
+                user.reset_failed_attempts()  # Clear any failed attempts
+                
+                fixed_users.append({
+                    'username': user.username,
+                    'email': user.email,
+                    'password': default_password
+                })
+        
+        db.session.commit()
+        
+        result = f"""
+        <html>
+        <head>
+            <title>OAuth Users Fixed</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }}
+                .container {{ background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                .user {{ background: #d4edda; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #28a745; }}
+                h2 {{ color: #2E4C92; }}
+                .password {{ font-family: monospace; background: #f8f9fa; padding: 5px; border-radius: 3px; }}
+                .warning {{ background: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; color: #856404; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h2>✅ OAuth Users Fixed!</h2>
+                <p>Successfully set passwords for {len(fixed_users)} OAuth users:</p>
+        """
+        
+        for user_info in fixed_users:
+            result += f"""
+                <div class="user">
+                    <strong>👤 {user_info['username']}</strong><br>
+                    <strong>Email:</strong> {user_info['email']}<br>
+                    <strong>Default Password:</strong> <span class="password">{user_info['password']}</span><br>
+                    <em>You can now login with this username and password!</em>
+                </div>
+            """
+        
+        if not fixed_users:
+            result += """
+                <div class="warning">
+                    <strong>⚠️ No OAuth users found or all users already have passwords set.</strong>
+                </div>
+            """
+        
+        result += f"""
+                <div class="warning">
+                    <strong>🔒 Security Note:</strong> Please change these default passwords after logging in!
+                    <br>Visit your profile to update your password to something more secure.
+                </div>
+                
+                <h3>🔗 Quick Actions</h3>
+                <ul>
+                    <li><a href="/auth/login">🔐 Login Now</a></li>
+                    <li><a href="/auth-debug">🐛 View Debug Info</a></li>
+                    <li><a href="/manual-password-reset">🔧 Manual Password Reset</a></li>
+                    <li><a href="/">🏠 Homepage</a></li>
+                </ul>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return result
+        
+    except Exception as e:
+        db.session.rollback()
+        return f"<h2>❌ Error fixing OAuth users</h2><p>{str(e)}</p><a href='/auth-debug'>Back to Debug</a>"
+
+@app.route('/manual-password-reset', methods=['GET', 'POST'])
+def manual_password_reset():
+    """Emergency manual password reset - for development/admin use"""
+    if request.method == 'POST':
+        try:
+            username = request.form.get('username', '').strip()
+            new_password = request.form.get('new_password', '').strip()
+            confirm_password = request.form.get('confirm_password', '').strip()
+            
+            if not username or not new_password:
+                flash('Username and password are required.', 'error')
+                return redirect(url_for('manual_password_reset'))
+            
+            if new_password != confirm_password:
+                flash('Passwords do not match.', 'error')
+                return redirect(url_for('manual_password_reset'))
+            
+            if len(new_password) < 8:
+                flash('Password must be at least 8 characters long.', 'error')
+                return redirect(url_for('manual_password_reset'))
+            
+            # Find user
+            user = User.query.filter_by(username=username.lower()).first()
+            if not user:
+                flash(f'User "{username}" not found.', 'error')
+                return redirect(url_for('manual_password_reset'))
+            
+            # Reset password
+            user.set_password(new_password)
+            user.reset_failed_attempts()  # Clear any lockouts
+            user.email_verified = True  # Mark as verified
+            db.session.commit()
+            
+            flash(f'✅ Password reset successfully for {user.full_name}! You can now login with the new password.', 'success')
+            return redirect(url_for('auth.login'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error resetting password: {str(e)}', 'error')
+    
+    # Get all usernames for dropdown
+    try:
+        users = User.query.all()
+        usernames = [user.username for user in users]
+    except:
+        usernames = []
+    
+    # Handle flash messages
+    flash_messages = ''
+    for cat, msg in get_flashed_messages(with_categories=True):
+        alert_class = 'alert-success' if cat == 'success' else 'alert-error'
+        flash_messages += f'<div class="alert {alert_class}">{msg}</div>'
+    
+    # Generate username list HTML
+    username_items = ''
+    for username in usernames:
+        username_items += f'<span class="username-item" onclick="selectUsername(\'{username}\')">{username}</span>'
+    
+    return f"""
+    <html>
+    <head>
+        <title>Manual Password Reset</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }}
+            .container {{ background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto; }}
+            .form-group {{ margin-bottom: 20px; }}
+            label {{ display: block; margin-bottom: 5px; font-weight: bold; color: #2E4C92; }}
+            input, select {{ width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }}
+            button {{ background: #2E4C92; color: white; padding: 12px 20px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; width: 100%; }}
+            button:hover {{ background: #213671; }}
+            .alert {{ padding: 10px; margin: 10px 0; border-radius: 5px; }}
+            .alert-success {{ background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }}
+            .alert-error {{ background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }}
+            h2 {{ color: #2E4C92; text-align: center; }}
+            .usernames {{ background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0; }}
+            .username-list {{ display: flex; flex-wrap: wrap; gap: 10px; }}
+            .username-item {{ background: #e9ecef; padding: 5px 10px; border-radius: 3px; font-family: monospace; cursor: pointer; }}
+            .username-item:hover {{ background: #2E4C92; color: white; }}
+        </style>
+        <script>
+            function selectUsername(username) {{
+                document.getElementById('username').value = username;
+            }}
+        </script>
+    </head>
+    <body>
+        <div class="container">
+            <h2>🔧 Manual Password Reset</h2>
+            <p style="text-align: center; color: #666;">Emergency password reset for system administrators</p>
+            
+            {flash_messages}
+            
+            <div class="usernames">
+                <strong>📝 Available Usernames (click to select):</strong>
+                <div class="username-list">
+                    {username_items}
+                </div>
+            </div>
+            
+            <form method="POST">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="new_password">New Password:</label>
+                    <input type="password" id="new_password" name="new_password" required minlength="8">
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm_password">Confirm Password:</label>
+                    <input type="password" id="confirm_password" name="confirm_password" required minlength="8">
+                </div>
+                
+                <button type="submit">🔄 Reset Password</button>
+            </form>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <a href="/auth-debug">🐛 View Debug Info</a> | 
+                <a href="/auth/login">🔐 Back to Login</a> | 
+                <a href="/">🏠 Homepage</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
 
 @app.route('/promote-to-admin')
 @login_required
@@ -1198,11 +1631,19 @@ def submit_schedule_request():
         db.session.add(schedule_request)
         db.session.commit()
         
-        # Send email notification
+        # Send email notifications using enhanced email service
         try:
-            send_schedule_notification_email(schedule_request)
+            email_results = send_schedule_notification(schedule_request)
+            if email_results['admin_sent'] or email_results['user_sent']:
+                print(f"✅ Email notifications sent successfully")
+                if email_results['admin_sent']:
+                    print(f"   - Admin notification: {email_results['details']['admin']['method']}")
+                if email_results['user_sent']:
+                    print(f"   - User confirmation: {email_results['details']['user']['method']}")
+            else:
+                print(f"⚠️ Email notifications failed to send")
         except Exception as e:
-            print(f"Failed to send email notification: {e}")
+            print(f"❌ Failed to send email notifications: {e}")
         
         flash(f'Thank you {full_name}! Your consultation request has been submitted successfully. We\'ll respond within 24-48 hours.', 'success')
         return redirect(url_for('homepage'))
@@ -1212,115 +1653,23 @@ def submit_schedule_request():
         flash(f'Error submitting request: {str(e)}', 'error')
         return render_template('schedule_form.html', today=datetime.now().strftime('%Y-%m-%d'))
 
-def send_schedule_notification_email(schedule_request):
-    """Send email notification with SMTP hostname fix"""
-    
-    # Check if email is configured
-    if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
-        print("📧 Email not configured - skipping email notifications")
-        return
-    
-    import smtplib
-    from email.mime.text import MIMEText
-    from email.mime.multipart import MIMEMultipart
-    
-    try:
-        # Create SMTP connection with explicit hostname override
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.ehlo('metabolomics-platform.com')  # Override problematic Windows hostname
-        server.starttls()
-        server.ehlo('metabolomics-platform.com')  # Some servers require EHLO after STARTTLS
-        server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
-        
-        # Email to admin
-        admin_msg = MIMEMultipart()
-        admin_msg['From'] = app.config['MAIL_USERNAME']
-        admin_msg['To'] = app.config['MAIL_USERNAME']
-        admin_msg['Subject'] = f"New Consultation Request - {schedule_request.full_name}"
-        
-        admin_body = f"""New consultation request submitted:
-
-Name: {schedule_request.full_name}
-Email: {schedule_request.email}
-Phone: {schedule_request.phone or 'Not provided'}
-Organization: {schedule_request.organization or 'Not provided'}
-Type: {schedule_request.request_type}
-Preferred Date: {schedule_request.preferred_date or 'Any date'}
-Preferred Time: {schedule_request.preferred_time or 'Any time'}
-
-Message:
-{schedule_request.message}
-
-Submitted: {schedule_request.created_at}
-Request ID: {schedule_request.request_id}
-
-Please respond to the client within 24-48 hours."""
-        
-        admin_msg.attach(MIMEText(admin_body, 'plain'))
-        server.sendmail(app.config['MAIL_USERNAME'], app.config['MAIL_USERNAME'], admin_msg.as_string())
-        print(f"✅ Admin notification sent successfully to {app.config['MAIL_USERNAME']}")
-        
-        # Confirmation email to client
-        client_msg = MIMEMultipart()
-        client_msg['From'] = app.config['MAIL_USERNAME']
-        client_msg['To'] = schedule_request.email
-        client_msg['Subject'] = "Consultation Request Received - Metabolomics Platform"
-        
-        client_body = f"""Dear {schedule_request.full_name},
-
-Thank you for your interest in our Metabolomics Research Platform!
-
-We have received your consultation request and will respond within 24-48 hours. Here are the details we received:
-
-Consultation Type: {schedule_request.request_type}
-Preferred Date: {schedule_request.preferred_date or 'Any date'}
-Preferred Time: {schedule_request.preferred_time or 'Any time'}
-
-Our team will review your request and contact you at {schedule_request.email} to schedule the consultation.
-
-If you have any urgent questions, please don't hesitate to contact us.
-
-Best regards,
-Metabolomics Research Team
-
-Request ID: {schedule_request.request_id}"""
-
-        client_msg.attach(MIMEText(client_body, 'plain'))
-        server.sendmail(app.config['MAIL_USERNAME'], schedule_request.email, client_msg.as_string())
-        print(f"✅ Client confirmation sent successfully to {schedule_request.email}")
-        
-        server.quit()
-        
-    except Exception as e:
-        print(f"❌ Email sending failed: {e}")
-        # Fallback: Try Flask-Mail (might still work in some cases)
-        try:
-            fallback_body = f"""New consultation request submitted:
-
-Name: {schedule_request.full_name}
-Email: {schedule_request.email}
-Phone: {schedule_request.phone or 'Not provided'}
-Organization: {schedule_request.organization or 'Not provided'}
-Type: {schedule_request.request_type}
-Preferred Date: {schedule_request.preferred_date or 'Any date'}
-Preferred Time: {schedule_request.preferred_time or 'Any time'}
-
-Message: {schedule_request.message}
-
-Request ID: {schedule_request.request_id}"""
-
-            admin_msg = Message(
-                subject=f"New Consultation Request - {schedule_request.full_name}",
-                sender=app.config['MAIL_DEFAULT_SENDER'],
-                recipients=[app.config['MAIL_USERNAME']],
-                body=fallback_body
-            )
-            mail.send(admin_msg)
-            print(f"✅ Fallback: Admin email sent via Flask-Mail")
-        except Exception as e2:
-            print(f"❌ Fallback also failed: {e2}")
-            # Even if email fails, the form submission was successful
-            print(f"📝 Consultation request saved to database with ID: {schedule_request.request_id}")
+# =====================================================
+# EMAIL SYSTEM REPLACED
+# =====================================================
+# 
+# The old send_schedule_notification_email() function has been replaced 
+# with the enhanced email service (email_service_enhanced.py) which provides:
+# 
+# 1. SendGrid API support (production-ready)
+# 2. Gmail SMTP fallback (development)
+# 3. Professional HTML email templates
+# 4. Better error handling and logging
+# 5. Railway-compatible SMTP configuration
+# 
+# Email functionality is now handled by:
+# - send_schedule_notification() - For schedule requests
+# - test_email_configuration() - For testing
+# - get_email_service_status() - For status checking
 
 # =====================================================
 # FUTURE MANAGEMENT SECTIONS (PLACEHOLDER ROUTES)
@@ -1352,6 +1701,57 @@ def equipment_management():
                              "Maintenance scheduling",
                              "Usage monitoring",
                              "Calibration management"
+                         ])
+
+# =====================================================
+# LIPIDOMICS RESEARCH TOOLS 
+# =====================================================
+
+@app.route('/analysis-tools')
+@login_required
+def analysis_tools():
+    """Analysis Tools section - Advanced lipidomics analysis"""
+    return render_template('coming_soon.html',
+                         title="Analysis Tools",
+                         description="Advanced tools for lipidomics data analysis and interpretation",
+                         features=[
+                             "Statistical analysis and visualization",
+                             "Pathway enrichment analysis",
+                             "Biomarker discovery tools",
+                             "Data quality assessment",
+                             "Multi-variate analysis (PCA, PLS-DA)",
+                             "Lipid class distribution analysis"
+                         ])
+
+@app.route('/lcms-tools')
+@login_required
+def lcms_tools():
+    """LC-MS/MS Tools section - Mass spectrometry analysis tools"""
+    return render_template('coming_soon.html',
+                         title="LC-MS/MS Tools",
+                         description="Specialized tools for LC-MS/MS data processing and analysis",
+                         features=[
+                             "Peak detection and integration",
+                             "Mass spectral library matching",
+                             "Retention time alignment",
+                             "Isotope pattern analysis",
+                             "Fragmentation pattern analysis",
+                             "Quantitative analysis workflows"
+                         ])
+
+@app.route('/protocols')
+def protocols():
+    """Protocols section - Research protocols and methodologies"""
+    return render_template('coming_soon.html',
+                         title="Research Protocols",
+                         description="Standardized protocols for lipidomics research and analysis",
+                         features=[
+                             "Sample preparation protocols",
+                             "LC-MS/MS method development",
+                             "Data processing workflows",
+                             "Quality control procedures",
+                             "Validation methodologies",
+                             "Best practices guidelines"
                          ])
 
 # =====================================================

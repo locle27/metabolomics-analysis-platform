@@ -113,17 +113,17 @@ class DualChartService:
             chart1_start = max(0.0, float(main_retention_time) - 0.6)
             chart1_end = float(main_retention_time) + 0.6
             
-            # Create both charts
+            # Create both charts (no titles)
             chart1_config = self._create_chart_config(
                 time_points, intensity_points, annotated_ions, 
                 chart1_start, chart1_end, 
-                f"Chart 1: {lipid_info['lipid_name']} - Focused View (RT ± 0.6 min)"
+                ""  # No title
             )
             
             chart2_config = self._create_chart_config(
                 time_points, intensity_points, annotated_ions,
                 0.0, 16.0, 
-                f"Chart 2: {lipid_info['lipid_name']} - Full Overview (0-16 min)",
+                "",  # No title
                 force_x_range=True  # Force exact 0-16 range for Chart 2
             )
             
@@ -371,7 +371,7 @@ class DualChartService:
                 'maintainAspectRatio': False,
                 'plugins': {
                     'title': {
-                        'display': True,
+                        'display': False,  # Hide all chart titles
                         'text': title,
                         'font': {'size': 14, 'weight': 'bold'}
                     },

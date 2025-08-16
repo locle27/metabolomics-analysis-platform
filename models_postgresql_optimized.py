@@ -9,10 +9,147 @@ from functools import lru_cache
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy import func, text, Column, String, Integer, Float, Text, Boolean, DateTime, JSON, CheckConstraint, Index
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import UserMixin
 import time
+import uuid
+from datetime import datetime, timedelta
 
 # SQLAlchemy instance
 db = SQLAlchemy()
+
+class User(UserMixin, db.Model):
+    """User model for authentication and authorization"""
+    __tablename__ = 'users'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    username = db.Column(db.String(80), unique=True, nullable=False, index=True)
+    email = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    full_name = db.Column(db.String(255))
+    picture = db.Column(db.String(500))
+    password_hash = db.Column(db.String(255))
+    role = db.Column(db.String(50), default='user', nullable=False)  # user, manager, admin
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    is_verified = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    last_login = db.Column(db.DateTime)
+    
+    # Security fields
+    failed_login_attempts = db.Column(db.Integer, default=0)
+    locked_until = db.Column(db.DateTime)
+    last_password_change = db.Column(db.DateTime)
+    auth_method = db.Column(db.String(50), default='password')  # oauth, password, demo
+    
+    # Verification tokens
+    verification_tokens = db.relationship('VerificationToken', back_populates='user', cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f'<User {self.username} ({self.email}): {self.role}>'
+    
+    # Flask-Login required methods  
+    def get_id(self):
+        return str(self.id)
+    
+    # Role checking methods
+    def is_admin(self):
+        return self.role == 'admin'
+    
+    def is_manager(self):
+        return self.role in ['admin', 'manager']
+    
+    def set_password(self, password):
+        """Hash and set password"""
+        self.password_hash = generate_password_hash(password)
+        self.last_password_change = datetime.utcnow()
+        self.auth_method = 'password'
+        
+    def check_password(self, password):
+        """Check if provided password matches hash"""
+        if not self.password_hash:
+            return False
+        return check_password_hash(self.password_hash, password)
+        
+    def is_account_locked(self):
+        """Check if account is temporarily locked due to failed attempts"""
+        if self.locked_until:
+            return datetime.utcnow() < self.locked_until
+        return False
+        
+    def lock_account(self, duration_minutes=30):
+        """Lock account for specified duration"""
+        self.locked_until = datetime.utcnow() + timedelta(minutes=duration_minutes)
+        self.failed_login_attempts += 1
+        
+    def unlock_account(self):
+        """Unlock account and reset failed attempts"""
+        self.locked_until = None
+        self.failed_login_attempts = 0
+        
+    def generate_verification_token(self, token_type='email_verification', expires_delta=None):
+        """Generate a new verification token"""
+        # Set default expiration based on token type
+        if expires_delta is None:
+            if token_type == 'password_reset':
+                expires_delta = timedelta(hours=2)  # Password reset expires in 2 hours
+            else:
+                expires_delta = timedelta(hours=24)  # Email verification expires in 24 hours
+        
+        # Deactivate existing tokens of the same type
+        existing_tokens = VerificationToken.query.filter_by(
+            user_id=self.id, 
+            token_type=token_type, 
+            is_used=False
+        ).all()
+        for token in existing_tokens:
+            token.is_used = True
+            
+        # Create new token
+        token = VerificationToken(
+            user_id=self.id,
+            token=str(uuid.uuid4()),
+            token_type=token_type,
+            expires_at=datetime.utcnow() + expires_delta
+        )
+        db.session.add(token)
+        return token
+        
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'full_name': self.full_name,
+            'is_active': self.is_active,
+            'is_verified': self.is_verified,
+            'role': self.role,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_login': self.last_login.isoformat() if self.last_login else None,
+            'auth_method': self.auth_method
+        }
+
+class VerificationToken(db.Model):
+    __tablename__ = 'verification_tokens'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    token = db.Column(db.String(255), unique=True, nullable=False)
+    token_type = db.Column(db.String(50), nullable=False)  # email_verification, password_reset
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    expires_at = db.Column(db.DateTime, nullable=False)
+    is_used = db.Column(db.Boolean, default=False)
+    used_at = db.Column(db.DateTime)
+    
+    # Relationship
+    user = db.relationship('User', back_populates='verification_tokens')
+    
+    def is_valid(self):
+        """Check if token is valid (not used and not expired)"""
+        return not self.is_used and datetime.utcnow() < self.expires_at
+        
+    def use_token(self):
+        """Mark token as used"""
+        self.is_used = True
+        self.used_at = datetime.utcnow()
 
 class LipidClass(db.Model):
     __tablename__ = 'lipid_classes'
@@ -385,53 +522,6 @@ class BackupStats(db.Model):
     total_backup_size_mb = Column(Float, default=0.0)
 
 
-# =====================================================
-# AUTHENTICATION & USER MANAGEMENT MODELS
-# =====================================================
-
-class User(db.Model):
-    """User model for authentication and authorization"""
-    __tablename__ = 'users'
-    
-    user_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    email = db.Column(db.String(255), unique=True, nullable=False, index=True)
-    full_name = db.Column(db.String(255), nullable=False)
-    picture = db.Column(db.String(500))
-    role = db.Column(db.String(50), default='user', nullable=False)  # user, manager, admin
-    is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    last_login = db.Column(db.DateTime)
-    
-    def __repr__(self):
-        return f'<User {self.email}: {self.role}>'
-    
-    # Flask-Login required methods
-    def is_authenticated(self):
-        return True
-    
-    def is_anonymous(self):
-        return False
-    
-    def get_id(self):
-        return str(self.user_id)
-    
-    # Role checking methods
-    def is_admin(self):
-        return self.role == 'admin'
-    
-    def is_manager(self):
-        return self.role in ['admin', 'manager']
-    
-    def to_dict(self):
-        return {
-            'user_id': self.user_id,
-            'email': self.email,
-            'full_name': self.full_name,
-            'role': self.role,
-            'is_active': self.is_active,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'last_login': self.last_login.isoformat() if self.last_login else None
-        }
 
 
 class ScheduleRequest(db.Model):
@@ -481,7 +571,7 @@ class AdminSettings(db.Model):
     setting_value = db.Column(db.Text, nullable=False)
     setting_type = db.Column(db.String(50), default='string')  # string, number, json, boolean
     description = db.Column(db.Text)
-    created_by = db.Column(db.Integer, db.ForeignKey('users.user_id'))
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
     

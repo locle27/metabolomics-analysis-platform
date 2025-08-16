@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Consultation Request</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #2E4C92 0%, #E94B00 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 12px 12px 0 0;
+        }
+        .content {
+            background: #fff;
+            padding: 30px;
+            border: 1px solid #e0e0e0;
+            border-radius: 0 0 12px 12px;
+        }
+        .info-grid {
+            display: grid;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .info-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #2E4C92;
+        }
+        .label {
+            font-weight: 600;
+            color: #2E4C92;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .value {
+            margin-top: 5px;
+            font-size: 16px;
+            color: #333;
+        }
+        .message-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #E94B00;
+            margin: 20px 0;
+        }
+        .message-text {
+            white-space: pre-wrap;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            color: #666;
+            font-size: 14px;
+        }
+        .priority-badge {
+            display: inline-block;
+            background: #E94B00;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 style="margin: 0; font-size: 24px;">🔬 New Consultation Request</h1>
+        <p style="margin: 10px 0 0 0; opacity: 0.9;">Metabolomics Research Platform</p>
+    </div>
+    
+    <div class="content">
+        <div style="text-align: center; margin-bottom: 25px;">
+            <span class="priority-badge">Action Required</span>
+        </div>
+        
+        <p>A new consultation request has been submitted on the Metabolomics Platform. Please review the details below and respond within 24-48 hours.</p>
+        
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="label">Full Name</div>
+                <div class="value">{{ request.full_name }}</div>
+            </div>
+            
+            <div class="info-item">
+                <div class="label">Email Address</div>
+                <div class="value">{{ request.email }}</div>
+            </div>
+            
+            <div class="info-item">
+                <div class="label">Phone Number</div>
+                <div class="value">{{ request.phone or 'Not provided' }}</div>
+            </div>
+            
+            <div class="info-item">
+                <div class="label">Organization</div>
+                <div class="value">{{ request.organization or 'Not provided' }}</div>
+            </div>
+            
+            <div class="info-item">
+                <div class="label">Request Type</div>
+                <div class="value">{{ request.request_type|title }}</div>
+            </div>
+            
+            <div class="info-item">
+                <div class="label">Preferred Date</div>
+                <div class="value">{{ request.preferred_date.strftime('%B %d, %Y') if request.preferred_date else 'Flexible' }}</div>
+            </div>
+            
+            {% if request.preferred_time %}
+            <div class="info-item">
+                <div class="label">Preferred Time</div>
+                <div class="value">{{ request.preferred_time }}</div>
+            </div>
+            {% endif %}
+            
+            <div class="info-item">
+                <div class="label">Submitted</div>
+                <div class="value">{{ request.created_at.strftime('%B %d, %Y at %I:%M %p') if request.created_at else 'Unknown' }}</div>
+            </div>
+        </div>
+        
+        {% if request.message %}
+        <div class="message-box">
+            <div class="label" style="margin-bottom: 10px;">📝 Message</div>
+            <div class="message-text">{{ request.message }}</div>
+        </div>
+        {% endif %}
+        
+        <div class="footer">
+            <p><strong>Next Steps:</strong></p>
+            <ol style="text-align: left; display: inline-block;">
+                <li>Review the consultation request details</li>
+                <li>Contact {{ request.full_name }} via email or phone</li>
+                <li>Schedule the consultation meeting</li>
+                <li>Update the request status in the admin panel</li>
+            </ol>
+        </div>
+    </div>
+</body>
+</html>
