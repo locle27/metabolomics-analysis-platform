@@ -199,7 +199,7 @@ from authlib.integrations.flask_client import OAuth
 # Flask-Login setup
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login_page'
+login_manager.login_view = 'homepage'
 login_manager.login_message = 'Please log in to access this page.'
 
 # Make User inherit from UserMixin if not already
@@ -230,7 +230,7 @@ def load_user(user_id):
     if database_available and db:
         try:
             with app.app_context():
-                return User.query.get(int(user_id))
+                return db.session.get(User, int(user_id))
         except:
             return None
     return None
