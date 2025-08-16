@@ -42,15 +42,15 @@ from dual_chart_service import DualChartService
 # Import backup system
 from backup_system_postgresql import PostgreSQLBackupSystem, auto_backup_context
 
-# Import authentication system - DEMO VERSION for Railway deployment
+# Import authentication system - PRODUCTION VERSION with email support
 import os
 if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('FLASK_ENV') == 'production':
-    from email_auth_demo import auth_bp  # Safe version for Railway
+    from email_auth_production import auth_bp  # Production version with email support
 else:
     from email_auth import auth_bp  # Full version for local development
 
-# Import enhanced email service
-from email_service_enhanced import send_schedule_notification, test_email_configuration, get_email_service_status
+# Import simplified email service (Gmail SMTP only - proven to work)
+from email_service_simple import send_schedule_notification, test_email_configuration, get_email_service_status
 
 # Configuration
 BASE_DIR = Path(__file__).resolve().parent
@@ -1385,6 +1385,45 @@ def get_zoom_settings():
                 'zoom_end': zoom_end
             }
         })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/test-email')
+@admin_required
+def test_email():
+    """Test email configuration by sending a test email"""
+    try:
+        from email_service_simple import test_email_configuration
+        
+        result = test_email_configuration()
+        
+        if result['success']:
+            flash(f'✅ Test email sent successfully! Method: {result.get("method", "unknown")}', 'success')
+        else:
+            flash(f'❌ Test email failed: {result["message"]}', 'error')
+            
+    except Exception as e:
+        flash(f'❌ Email test error: {str(e)}', 'error')
+    
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/email-status')
+@admin_required  
+def email_status():
+    """Show email service status"""
+    try:
+        from email_service_simple import get_email_service_status
+        
+        status = get_email_service_status()
+        
+        return jsonify({
+            'status': 'success',
+            'email_services': status
+        })
+        
     except Exception as e:
         return jsonify({
             'status': 'error',

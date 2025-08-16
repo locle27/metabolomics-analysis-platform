@@ -6,154 +6,236 @@
     <title>New Consultation Request</title>
     <style>
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
             color: #333;
-            max-width: 600px;
+            max-width: 700px;
             margin: 0 auto;
             padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .email-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
         .header {
-            background: linear-gradient(135deg, #2E4C92 0%, #E94B00 100%);
-            color: white;
-            padding: 30px;
             text-align: center;
-            border-radius: 12px 12px 0 0;
+            border-bottom: 3px solid #2E4C92;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .logo {
+            color: #2E4C92;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 16px;
         }
         .content {
-            background: #fff;
-            padding: 30px;
-            border: 1px solid #e0e0e0;
-            border-radius: 0 0 12px 12px;
+            margin-bottom: 30px;
         }
-        .info-grid {
-            display: grid;
-            gap: 15px;
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
             margin: 20px 0;
-        }
-        .info-item {
-            background: #f8f9fa;
-            padding: 15px;
+            background-color: #f8f9fa;
             border-radius: 8px;
-            border-left: 4px solid #2E4C92;
+            overflow: hidden;
         }
-        .label {
-            font-weight: 600;
-            color: #2E4C92;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .info-table th {
+            background-color: #2E4C92;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
         }
-        .value {
-            margin-top: 5px;
-            font-size: 16px;
-            color: #333;
+        .info-table td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
         }
-        .message-box {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 4px solid #E94B00;
-            margin: 20px 0;
+        .info-table tr:last-child td {
+            border-bottom: none;
         }
-        .message-text {
-            white-space: pre-wrap;
-            font-size: 15px;
-            line-height: 1.6;
+        .priority-high {
+            color: #E94B00;
+            font-weight: bold;
+        }
+        .priority-medium {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .priority-low {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .action-buttons {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 0 10px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .btn-primary {
+            background-color: #2E4C92;
+            color: white;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
         }
         .footer {
-            text-align: center;
-            margin-top: 30px;
+            border-top: 1px solid #eee;
             padding-top: 20px;
-            border-top: 1px solid #e0e0e0;
-            color: #666;
+            margin-top: 30px;
             font-size: 14px;
-        }
-        .priority-badge {
-            display: inline-block;
-            background: #E94B00;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            color: #666;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1 style="margin: 0; font-size: 24px;">🔬 New Consultation Request</h1>
-        <p style="margin: 10px 0 0 0; opacity: 0.9;">Metabolomics Research Platform</p>
-    </div>
-    
-    <div class="content">
-        <div style="text-align: center; margin-bottom: 25px;">
-            <span class="priority-badge">Action Required</span>
+    <div class="email-container">
+        <div class="header">
+            <div class="logo">📊 Metabolomics Platform</div>
+            <div class="subtitle">New Consultation Request</div>
         </div>
         
-        <p>A new consultation request has been submitted on the Metabolomics Platform. Please review the details below and respond within 24-48 hours.</p>
-        
-        <div class="info-grid">
-            <div class="info-item">
-                <div class="label">Full Name</div>
-                <div class="value">{{ request.full_name }}</div>
-            </div>
+        <div class="content">
+            <h2>🔔 New Consultation Request Received</h2>
             
-            <div class="info-item">
-                <div class="label">Email Address</div>
-                <div class="value">{{ request.email }}</div>
-            </div>
+            <p>A new consultation request has been submitted through the Metabolomics Platform. Please review the details below:</p>
             
-            <div class="info-item">
-                <div class="label">Phone Number</div>
-                <div class="value">{{ request.phone or 'Not provided' }}</div>
-            </div>
+            <table class="info-table">
+                <tr>
+                    <th colspan="2">👤 Contact Information</th>
+                </tr>
+                <tr>
+                    <td><strong>Full Name:</strong></td>
+                    <td>{{ request.full_name }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Email:</strong></td>
+                    <td><a href="mailto:{{ request.email }}">{{ request.email }}</a></td>
+                </tr>
+                <tr>
+                    <td><strong>Phone:</strong></td>
+                    <td><a href="tel:{{ request.phone }}">{{ request.phone }}</a></td>
+                </tr>
+                <tr>
+                    <td><strong>Organization:</strong></td>
+                    <td>{{ request.organization or 'Not specified' }}</td>
+                </tr>
+            </table>
             
-            <div class="info-item">
-                <div class="label">Organization</div>
-                <div class="value">{{ request.organization or 'Not provided' }}</div>
-            </div>
+            <table class="info-table">
+                <tr>
+                    <th colspan="2">📅 Consultation Details</th>
+                </tr>
+                <tr>
+                    <td><strong>Request Type:</strong></td>
+                    <td>{{ request.request_type.replace('_', ' ').title() }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Priority Level:</strong></td>
+                    <td>
+                        <span class="priority-{{ request.priority }}">
+                            {{ request.priority.upper() }}
+                            {% if request.priority == 'high' %}🔥{% elif request.priority == 'medium' %}⚡{% else %}📌{% endif %}
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Preferred Date:</strong></td>
+                    <td>{{ request.preferred_date.strftime('%A, %B %d, %Y') if request.preferred_date else 'Flexible' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Preferred Time:</strong></td>
+                    <td>{{ request.preferred_time or 'Flexible' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Meeting Type:</strong></td>
+                    <td>{{ request.meeting_type.replace('_', ' ').title() }}</td>
+                </tr>
+            </table>
             
-            <div class="info-item">
-                <div class="label">Request Type</div>
-                <div class="value">{{ request.request_type|title }}</div>
-            </div>
-            
-            <div class="info-item">
-                <div class="label">Preferred Date</div>
-                <div class="value">{{ request.preferred_date.strftime('%B %d, %Y') if request.preferred_date else 'Flexible' }}</div>
-            </div>
-            
-            {% if request.preferred_time %}
-            <div class="info-item">
-                <div class="label">Preferred Time</div>
-                <div class="value">{{ request.preferred_time }}</div>
-            </div>
+            {% if request.research_description %}
+            <table class="info-table">
+                <tr>
+                    <th>🔬 Research Description</th>
+                </tr>
+                <tr>
+                    <td>{{ request.research_description }}</td>
+                </tr>
+            </table>
             {% endif %}
             
-            <div class="info-item">
-                <div class="label">Submitted</div>
-                <div class="value">{{ request.created_at.strftime('%B %d, %Y at %I:%M %p') if request.created_at else 'Unknown' }}</div>
+            {% if request.specific_goals %}
+            <table class="info-table">
+                <tr>
+                    <th>🎯 Specific Goals</th>
+                </tr>
+                <tr>
+                    <td>{{ request.specific_goals }}</td>
+                </tr>
+            </table>
+            {% endif %}
+            
+            <table class="info-table">
+                <tr>
+                    <th colspan="2">📈 Request Metadata</th>
+                </tr>
+                <tr>
+                    <td><strong>Submitted:</strong></td>
+                    <td>{{ request.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Request ID:</strong></td>
+                    <td>#{{ request.id }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Status:</strong></td>
+                    <td>{{ request.status.title() }}</td>
+                </tr>
+            </table>
+            
+            <div class="action-buttons">
+                <a href="mailto:{{ request.email }}?subject=Re: Consultation Request #{{ request.id }}" class="btn btn-primary">
+                    📧 Reply to Client
+                </a>
+                <a href="https://httpsphenikaa-lipidomics-analysis.xyz/admin" class="btn btn-secondary">
+                    🎛️ View in Admin Panel
+                </a>
+            </div>
+            
+            <div style="background-color: #e7f3ff; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <strong>💡 Next Steps:</strong>
+                <ol>
+                    <li>Review the client's research requirements</li>
+                    <li>Check your availability for the preferred date/time</li>
+                    <li>Respond to the client within 24 hours</li>
+                    <li>Update the request status in the admin panel</li>
+                </ol>
             </div>
         </div>
         
-        {% if request.message %}
-        <div class="message-box">
-            <div class="label" style="margin-bottom: 10px;">📝 Message</div>
-            <div class="message-text">{{ request.message }}</div>
-        </div>
-        {% endif %}
-        
         <div class="footer">
-            <p><strong>Next Steps:</strong></p>
-            <ol style="text-align: left; display: inline-block;">
-                <li>Review the consultation request details</li>
-                <li>Contact {{ request.full_name }} via email or phone</li>
-                <li>Schedule the consultation meeting</li>
-                <li>Update the request status in the admin panel</li>
-            </ol>
+            <p>This notification was automatically generated by the Metabolomics Platform.<br>
+            <strong>Phenikaa University</strong></p>
+            
+            <p style="font-size: 12px; margin-top: 20px;">
+                To manage email preferences, visit the admin panel.
+            </p>
         </div>
     </div>
 </body>

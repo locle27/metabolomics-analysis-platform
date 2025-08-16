@@ -6,96 +6,105 @@
     <title>Email Configuration Test</title>
     <style>
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
             color: #333;
             max-width: 600px;
             margin: 0 auto;
             padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .email-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
         .header {
-            background: linear-gradient(135deg, #2E4C92 0%, #E94B00 100%);
-            color: white;
-            padding: 30px;
             text-align: center;
-            border-radius: 12px 12px 0 0;
+            border-bottom: 3px solid #28a745;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .logo {
+            color: #2E4C92;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 16px;
         }
         .content {
-            background: #fff;
-            padding: 30px;
-            border: 1px solid #e0e0e0;
-            border-radius: 0 0 12px 12px;
+            margin-bottom: 30px;
         }
-        .status-box {
-            background: #d4edda;
+        .success-box {
+            background-color: #d4edda;
             border: 1px solid #c3e6cb;
-            color: #155724;
+            border-radius: 5px;
             padding: 20px;
-            border-radius: 8px;
             margin: 20px 0;
             text-align: center;
         }
-        .info-grid {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
+        .success-box h3 {
+            color: #155724;
+            margin: 0 0 10px 0;
         }
-        .info-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        .info-item:last-child {
-            border-bottom: none;
+        .footer {
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+            margin-top: 30px;
+            font-size: 14px;
+            color: #666;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1 style="margin: 0; font-size: 24px;">🧪 Email Configuration Test</h1>
-        <p style="margin: 10px 0 0 0; opacity: 0.9;">Metabolomics Research Platform</p>
-    </div>
-    
-    <div class="content">
-        <div class="status-box">
-            <h3 style="margin: 0;">✅ Email System Working!</h3>
-            <p style="margin: 10px 0 0 0;">If you're reading this, your email configuration is working correctly.</p>
+    <div class="email-container">
+        <div class="header">
+            <div class="logo">🧬 Metabolomics Platform</div>
+            <div class="subtitle">Email Configuration Test</div>
         </div>
         
-        <p>This is a test email to verify that the email system for the Metabolomics Research Platform is functioning properly.</p>
-        
-        <div class="info-grid">
-            <h4 style="margin-top: 0; color: #2E4C92;">📊 Test Details</h4>
-            
-            <div class="info-item">
-                <span><strong>Test Type:</strong></span>
-                <span>Email Configuration Test</span>
+        <div class="content">
+            <div class="success-box">
+                <h3>✅ Email System Working!</h3>
+                <p>This is a test email to verify that the email configuration is working correctly.</p>
             </div>
             
-            <div class="info-item">
-                <span><strong>Platform:</strong></span>
-                <span>Metabolomics Research Platform</span>
-            </div>
+            <h2>Email Configuration Test</h2>
             
-            <div class="info-item">
-                <span><strong>Status:</strong></span>
-                <span style="color: #28a745; font-weight: bold;">✅ Success</span>
-            </div>
+            <p>If you're reading this email, it means the Metabolomics Platform email system is functioning properly!</p>
+            
+            <h3>📧 System Information:</h3>
+            <ul>
+                <li><strong>Test Time:</strong> {{ test_time }}</li>
+                <li><strong>Platform:</strong> Metabolomics Data Analysis Platform</li>
+                <li><strong>Institution:</strong> Phenikaa University</li>
+                <li><strong>Environment:</strong> Production (Railway)</li>
+            </ul>
+            
+            <h3>🔧 Features Enabled:</h3>
+            <ul>
+                <li>✅ User registration with email verification</li>
+                <li>✅ Password reset functionality</li>
+                <li>✅ Consultation request notifications</li>
+                <li>✅ Admin notifications</li>
+                <li>✅ Google OAuth integration</li>
+            </ul>
+            
+            <p>This email confirms that all email-related features are ready for testing and production use.</p>
         </div>
         
-        <h4 style="color: #2E4C92;">🔧 What This Confirms:</h4>
-        <ul>
-            <li>SMTP connection is working</li>
-            <li>Email authentication is successful</li>
-            <li>HTML email rendering is functional</li>
-            <li>Email templates are loading correctly</li>
-        </ul>
-        
-        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; color: #666; font-size: 14px;">
-            <p><strong>Metabolomics Research Platform</strong><br>
-            Email System Test - {{ test_time or 'Current Time' }}</p>
+        <div class="footer">
+            <p>Email system test completed successfully!<br>
+            <strong>Metabolomics Platform - Phenikaa University</strong></p>
+            
+            <p style="font-size: 12px; margin-top: 20px;">
+                This is an automated test email generated by the system administrator.
+            </p>
         </div>
     </div>
 </body>

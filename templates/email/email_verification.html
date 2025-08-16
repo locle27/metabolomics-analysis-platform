@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Password Reset - {{ platform_name }}</title>
+    <title>Email Verification - {{ platform_name }}</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -22,7 +22,7 @@
         }
         .header {
             text-align: center;
-            border-bottom: 3px solid #E94B00;
+            border-bottom: 3px solid #2E4C92;
             padding-bottom: 20px;
             margin-bottom: 30px;
         }
@@ -39,9 +39,9 @@
         .content {
             margin-bottom: 30px;
         }
-        .reset-button {
+        .verify-button {
             display: inline-block;
-            background-color: #E94B00;
+            background-color: #2E4C92;
             color: white;
             text-decoration: none;
             padding: 15px 30px;
@@ -50,8 +50,8 @@
             text-align: center;
             margin: 20px 0;
         }
-        .reset-button:hover {
-            background-color: #d63384;
+        .verify-button:hover {
+            background-color: #213671;
         }
         .footer {
             border-top: 1px solid #eee;
@@ -62,77 +62,63 @@
             text-align: center;
         }
         .warning {
-            background-color: #f8d7da;
-            border: 1px solid #f5c6cb;
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
             border-radius: 5px;
             padding: 15px;
             margin: 20px 0;
-            color: #721c24;
-        }
-        .security-info {
-            background-color: #e2e3e5;
-            border: 1px solid #d3d3d4;
-            border-radius: 5px;
-            padding: 15px;
-            margin: 20px 0;
-            color: #383d41;
+            color: #856404;
         }
     </style>
 </head>
 <body>
     <div class="email-container">
         <div class="header">
-            <div class="logo">🔒 {{ platform_name }}</div>
-            <div class="subtitle">Password Reset Request</div>
+            <div class="logo">🧬 {{ platform_name }}</div>
+            <div class="subtitle">Professional Metabolomics Data Analysis</div>
         </div>
         
         <div class="content">
-            <h2>Password Reset Request</h2>
+            <h2>Welcome to {{ platform_name }}!</h2>
             
             <p>Hello <strong>{{ user.username }}</strong>,</p>
             
-            <p>We received a request to reset the password for your Metabolomics Platform account associated with this email address.</p>
+            <p>Thank you for registering with our Metabolomics Data Analysis Platform. To complete your account setup and start analyzing lipid chromatography data, please verify your email address.</p>
             
             <div style="text-align: center;">
-                <a href="{{ reset_url }}" class="reset-button">
-                    🔑 Reset My Password
+                <a href="{{ verification_url }}" class="verify-button">
+                    ✅ Verify Email Address
                 </a>
             </div>
             
-            <div class="security-info">
-                <strong>🛡️ Security Information:</strong>
-                <ul style="margin: 10px 0; padding-left: 20px;">
-                    <li>This reset link will expire in <strong>{{ expires_hours }} hours</strong></li>
-                    <li>The link can only be used once</li>
-                    <li>Your current password remains active until you set a new one</li>
-                </ul>
-            </div>
+            <p>This verification link will expire in <strong>24 hours</strong> for security purposes.</p>
             
             <div class="warning">
-                <strong>⚠️ Important:</strong> If you didn't request this password reset, please ignore this email. Your password will not be changed unless you click the link above and complete the reset process.
+                <strong>⚠️ Security Notice:</strong> If you didn't create this account, please ignore this email. Your email address will not be used without verification.
             </div>
+            
+            <h3>What you can do after verification:</h3>
+            <ul>
+                <li>🔬 Access interactive dual-chart analysis tools</li>
+                <li>📊 Analyze 800+ lipid compounds with XIC data</li>
+                <li>🎯 Use advanced filtering and search capabilities</li>
+                <li>📈 Generate professional-grade chromatograms</li>
+                <li>👨‍💼 Request consultation scheduling</li>
+            </ul>
             
             <p>If the button doesn't work, copy and paste this link into your browser:</p>
             <p style="word-break: break-all; background-color: #f8f9fa; padding: 10px; border-radius: 3px; font-family: monospace;">
-                {{ reset_url }}
+                {{ verification_url }}
             </p>
-            
-            <h3>Account Security Tips:</h3>
-            <ul>
-                <li>🔒 Use a strong, unique password for your account</li>
-                <li>🔄 Change your password regularly</li>
-                <li>👀 Never share your login credentials</li>
-                <li>📧 Keep your email address secure</li>
-            </ul>
         </div>
         
         <div class="footer">
             <p>Best regards,<br>
-            <strong>Metabolomics Security Team</strong><br>
+            <strong>Metabolomics Research Team</strong><br>
             Phenikaa University</p>
             
             <p style="font-size: 12px; margin-top: 20px;">
-                This is an automated security message. Please do not reply to this email.<br>
+                This is an automated message. Please do not reply to this email.<br>
                 If you need assistance, please contact our support team.
             </p>
         </div>
