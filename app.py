@@ -42,7 +42,7 @@ from backup_system_postgresql import PostgreSQLBackupSystem, auto_backup_context
 
 # Import authentication system - PRODUCTION VERSION with email support
 import os
-if os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('FLASK_ENV') == 'production':
+if os.getenv('FLASK_ENV') == 'production' or os.getenv('ENV') == 'production':
     from email_auth_production import auth_bp  # Production version with email support
 else:
     from email_auth import auth_bp  # Full version for local development
@@ -115,14 +115,9 @@ def load_user(user_id):
 # PostgreSQL configuration with optimization and Railway defaults
 database_url = os.getenv('DATABASE_URL')
 if not database_url:
-    # Try Railway-style environment variables
-    railway_db_url = os.getenv('RAILWAY_DATABASE_URL')
-    if railway_db_url:
-        database_url = railway_db_url
-    else:
-        # Local development fallback
-        database_url = 'postgresql://username:password@localhost/metabolomics_db'
-        print("⚠️ No DATABASE_URL found - using local fallback")
+    # Local development fallback
+    database_url = 'postgresql://username:password@localhost/metabolomics_db'
+    print("⚠️ No DATABASE_URL found - using local fallback")
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
