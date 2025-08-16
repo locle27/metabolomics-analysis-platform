@@ -126,6 +126,20 @@ try:
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
     
+    # Add user_loader function
+    @login_manager.user_loader
+    def load_user(user_id):
+        """Load user for Flask-Login"""
+        try:
+            if DATABASE_AVAILABLE and db:
+                # Import User model
+                from models_postgresql_optimized import User
+                return db.session.get(User, int(user_id))
+            return None
+        except Exception as e:
+            print(f"User loader error: {e}")
+            return None
+    
     # Try to import auth blueprint
     if os.getenv('FLASK_ENV') == 'production' or os.getenv('ENV') == 'production':
         from email_auth_production import auth_bp
@@ -134,7 +148,7 @@ try:
     
     app.register_blueprint(auth_bp)
     AUTH_AVAILABLE = True
-    print("✅ Authentication system loaded")
+    print("✅ Full authentication loaded")
     
 except Exception as e:
     print(f"⚠️ Authentication setup failed: {e}")
