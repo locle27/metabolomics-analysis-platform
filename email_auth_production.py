@@ -262,16 +262,28 @@ def forgot_password():
             return render_template('auth/forgot_password.html')
             
         try:
-            # Use the main app's database and User model
+            # Direct database query using SQLAlchemy text - bypasses ORM issues
+            from sqlalchemy import text
             from flask import current_app
-            # Get User model from main app globals  
-            User = current_app.config.get('USER_MODEL')
-            if not User:
-                # Fallback: try to get from models_postgresql_optimized
-                from models_postgresql_optimized import User as UserModel, db as main_db
-                user = main_db.session.query(UserModel).filter_by(email=email).first()
+            
+            # Get database connection from main app
+            engine = current_app.extensions['sqlalchemy'].engine
+            with engine.connect() as conn:
+                result = conn.execute(text("SELECT * FROM users WHERE email = :email"), {"email": email})
+                user_row = result.fetchone()
+                
+            if user_row:
+                # Create a simple user object
+                class SimpleUser:
+                    def __init__(self, row):
+                        self.id = row[0] if row else None
+                        self.email = row[2] if row else None
+                        self.username = row[1] if row else None
+                
+                user = SimpleUser(user_row)
             else:
-                user = User.query.filter_by(email=email).first()
+                user = None
+                
         except Exception as e:
             current_app.logger.error(f"Database error: {e}")
             flash('Database error. Please try again.', 'error')
