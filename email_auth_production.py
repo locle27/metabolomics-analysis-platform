@@ -73,7 +73,7 @@ def create_verification_token(user, token_type='email_verification'):
 def register():
     """User registration with email verification"""
     if current_user.is_authenticated:
-        return redirect(url_for('clean_dashboard'))
+        return redirect(url_for('dashboard'))
         
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -188,7 +188,7 @@ def verify_email(token):
 def login():
     """User login with OAuth support"""
     if current_user.is_authenticated:
-        return redirect(url_for('clean_dashboard'))
+        return redirect(url_for('dashboard'))
         
     if request.method == 'POST':
         username_or_email = request.form.get('username', '').strip()
@@ -247,7 +247,7 @@ def login():
         next_page = request.args.get('next')
         if next_page and is_safe_url(next_page):
             return redirect(next_page)
-        return redirect(url_for('clean_dashboard'))
+        return redirect(url_for('dashboard'))
     
     return render_template('auth/login.html')
 
@@ -262,11 +262,16 @@ def forgot_password():
             return render_template('auth/forgot_password.html')
             
         try:
-            # Use the database session from current app context
+            # Use the main app's database and User model
             from flask import current_app
-            with current_app.app_context():
-                db = current_app.extensions['sqlalchemy']
-                user = db.session.query(User).filter_by(email=email).first()
+            # Get User model from main app globals  
+            User = current_app.config.get('USER_MODEL')
+            if not User:
+                # Fallback: try to get from models_postgresql_optimized
+                from models_postgresql_optimized import User as UserModel, db as main_db
+                user = main_db.session.query(UserModel).filter_by(email=email).first()
+            else:
+                user = User.query.filter_by(email=email).first()
         except Exception as e:
             current_app.logger.error(f"Database error: {e}")
             flash('Database error. Please try again.', 'error')
@@ -366,7 +371,7 @@ def oauth_success():
         next_page = session.pop('oauth_next', None)
         if next_page and is_safe_url(next_page):
             return redirect(next_page)
-        return redirect(url_for('clean_dashboard'))
+        return redirect(url_for('dashboard'))
     else:
         flash('OAuth login failed. Please try again.', 'error')
         return redirect(url_for('auth.login'))
