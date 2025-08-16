@@ -261,7 +261,16 @@ def forgot_password():
             flash('Please enter your email address', 'error')
             return render_template('auth/forgot_password.html')
             
-        user = User.query.filter_by(email=email).first()
+        try:
+            # Use the database session from current app context
+            from flask import current_app
+            with current_app.app_context():
+                db = current_app.extensions['sqlalchemy']
+                user = db.session.query(User).filter_by(email=email).first()
+        except Exception as e:
+            current_app.logger.error(f"Database error: {e}")
+            flash('Database error. Please try again.', 'error')
+            return render_template('auth/forgot_password.html')
         
         if user:
             try:

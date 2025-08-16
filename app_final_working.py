@@ -511,7 +511,13 @@ def google_callback():
             return redirect(url_for('homepage'))
         
         with app.app_context():
-            user = User.query.filter_by(email=user_info['email']).first()
+            try:
+                # Use the database instance from current app context
+                user = db.session.query(User).filter_by(email=user_info['email']).first()
+            except Exception as e:
+                app.logger.error(f"OAuth database query error: {e}")
+                flash('Database error during OAuth login', 'error')
+                return redirect(url_for('homepage'))
             
             if not user:
                 # Create new user from Google OAuth
