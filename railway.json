@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "python app_bulletproof.py",
+    "startCommand": "gunicorn --bind 0.0.0.0:$PORT --timeout 120 --workers 1 app:app",
     "healthcheckPath": "/",
     "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",

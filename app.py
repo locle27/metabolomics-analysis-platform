@@ -1747,13 +1747,17 @@ def protocols():
 # =====================================================
 
 if __name__ == '__main__':
-    # Create tables if they don't exist
-    with app.app_context():
-        try:
-            create_all_tables()
-            print("✅ PostgreSQL tables created successfully")
-        except Exception as e:
-            print(f"❌ Database setup error: {e}")
+    # Skip table creation on Railway (tables should already exist)
+    if not os.getenv('FLASK_ENV') == 'production':
+        # Only create tables in development
+        with app.app_context():
+            try:
+                create_all_tables()
+                print("✅ PostgreSQL tables created successfully")
+            except Exception as e:
+                print(f"❌ Database setup error: {e}")
+    else:
+        print("🚀 Production mode: Skipping table creation")
     
     # Run application
     debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
