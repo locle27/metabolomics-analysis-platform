@@ -34,7 +34,8 @@
       "Bash(app_backup_oauth.py )",
       "Bash(add_username_column.sql)",
       "Bash(mkdir:*)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(true)"
     ],
     "deny": []
   }
