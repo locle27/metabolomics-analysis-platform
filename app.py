@@ -112,11 +112,17 @@ def load_user(user_id):
     """Load user for Flask-Login"""
     return db.session.get(User, int(user_id))
 
-# PostgreSQL configuration with optimization
+# PostgreSQL configuration with optimization and Railway defaults
 database_url = os.getenv('DATABASE_URL')
 if not database_url:
-    # Local PostgreSQL
-    database_url = 'postgresql://username:password@localhost/metabolomics_db'
+    # Try Railway-style environment variables
+    railway_db_url = os.getenv('RAILWAY_DATABASE_URL')
+    if railway_db_url:
+        database_url = railway_db_url
+    else:
+        # Local development fallback
+        database_url = 'postgresql://username:password@localhost/metabolomics_db'
+        print("⚠️ No DATABASE_URL found - using local fallback")
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -126,11 +132,25 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'echo': False  # Set to True for SQL debugging
 }
 
-# Initialize optimized database
-db = init_db(app)
+# Initialize optimized database with error handling
+try:
+    db = init_db(app)
+    print("✅ Database connection initialized")
+except Exception as e:
+    print(f"⚠️ Database initialization failed: {e}")
+    print("   App will start but database features may not work")
+    # Create a minimal db object to prevent crashes
+    from flask_sqlalchemy import SQLAlchemy
+    db = SQLAlchemy()
+    db.init_app(app)
 
-# Initialize backup system
-backup_system = PostgreSQLBackupSystem(app)
+# Initialize backup system (skip if database failed)
+try:
+    backup_system = PostgreSQLBackupSystem(app)
+    print("✅ Backup system initialized")
+except Exception as e:
+    print(f"⚠️ Backup system initialization failed: {e}")
+    backup_system = None
 
 # Register authentication blueprint
 app.register_blueprint(auth_bp)
@@ -437,15 +457,34 @@ def manager_required(f):
 # MAIN DASHBOARD ROUTE (OPTIMIZED)
 # =====================================================
 
+@app.route('/health')
+def health_check():
+    """Simple health check for Railway"""
+    return {
+        "status": "healthy",
+        "message": "Metabolomics platform is running",
+        "timestamp": datetime.now().isoformat(),
+        "environment": os.getenv('FLASK_ENV', 'development')
+    }
+
 @app.route('/')
 def homepage():
     """University-style homepage with project overview."""
     try:
-        # Get basic stats with optimized queries (cached)
-        stats = get_db_stats()
-        
-        # Get sample recent data (ONLY first 3 lipids) - ULTRA FAST
-        recent_lipids = optimized_manager.get_lipids_sample(limit=3)
+        # Try to get database stats, but don't crash if database is unavailable
+        try:
+            stats = get_db_stats()
+            recent_lipids = optimized_manager.get_lipids_sample(limit=3)
+        except Exception as db_error:
+            print(f"⚠️ Database unavailable for homepage: {db_error}")
+            # Return default stats if database is not available
+            stats = {
+                'total_lipids': 0,
+                'total_classes': 0,
+                'total_annotations': 0,
+                'database_status': 'unavailable'
+            }
+            recent_lipids = []
         
         homepage_data = {
             'stats': stats,
