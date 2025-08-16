@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ['python310', 'pip']
+nixPkgs = ['python310']
 
 [phases.install]
 cmds = [
@@ -7,8 +7,5 @@ cmds = [
     'pip install -r requirements.txt'
 ]
 
-[phases.build]
-cmds = []
-
 [start]
-cmd = 'gunicorn --bind 0.0.0.0:$PORT --timeout 300 --workers 2 app:app'
+cmd = 'gunicorn --bind 0.0.0.0:$PORT --timeout 300 --workers 1 app:app'
