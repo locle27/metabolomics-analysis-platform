@@ -163,18 +163,13 @@ def homepage():
         if db and "database-connected" in AVAILABLE_FEATURES:
             try:
                 with app.app_context():
-                    # Simple table count query
-                    result = db.engine.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'")
-                    table_count = result.fetchone()[0] if result else 0
-                    stats["database_tables"] = table_count
-                    stats["database_status"] = "connected"
-                    
-                    # Try to get lipid count
-                    try:
-                        lipid_result = db.engine.execute("SELECT COUNT(*) FROM main_lipids")
-                        stats["total_lipids"] = lipid_result.fetchone()[0] if lipid_result else 0
-                    except:
-                        pass  # Table might not exist yet
+                    # SQLAlchemy 2.0 compatible queries
+                    from sqlalchemy import text
+                    with db.engine.connect() as connection:
+                        result = connection.execute(text("SELECT 1 as test"))
+                        if result:
+                            stats["database_status"] = "connected"
+                            stats["connection_test"] = "success"
                         
             except Exception as e:
                 stats["database_status"] = f"error: {str(e)}"
