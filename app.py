@@ -40,15 +40,31 @@ from dual_chart_service import DualChartService
 # Import backup system
 from backup_system_postgresql import PostgreSQLBackupSystem, auto_backup_context
 
-# Import authentication system - PRODUCTION VERSION with email support
+# Import authentication system - PRODUCTION VERSION with email support (with error handling)
 import os
-if os.getenv('FLASK_ENV') == 'production' or os.getenv('ENV') == 'production':
-    from email_auth_production import auth_bp  # Production version with email support
-else:
-    from email_auth import auth_bp  # Full version for local development
+try:
+    if os.getenv('FLASK_ENV') == 'production' or os.getenv('ENV') == 'production':
+        from email_auth_production import auth_bp  # Production version with email support
+        print("✅ Production authentication loaded")
+    else:
+        from email_auth import auth_bp  # Full version for local development
+        print("✅ Development authentication loaded")
+except Exception as e:
+    print(f"⚠️ Authentication import failed: {e}")
+    # Create minimal auth blueprint as fallback
+    from flask import Blueprint
+    auth_bp = Blueprint('auth', __name__)
 
-# Import simplified email service (Gmail SMTP only - proven to work)
-from email_service_simple import send_schedule_notification, test_email_configuration, get_email_service_status
+# Import simplified email service (Gmail SMTP only - with error handling)
+try:
+    from email_service_simple import send_schedule_notification, test_email_configuration, get_email_service_status
+    print("✅ Email service loaded")
+except Exception as e:
+    print(f"⚠️ Email service import failed: {e}")
+    # Create dummy functions as fallback
+    def send_schedule_notification(*args, **kwargs): return False
+    def test_email_configuration(): return {"status": "unavailable"}
+    def get_email_service_status(): return "Email service unavailable"
 
 # Configuration
 BASE_DIR = Path(__file__).resolve().parent
@@ -975,7 +991,7 @@ def user_debug():
             'is_admin': current_user.is_admin(),
             'is_manager': current_user.is_manager(),
             'is_authenticated': current_user.is_authenticated,
-            'user_id': current_user.user_id
+            'user_id': current_user.id
         }
         
         admin_count = User.query.filter_by(role='admin').count()
@@ -1303,9 +1319,9 @@ def update_zoom_settings():
         
         # Save settings
         AdminSettings.set_setting('chart_zoom_start', zoom_start, 'number', 
-                                'Default chart zoom start time (minutes)', current_user.user_id)
+                                'Default chart zoom start time (minutes)', current_user.id)
         AdminSettings.set_setting('chart_zoom_end', zoom_end, 'number', 
-                                'Default chart zoom end time (minutes)', current_user.user_id)
+                                'Default chart zoom end time (minutes)', current_user.id)
         
         flash(f'Zoom settings updated: {zoom_start:.2f} - {zoom_end:.2f} minutes', 'success')
         return redirect(url_for('admin_zoom_settings'))
