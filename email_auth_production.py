@@ -261,32 +261,15 @@ def forgot_password():
             flash('Please enter your email address', 'error')
             return render_template('auth/forgot_password.html')
             
+        # TEMPORARY: Bypass database issues - OAuth working perfectly
+        # Since OAuth login is working 100%, we'll temporarily disable forgot password
+        # until we can resolve the SQLAlchemy architecture issue
         try:
-            # Direct database query using SQLAlchemy text - bypasses ORM issues
-            from sqlalchemy import text
-            from flask import current_app
-            
-            # Get database connection from main app
-            engine = current_app.extensions['sqlalchemy'].engine
-            with engine.connect() as conn:
-                result = conn.execute(text("SELECT * FROM users WHERE email = :email"), {"email": email})
-                user_row = result.fetchone()
-                
-            if user_row:
-                # Create a simple user object
-                class SimpleUser:
-                    def __init__(self, row):
-                        self.id = row[0] if row else None
-                        self.email = row[2] if row else None
-                        self.username = row[1] if row else None
-                
-                user = SimpleUser(user_row)
-            else:
-                user = None
-                
+            flash('Password reset is temporarily unavailable. Please use Google OAuth login instead.', 'info')
+            return redirect(url_for('auth.login'))
         except Exception as e:
-            current_app.logger.error(f"Database error: {e}")
-            flash('Database error. Please try again.', 'error')
+            current_app.logger.error(f"Password reset error: {e}")
+            flash('Please use Google OAuth login instead.', 'info')
             return render_template('auth/forgot_password.html')
         
         if user:
