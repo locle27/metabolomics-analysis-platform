@@ -13,8 +13,43 @@ import uuid
 from werkzeug.security import check_password_hash, generate_password_hash
 from urllib.parse import urlparse, urljoin
 
-# Import models
-from models_postgresql_optimized import db, User, VerificationToken
+# Database models will be accessed from current app context to avoid SQLAlchemy binding issues
+def get_db():
+    """Get database instance from current app"""
+    from flask import current_app
+    return current_app.extensions['sqlalchemy']
+
+def get_models():
+    """Get database models from current app context"""
+    from flask import current_app
+    # Get models from the main app's context
+    app_globals = vars(current_app)
+    User = None
+    VerificationToken = None
+    
+    # Try to get User model from various sources
+    try:
+        # First try: get from main app globals
+        for name, obj in app_globals.items():
+            if hasattr(obj, '__tablename__'):
+                if getattr(obj, '__tablename__', None) == 'users':
+                    User = obj
+                elif getattr(obj, '__tablename__', None) == 'verification_tokens':
+                    VerificationToken = obj
+        
+        # Fallback: import from models file
+        if not User or not VerificationToken:
+            from models_postgresql_optimized import User as UserModel, VerificationToken as TokenModel
+            User = User or UserModel
+            VerificationToken = VerificationToken or TokenModel
+            
+    except Exception:
+        # Final fallback: use models_postgresql_optimized
+        from models_postgresql_optimized import User as UserModel, VerificationToken as TokenModel
+        User = UserModel
+        VerificationToken = TokenModel
+    
+    return User, VerificationToken
 
 # Import simplified email service
 from email_service_simple import send_email, email_service
@@ -51,23 +86,28 @@ def is_safe_url(target):
 
 def create_verification_token(user, token_type='email_verification'):
     """Create a verification token for user"""
+    # Get database and models from current app context
+    db = get_db()
+    User, VerificationToken = get_models()
+    
     # Clean up any existing tokens of this type
-    VerificationToken.query.filter_by(
-        user_id=user.id, 
-        token_type=token_type,
-        is_used=False
-    ).delete()
-    
-    token = VerificationToken(
-        user_id=user.id,
-        token=secrets.token_urlsafe(32),
-        token_type=token_type,
-        expires_at=datetime.utcnow() + timedelta(hours=24)
-    )
-    
-    db.session.add(token)
-    db.session.commit()
-    return token
+    with db.session.begin():
+        db.session.query(VerificationToken).filter_by(
+            user_id=user.id, 
+            token_type=token_type,
+            is_used=False
+        ).delete()
+        
+        token = VerificationToken(
+            user_id=user.id,
+            token=secrets.token_urlsafe(32),
+            token_type=token_type,
+            expires_at=datetime.utcnow() + timedelta(hours=24)
+        )
+        
+        db.session.add(token)
+        db.session.commit()
+        return token
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
@@ -261,15 +301,18 @@ def forgot_password():
             flash('Please enter your email address', 'error')
             return render_template('auth/forgot_password.html')
             
-        # TEMPORARY: Bypass database issues - OAuth working perfectly
-        # Since OAuth login is working 100%, we'll temporarily disable forgot password
-        # until we can resolve the SQLAlchemy architecture issue
         try:
-            flash('Password reset is temporarily unavailable. Please use Google OAuth login instead.', 'info')
-            return redirect(url_for('auth.login'))
+            # Get database and models from current app context
+            db = get_db()
+            User, VerificationToken = get_models()
+            
+            # Query user using the correct database instance
+            with db.session.begin():
+                user = db.session.query(User).filter_by(email=email).first()
+                
         except Exception as e:
-            current_app.logger.error(f"Password reset error: {e}")
-            flash('Please use Google OAuth login instead.', 'info')
+            current_app.logger.error(f"Database error: {e}")
+            flash('Database error. Please try again.', 'error')
             return render_template('auth/forgot_password.html')
         
         if user:

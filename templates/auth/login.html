@@ -515,6 +515,12 @@
                 <span>Hoặc đăng nhập</span>
             </div>
 
+            <!-- Google OAuth Login -->
+            <a href="{{ url_for('google_login') }}" class="secondary-button" style="background: #4285f4; color: white; border-color: #4285f4;">
+                <i class="fab fa-google" style="color: white;"></i>
+                <span>Đăng nhập với Google</span>
+            </a>
+
             <!-- Registration Option -->
             <a href="{{ url_for('auth.register') }}" class="secondary-button register-button">
                 <i class="fas fa-user-plus"></i>
