@@ -1,4 +1,9 @@
-# Minimal requirements that should work
+# Step 1: Add database support
 Flask==2.3.3
 Werkzeug==2.3.7
 gunicorn==21.2.0
+
+# Database requirements
+psycopg2-binary==2.9.7
+SQLAlchemy==2.0.21
+Flask-SQLAlchemy==3.0.5
