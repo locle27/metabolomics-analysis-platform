@@ -61,7 +61,7 @@ load_dotenv(BASE_DIR / ".env")
 app = Flask(__name__, template_folder=BASE_DIR / "templates", static_folder=BASE_DIR / "static")
 
 # Fix for Railway HTTPS proxy - This tells Flask to trust the headers sent by the Railway proxy
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1, x_for=1)
 
 app.secret_key = os.getenv('SECRET_KEY', 'metabolomics-dev-key-change-in-production')
 
@@ -287,11 +287,15 @@ def appwrite_callback():
         return redirect(url_for('login'))
 
 def get_oauth_redirect_uri():
-    """Get appropriate OAuth redirect URI based on environment - FIXED for private IP issues"""
-    if os.getenv('FLASK_ENV') == 'production':
-        base_url = os.getenv('PROD_OAUTH_BASE_URL', 'https://your-production-domain.com')
+    """Get appropriate OAuth redirect URI based on environment - UPDATED for custom domain"""
+    # Check if we're on the new custom domain
+    if 'phenikaa-lipidomics-analysis.edu.vn' in request.host:
+        base_url = f"https://{request.host}"
+    elif os.getenv('FLASK_ENV') == 'production' or 'railway.app' in request.host:
+        # Production Railway deployment or custom domain
+        base_url = os.getenv('PROD_OAUTH_BASE_URL', f"https://{request.host}")
     else:
-        # CRITICAL FIX: Never use private IPs (192.168.x.x) - Google OAuth rejects them
+        # Local development - NEVER use private IPs (192.168.x.x) - Google OAuth rejects them
         if 'localhost' in request.host or '127.0.0.1' in request.host:
             base_url = f"http://{request.host}"
         else:
@@ -1775,5 +1779,7 @@ if __name__ == '__main__':
     print(f"   Debug mode: {debug_mode}")
     print(f"   Database: PostgreSQL (Optimized with Eager Loading)")
     print(f"   Features: ✅ No N+1 Queries ✅ Proper Caching ✅ Fast Performance")
+    print(f"   Environment: {os.getenv('FLASK_ENV', 'development')}")
+    print(f"   Custom Domain: {os.getenv('CUSTOM_DOMAIN', 'Not configured')}")
     
     app.run(debug=debug_mode, host='0.0.0.0', port=port)
