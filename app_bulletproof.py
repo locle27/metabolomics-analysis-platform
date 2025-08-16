@@ -50,12 +50,13 @@ def homepage():
         if DATABASE_AVAILABLE and db:
             try:
                 with app.app_context():
-                    # Simple database query using text() for SQLAlchemy 2.0 compatibility
+                    # SQLAlchemy 2.0 compatible database query
                     from sqlalchemy import text
-                    result = db.engine.execute(text("SELECT 1 as test"))
-                    if result:
-                        homepage_data['stats']['database_status'] = 'connected'
-                        homepage_data['stats']['connection_test'] = 'success'
+                    with db.engine.connect() as connection:
+                        result = connection.execute(text("SELECT 1 as test"))
+                        if result:
+                            homepage_data['stats']['database_status'] = 'connected'
+                            homepage_data['stats']['connection_test'] = 'success'
             except Exception as e:
                 print(f"Database query failed: {e}")
                 homepage_data['stats']['database_status'] = 'error'
