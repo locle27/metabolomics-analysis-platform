@@ -289,7 +289,9 @@ def appwrite_callback():
 def get_oauth_redirect_uri():
     """Get appropriate OAuth redirect URI based on environment - UPDATED for custom domain"""
     # Check if we're on the new custom domain
-    if 'phenikaa-lipidomics-analysis.edu.vn' in request.host:
+    if 'httpsphenikaa-lipidomics-analysis.xyz' in request.host:
+        base_url = f"https://{request.host}"
+    elif 'phenikaa-lipidomics-analysis.edu.vn' in request.host:
         base_url = f"https://{request.host}"
     elif os.getenv('FLASK_ENV') == 'production' or 'railway.app' in request.host:
         # Production Railway deployment or custom domain
