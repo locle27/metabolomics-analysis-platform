@@ -23,9 +23,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from authlib.integrations.flask_client import OAuth
 from flask_mail import Mail, Message
 
-# Appwrite authentication
-from appwrite.client import Client
-from appwrite.services.account import Account
+# Removed Appwrite - no longer needed
 
 # Import optimized PostgreSQL models
 from models_postgresql_optimized import (
