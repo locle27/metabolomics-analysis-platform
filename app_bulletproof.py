@@ -30,14 +30,57 @@ except Exception as e:
 # Step 3: Basic routes that always work
 @app.route('/')
 def homepage():
-    """Always working homepage"""
-    return {
-        "status": "healthy",
-        "message": "Metabolomics Platform - Progressive Loading",
-        "timestamp": datetime.now().isoformat(),
-        "environment": os.getenv('FLASK_ENV', 'development'),
-        "features_loaded": get_loaded_features()
-    }
+    """Production homepage with graceful degradation"""
+    try:
+        # Try to get database stats if available
+        homepage_data = {
+            'stats': {'total_lipids': 0, 'total_classes': 0, 'total_annotations': 0},
+            'recent_lipids': [],
+            'news': [
+                {
+                    'title': 'Production Platform Deployed Successfully',
+                    'date': '2025-08-17',
+                    'summary': 'Advanced metabolomics analysis platform now running on Railway with full authentication and chart features.',
+                    'image': '/static/news1.jpg'
+                }
+            ]
+        }
+        
+        # Try to get real database stats if database is available
+        if DATABASE_AVAILABLE and db:
+            try:
+                with app.app_context():
+                    # Simple database query
+                    result = db.engine.execute("SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = 'public'")
+                    table_count = result.fetchone()[0] if result else 0
+                    homepage_data['stats']['database_tables'] = table_count
+                    homepage_data['stats']['database_status'] = 'connected'
+            except Exception as e:
+                print(f"Database query failed: {e}")
+                homepage_data['stats']['database_status'] = 'error'
+        
+        # Render template if available, otherwise return JSON
+        try:
+            return render_template('homepage.html', data=homepage_data)
+        except Exception:
+            # Fallback to JSON if templates not available
+            return {
+                "status": "healthy",
+                "message": "Metabolomics Platform - Production",
+                "timestamp": datetime.now().isoformat(),
+                "features_loaded": get_loaded_features(),
+                "data": homepage_data
+            }
+            
+    except Exception as e:
+        print(f"Homepage error: {e}")
+        return {
+            "status": "healthy",
+            "message": "Metabolomics Platform - Basic Mode",
+            "timestamp": datetime.now().isoformat(),
+            "features_loaded": get_loaded_features(),
+            "error": str(e)
+        }
 
 @app.route('/health')
 def health_check():
@@ -116,24 +159,43 @@ def get_loaded_features():
         features.append("charts")
     return features
 
-# Dashboard route with graceful degradation
-@app.route('/dashboard')
+# Essential routes for production
+@app.route('/lipid-selection')
+@app.route('/dashboard') 
 def dashboard():
-    """Dashboard with feature detection"""
-    if not AUTH_AVAILABLE:
-        return {"error": "Authentication not available", "available_features": get_loaded_features()}, 503
+    """Lipid selection dashboard"""
+    if not DATABASE_AVAILABLE:
+        return {"error": "Database not available", "redirect": "/health"}, 503
     
-    # Continue with dashboard logic...
-    return {"message": "Dashboard available", "features": get_loaded_features()}
+    try:
+        return render_template('clean_dashboard.html')
+    except Exception as e:
+        return {"message": "Lipid selection available", "features": get_loaded_features(), "note": "Template fallback"}
 
-# Chart route with graceful degradation
-@app.route('/charts')
-def charts():
-    """Charts with feature detection"""
+@app.route('/dual-chart-view')
+def dual_chart_view():
+    """Interactive chart view"""
     if not CHARTS_AVAILABLE:
         return {"error": "Charts not available", "available_features": get_loaded_features()}, 503
     
-    return {"message": "Charts available", "features": get_loaded_features()}
+    try:
+        return render_template('dual_chart_view.html')
+    except Exception as e:
+        return {"message": "Charts available", "features": get_loaded_features(), "note": "Template fallback"}
+
+@app.route('/api/dual-chart-data/<int:lipid_id>')
+def api_dual_chart_data(lipid_id):
+    """Chart data API endpoint"""
+    if not CHARTS_AVAILABLE:
+        return {"error": "Charts not available"}, 503
+    
+    try:
+        # Import chart service dynamically to avoid startup issues
+        from dual_chart_service import DualChartService
+        chart_service = DualChartService()
+        return chart_service.get_dual_chart_data(lipid_id)
+    except Exception as e:
+        return {"error": f"Chart data failed: {str(e)}"}, 500
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
