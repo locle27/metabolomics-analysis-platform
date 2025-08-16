@@ -135,11 +135,15 @@ def register():
             flash(message, 'error')
             return render_template('auth/register.html')
             
-        if User.query.filter_by(username=username).first():
+        # Get database and models from current app context
+        db = get_db()
+        User, VerificationToken = get_models()
+        
+        if db.session.query(User).filter_by(username=username).first():
             flash('Username already exists', 'error')
             return render_template('auth/register.html')
             
-        if User.query.filter_by(email=email).first():
+        if db.session.query(User).filter_by(email=email).first():
             flash('Email already registered', 'error')
             return render_template('auth/register.html')
             
@@ -239,8 +243,12 @@ def login():
             flash('Please enter both username/email and password', 'error')
             return render_template('auth/login.html')
             
+        # Get database and models from current app context
+        db = get_db()
+        User, VerificationToken = get_models()
+        
         # Find user by username or email
-        user = User.query.filter(
+        user = db.session.query(User).filter(
             (User.username == username_or_email) | 
             (User.email == username_or_email.lower())
         ).first()
@@ -354,7 +362,11 @@ def forgot_password():
 def reset_password(token):
     """Password reset with token"""
     try:
-        verification_token = VerificationToken.query.filter_by(
+        # Get database and models from current app context
+        db = get_db()
+        User, VerificationToken = get_models()
+        
+        verification_token = db.session.query(VerificationToken).filter_by(
             token=token,
             token_type='password_reset',
             is_used=False
@@ -382,21 +394,29 @@ def reset_password(token):
                 return render_template('auth/reset_password.html', token=token)
                 
             # Update password
-            user = verification_token.user
-            user.set_password(new_password)
-            user.last_password_change = datetime.utcnow()
-            verification_token.is_used = True
-            verification_token.used_at = datetime.utcnow()
-            
-            db.session.commit()
-            
-            flash('Password reset successfully! You can now log in.', 'success')
-            return redirect(url_for('auth.login'))
+            user = db.session.query(User).filter_by(id=verification_token.user_id).first()
+            if user:
+                user.set_password(new_password)
+                user.last_password_change = datetime.utcnow()
+                verification_token.is_used = True
+                verification_token.used_at = datetime.utcnow()
+                
+                db.session.commit()
+                
+                flash('Password reset successfully! You can now log in.', 'success')
+                return redirect(url_for('auth.login'))
+            else:
+                flash('User not found', 'error')
+                return redirect(url_for('auth.forgot_password'))
             
         return render_template('auth/reset_password.html', token=token)
         
     except Exception as e:
-        db.session.rollback()
+        try:
+            db = get_db()
+            db.session.rollback()
+        except:
+            pass
         logging.error(f"Password reset error: {str(e)}")
         flash('An error occurred during password reset. Please try again.', 'error')
         return redirect(url_for('auth.forgot_password'))
@@ -482,7 +502,11 @@ def resend_verification():
         flash('Please enter your email address', 'error')
         return redirect(url_for('auth.login'))
         
-    user = User.query.filter_by(email=email, is_verified=False).first()
+    # Get database and models from current app context
+    db = get_db()
+    User, VerificationToken = get_models()
+    
+    user = db.session.query(User).filter_by(email=email, is_verified=False).first()
     
     if user:
         try:
