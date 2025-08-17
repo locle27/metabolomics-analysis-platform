@@ -90,16 +90,33 @@ try:
         with app.app_context():
             try:
                 print("🔍 Step 3a: Testing get_db_stats...")
-                stats_test = get_db_stats()
-                print(f"✅ Step 3a: Stats test successful: {stats_test}")
-                
-                print("🔍 Step 3b: Testing optimized_manager...")
-                if optimized_manager:
-                    sample_test = optimized_manager.get_lipids_sample(1)
-                    print(f"✅ Step 3b: Manager test successful: {len(sample_test)} lipids")
-                
-                models_available = True
-                print("✅ ALL MODELS TESTS PASSED")
+                try:
+                    stats_test = get_db_stats()
+                    print(f"✅ Step 3a: Stats test successful: {stats_test}")
+                    
+                    print("🔍 Step 3b: Testing optimized_manager...")
+                    if optimized_manager:
+                        sample_test = optimized_manager.get_lipids_sample(1)
+                        print(f"✅ Step 3b: Manager test successful: {len(sample_test)} lipids")
+                    
+                    models_available = True
+                    print("✅ ALL MODELS TESTS PASSED")
+                    
+                except Exception as stats_error:
+                    print(f"❌ Step 3a: get_db_stats failed: {stats_error}")
+                    print(f"   Trying simple database test instead...")
+                    
+                    # Try a simple query to see if database works
+                    try:
+                        with db.engine.connect() as conn:
+                            from sqlalchemy import text
+                            conn.execute(text("SELECT 1"))
+                        print("✅ Simple database query works")
+                        models_available = True  # Models imported, basic DB works
+                        print("✅ MODELS LOADED (with limited functionality)")
+                    except Exception as db_error:
+                        print(f"❌ Even simple database query failed: {db_error}")
+                        models_available = False
                 
             except Exception as e:
                 print(f"❌ Step 3: Models test failed: {e}")
@@ -210,8 +227,10 @@ def debug_models():
             try:
                 with app.app_context():
                     from sqlalchemy import text
-                    result = db.engine.execute(text("SELECT version()"))
-                    debug_info["database_version"] = str(result.fetchone()[0])
+                    # Use modern SQLAlchemy syntax
+                    with db.engine.connect() as conn:
+                        result = conn.execute(text("SELECT version()"))
+                        debug_info["database_version"] = str(result.fetchone()[0])
                     debug_info["database_connection_test"] = "success"
             except Exception as e:
                 debug_info["database_connection_test"] = f"failed: {str(e)}"
