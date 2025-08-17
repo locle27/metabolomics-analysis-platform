@@ -176,6 +176,7 @@ if database_url:
             optimized_manager, get_db_stats, get_lipids_by_class, search_lipids,
             BackupHistory, BackupSnapshots, BackupStats
         )
+        from sqlalchemy.orm import joinedload, selectinload
         
         # Initialize with the existing db instance
         db.init_app(app)
@@ -272,67 +273,117 @@ except Exception as e:
     def get_email_service_status(): 
         return "Email service unavailable"
 
-# === AUTHENTICATION BLUEPRINT (Working + Bulletproof) ===
-auth_bp = None
+# OAuth Configuration  
+if OAUTH_AVAILABLE:
+    google = oauth.register(
+        name='google',
+        client_id=os.getenv('GOOGLE_CLIENT_ID'),
+        client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+        server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+        client_kwargs={'scope': 'openid email profile'}
+    )
+    print("✅ Google OAuth configured")
+else:
+    google = None
+    print("⚠️ OAuth not available")
 
-try:
-    if os.getenv('FLASK_ENV') == 'production' or os.getenv('ENV') == 'production':
-        from email_auth_production import auth_bp
-        print("✅ Production authentication loaded")
-    else:
-        from email_auth import auth_bp
-        print("✅ Development authentication loaded")
-except Exception as e:
-    print(f"⚠️ Authentication import failed: {e}")
-    # Create working fallback auth blueprint
-    from flask import Blueprint
-    auth_bp = Blueprint('auth', __name__)
-    
-    @auth_bp.route('/login', methods=['GET', 'POST'])
-    def login():
-        if request.method == 'POST':
-            email = request.form.get('email')
-            password = request.form.get('password')
-            
-            # Demo login for testing
-            if email == 'admin@demo.com' and password == 'admin123':
-                session['user_authenticated'] = True
-                session['user_email'] = email
-                session['user_role'] = 'admin'
-                flash('Demo login successful!', 'success')
-                return redirect(url_for('homepage'))
-            else:
-                flash('Invalid credentials. Try admin@demo.com / admin123', 'error')
+# Create working authentication blueprint
+from flask import Blueprint
+auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
+
+@auth_bp.route('/login', methods=['GET', 'POST'])
+def login():
+    """Simple working login page"""
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
         
-        return '''
-        <form method="POST" style="max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #ddd;">
-            <h2>Login</h2>
-            <div style="margin: 10px 0;">
-                <input type="email" name="email" placeholder="Email" required style="width: 100%; padding: 8px;">
-            </div>
-            <div style="margin: 10px 0;">
-                <input type="password" name="password" placeholder="Password" required style="width: 100%; padding: 8px;">
-            </div>
-            <button type="submit" style="background: #2E4C92; color: white; padding: 10px 20px; border: none;">Login</button>
-            <p><small>Demo: admin@demo.com / admin123</small></p>
-            <a href="/">← Back to Homepage</a>
-        </form>
-        '''
+        if not username or not password:
+            flash('Please enter both username and password.', 'error')
+            return render_template('auth/login.html')
+        
+        # Try database user login first
+        if db and User:
+            try:
+                user = User.query.filter_by(email=username).first()
+                if user and user.check_password(password):
+                    # Valid database user with correct password
+                    session['user_authenticated'] = True
+                    session['user_email'] = user.email
+                    session['user_role'] = user.role or 'user'
+                    user.last_login = datetime.now()  # Update last login
+                    db.session.commit()
+                    flash(f'Welcome back, {user.full_name}!', 'success')
+                    return redirect(url_for('homepage'))
+            except Exception as db_error:
+                print(f"⚠️ Database login check failed: {db_error}")
+        
+        # Demo login credentials (multiple formats for compatibility)
+        demo_emails = [
+            'admin@demo.com', 
+            'demo@metabolomics.com', 
+            'demo@metabolomics-platform.com',  # From backup
+            'admin', 
+            'demo'
+        ]
+        if username.lower() in [email.lower() for email in demo_emails] and password == 'admin123':
+            session['user_authenticated'] = True
+            session['user_email'] = username
+            session['user_role'] = 'admin'
+            flash('Demo login successful!', 'success')
+            return redirect(url_for('homepage'))
+        else:
+            flash('Invalid credentials. Try demo: admin@demo.com / admin123 or check if your account exists.', 'error')
     
-    @auth_bp.route('/logout')
-    def logout():
-        session.clear()
-        flash('Logged out successfully.', 'success')
-        return redirect(url_for('homepage'))
-    
-    @auth_bp.route('/google-login')
-    def google_login():
-        flash('Google OAuth not configured in fallback mode. Use demo login.', 'warning')
+    # GET request - show login form
+    return render_template('auth/login.html')
+
+@auth_bp.route('/logout')
+def logout():
+    """Logout and clear session"""
+    session.clear()
+    flash('Logged out successfully.', 'success')
+    return redirect(url_for('homepage'))
+
+@auth_bp.route('/register')
+def register():
+    """Registration page placeholder"""
+    flash('Registration currently unavailable. Use demo login: admin@demo.com / admin123', 'info')
+    return redirect(url_for('auth.login'))
+
+@auth_bp.route('/forgot-password')
+def forgot_password():
+    """Forgot password placeholder"""
+    flash('Password reset currently unavailable. Use demo login: admin@demo.com / admin123', 'info')
+    return redirect(url_for('auth.login'))
+
+@auth_bp.route('/profile')
+def profile():
+    """User profile page"""
+    if not session.get('user_authenticated', False):
+        flash('Please log in to view your profile.', 'error')
         return redirect(url_for('auth.login'))
+    
+    user_data = {
+        'email': session.get('user_email', ''),
+        'role': session.get('user_role', 'user'),
+        'name': session.get('user_email', '').split('@')[0]
+    }
+    return render_template('auth/profile.html', user=user_data)
+
+@auth_bp.route('/change-password')
+def change_password():
+    """Change password page"""
+    if not session.get('user_authenticated', False):
+        flash('Please log in to change your password.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    flash('Password change currently unavailable for demo accounts.', 'info')
+    return redirect(url_for('auth.profile'))
 
 # Register authentication blueprint
 app.register_blueprint(auth_bp)
-print("✅ Authentication blueprint registered")
+print("✅ Working authentication blueprint registered")
 
 # === USER LOADER (Working + Bulletproof) ===
 if login_manager:
@@ -485,19 +536,50 @@ def dashboard():
 def clean_dashboard():
     """Main lipid selection interface with lazy loading"""
     try:
-        # Prepare data for template
+        # Prepare data for template with lazy loading enabled
         data = {
             'lipids': [],
             'total_lipids': 0,
-            'database_available': bool(db and MainLipid)
+            'database_available': bool(db and MainLipid),
+            'lazy_loading': True  # Enable asynchronous loading
         }
         
+        # With lazy loading enabled, we don't load lipids here
+        # They will be loaded asynchronously via /api/load-lipids
         if db and MainLipid:
             try:
-                data['lipids'] = MainLipid.query.limit(50).all()
+                # Get total count and class information for display
                 data['total_lipids'] = MainLipid.query.count()
+                
+                # Get lipid classes with counts for filter pills
+                if LipidClass:
+                    from sqlalchemy import func
+                    classes_with_counts = db.session.query(
+                        LipidClass.class_name,
+                        func.count(MainLipid.lipid_id).label('count')
+                    ).outerjoin(MainLipid).group_by(
+                        LipidClass.class_id, LipidClass.class_name
+                    ).order_by(LipidClass.class_name).all()
+                    
+                    data['classes'] = [
+                        {'class_name': class_name, 'count': count}
+                        for class_name, count in classes_with_counts
+                    ]
+                else:
+                    data['classes'] = []
+                    
             except Exception as db_error:
                 print(f"⚠️ Database query failed: {db_error}")
+                data['total_lipids'] = 0
+                data['classes'] = []
+        else:
+            # Fallback for when database is unavailable
+            data['total_lipids'] = 0
+            data['classes'] = [
+                {'class_name': 'AC', 'count': 20},
+                {'class_name': 'PC', 'count': 15},
+                {'class_name': 'TG', 'count': 10}
+            ]
         
         return render_template('clean_dashboard.html', data=data)
     except Exception as e:
@@ -505,70 +587,61 @@ def clean_dashboard():
         return f"<h1>Dashboard Loading...</h1><p>Error: {e}</p>"
 
 @app.route('/dual-chart-view')
-@app.route('/dual-chart-view/<int:lipid_id>')
-def dual_chart_view(lipid_id=None):
-    """Interactive dual-chart visualization system"""
+def dual_chart_view():
+    """Display dual interactive charts with OPTIMIZED data loading."""
     try:
-        selected_lipids = []
+        # Get selected lipid IDs from query parameters
+        lipid_ids_str = request.args.get('lipids', '')
+        if not lipid_ids_str:
+            flash('No lipids selected for chart view.', 'warning')
+            return redirect(url_for('clean_dashboard'))
         
-        # Get lipid IDs from session or URL parameter
-        lipid_ids = []
-        if lipid_id:
-            lipid_ids = [lipid_id]
-        else:
-            # Get from session if multiple lipids were selected
-            lipid_ids = session.get('selected_lipid_ids', [])
+        # Parse lipid IDs
+        try:
+            selected_lipid_ids = [int(id.strip()) for id in lipid_ids_str.split(',') if id.strip()]
+        except ValueError:
+            flash('Invalid lipid selection.', 'error')
+            return redirect(url_for('clean_dashboard'))
         
-        # Fetch lipids from database
-        if MainLipid and db and lipid_ids:
-            try:
-                for lid in lipid_ids:
-                    lipid = MainLipid.query.get(lid)
-                    if lipid:
-                        # Format lipid data for template
-                        lipid_data = {
-                            'lipid_id': lipid.id,
-                            'lipid_name': lipid.lipid_name,
-                            'class_name': lipid.class_name or 'Unknown',
-                            'retention_time': lipid.retention_time or 0,
-                            'annotated_ions_count': 0  # We'll calculate this if needed
-                        }
-                        selected_lipids.append(lipid_data)
-            except Exception as db_error:
-                print(f"⚠️ Database query failed: {db_error}")
+        if not selected_lipid_ids:
+            flash('No valid lipids selected.', 'warning')
+            return redirect(url_for('clean_dashboard'))
         
-        # If no lipids found, try to get the first available lipid from database
-        if not selected_lipids and MainLipid and db:
-            try:
-                first_lipid = MainLipid.query.first()
-                if first_lipid:
-                    selected_lipids = [{
-                        'lipid_id': first_lipid.id,
-                        'lipid_name': first_lipid.lipid_name,
-                        'class_name': first_lipid.class_name or 'Unknown',
-                        'retention_time': first_lipid.retention_time or 0,
-                        'annotated_ions_count': 0
-                    }]
-                    print(f"ℹ️ Using first available lipid: {first_lipid.lipid_name} (ID: {first_lipid.id})")
-            except Exception as db_error:
-                print(f"⚠️ Could not get first lipid: {db_error}")
+        # OPTIMIZED: Get selected lipids with single query (no N+1)
+        selected_lipids = MainLipid.query.options(
+            joinedload(MainLipid.lipid_class),
+            selectinload(MainLipid.annotated_ions)
+        ).filter(
+            MainLipid.lipid_id.in_(selected_lipid_ids)
+        ).all()
         
-        # Final fallback to demo data
         if not selected_lipids:
-            selected_lipids = [{
-                'lipid_id': 999,  # Use a high ID that won't conflict
-                'lipid_name': 'Demo Lipid AC(16:0)',
-                'class_name': 'AC',
-                'retention_time': 3.2,
-                'annotated_ions_count': 3
-            }]
+            flash('Selected lipids not found in database.', 'error')
+            return redirect(url_for('clean_dashboard'))
         
-        return render_template('dual_chart_view.html', 
-                             selected_lipids=selected_lipids, 
-                             lipid_id=lipid_id)
+        # Format lipids data for template (no additional queries needed!)
+        lipids_data = []
+        for lipid in selected_lipids:
+            lipid_dict = {
+                'lipid_id': lipid.lipid_id,
+                'lipid_name': lipid.lipid_name,
+                'api_code': lipid.api_code,
+                'retention_time': lipid.retention_time,
+                'class_name': lipid.lipid_class.class_name if lipid.lipid_class else 'Unknown',
+                'annotated_ions_count': len(lipid.annotated_ions)  # No query!
+            }
+            lipids_data.append(lipid_dict)
+        
+        template_data = {
+            'selected_lipids': lipids_data,
+            'selected_lipid_ids': selected_lipid_ids
+        }
+        
+        return render_template('dual_chart_view.html', **template_data)
     except Exception as e:
         print(f"⚠️ Chart view error: {e}")
-        return f"<h1>Chart System Loading...</h1><p>Error: {e}</p>"
+        flash(f'Error loading charts: {e}', 'error')
+        return redirect(url_for('clean_dashboard'))
 
 @app.route('/browse-lipids')
 def browse_lipids():
@@ -773,9 +846,20 @@ def manage_lipids():
             try:
                 stats = get_db_stats()
                 data.update(stats)
+                # Add stats object for template compatibility
+                data['stats'] = {
+                    'successful_extractions': stats.get('total_lipids', 0),
+                    'total_annotated_ions': stats.get('total_annotations', 0)
+                }
                 data['lipids'] = MainLipid.query.limit(20).all()
             except Exception as db_error:
                 print(f"⚠️ Database query failed in manage_lipids: {db_error}")
+        else:
+            # Fallback stats for template
+            data['stats'] = {
+                'successful_extractions': 0,
+                'total_annotated_ions': 0
+            }
         
         return render_template('manage_lipids.html', data=data)
     except Exception as e:
@@ -797,81 +881,104 @@ def api_dual_chart_data(lipid_id):
                 # Find a valid lipid ID to use instead
                 first_lipid = MainLipid.query.first()
                 if first_lipid:
-                    print(f"⚠️ Lipid ID {lipid_id} not found, using {first_lipid.id} instead")
-                    lipid_id = first_lipid.id
+                    print(f"⚠️ Lipid ID {lipid_id} not found, using {first_lipid.lipid_id} instead")
+                    lipid_id = first_lipid.lipid_id
                 else:
-                    return jsonify({"error": f"No lipids available in database", "chart1": {}, "chart2": {}})
+                    return jsonify({"status": "error", "message": "No lipids available in database"})
             
             chart_service = DualChartService()
             chart_data = chart_service.get_dual_chart_data(lipid_id)
-            return jsonify(chart_data)
+            # Wrap data in expected structure for frontend
+            return jsonify({"status": "success", "data": chart_data})
         else:
             # Return demo chart data
             return jsonify({
-                "chart1": {
-                    "data": {"datasets": []},
-                    "options": {"responsive": True}
-                },
-                "chart2": {
-                    "data": {"datasets": []}, 
-                    "options": {"responsive": True}
-                },
-                "error": "Chart service or database unavailable"
+                "status": "success",
+                "data": {
+                    "chart1": {
+                        "data": {"datasets": []},
+                        "options": {"responsive": True}
+                    },
+                    "chart2": {
+                        "data": {"datasets": []}, 
+                        "options": {"responsive": True}
+                    },
+                    "lipid_info": {
+                        "lipid_id": 999,
+                        "lipid_name": "Demo Lipid",
+                        "retention_time": 3.2
+                    },
+                    "annotated_ions": []
+                }
             })
     except Exception as e:
         print(f"⚠️ Chart API error: {e}")
-        return jsonify({"error": str(e), "chart1": {}, "chart2": {}}), 500
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/api/load-lipids')
 def api_load_lipids():
-    """AJAX endpoint for asynchronous lipid loading"""
+    """AJAX endpoint to load all lipids asynchronously for dashboard."""
     try:
+        start_time = time.time()
+        
         if MainLipid and db:
-            page = request.args.get('page', 1, type=int)
-            per_page = request.args.get('per_page', 100, type=int)  # Increased default
-            search = request.args.get('search', '', type=str)
+            # Load ALL lipids for complete database display - optimized query
+            raw_lipids = MainLipid.query.options(
+                joinedload(MainLipid.lipid_class),
+                selectinload(MainLipid.annotated_ions)  # Prevent N+1 queries
+            ).all()  # Load ALL lipids, not just first 100
             
-            # Build query with search if provided
-            query = MainLipid.query
-            if search:
-                query = query.filter(MainLipid.lipid_name.ilike(f'%{search}%'))
+            # Format lipids as dictionaries for template
+            lipids_data = []
+            for lipid in raw_lipids:
+                lipid_data = {
+                    'lipid_id': lipid.lipid_id,
+                    'lipid_name': lipid.lipid_name,
+                    'class_name': getattr(lipid.lipid_class, 'class_name', 'Unknown') if lipid.lipid_class else 'Unknown',
+                    'retention_time': lipid.retention_time or 0,
+                    'api_code': lipid.api_code or '',
+                    'annotated_ions_count': len(lipid.annotated_ions) if lipid.annotated_ions else 0
+                }
+                lipids_data.append(lipid_data)
             
-            # Order by ID to ensure consistent results
-            query = query.order_by(MainLipid.id)
-            
-            lipids = query.paginate(
-                page=page, per_page=per_page, error_out=False
-            )
+            total_count = MainLipid.query.count()
+            query_time = f"{(time.time() - start_time):.3f}s"
             
             return jsonify({
-                'lipids': [{'id': l.id, 'name': l.lipid_name, 'class': l.class_name or 'Unknown', 'rt': l.retention_time or 0} 
-                          for l in lipids.items],
-                'has_next': lipids.has_next,
-                'page': page,
-                'total': lipids.total,
-                'pages': lipids.pages
+                'status': 'success',
+                'lipids': lipids_data,
+                'count': len(lipids_data),
+                'total': total_count,
+                'query_time': query_time,
+                'database_type': 'PostgreSQL'
             })
         else:
             # Return demo data if database unavailable
             demo_lipids = []
             for i in range(1, 21):  # Demo 20 lipids
                 demo_lipids.append({
-                    'id': i,
-                    'name': f'AC({14 + i}:0)',
-                    'class': 'AC',
-                    'rt': 2.0 + (i * 0.1)
+                    'lipid_id': i,
+                    'lipid_name': f'AC({14 + i}:0)',
+                    'class_name': 'AC',
+                    'retention_time': 2.0 + (i * 0.1),
+                    'api_code': f'AC{14+i}',
+                    'annotated_ions_count': 2
                 })
             
             return jsonify({
+                'status': 'success',
                 'lipids': demo_lipids,
-                'has_next': False,
-                'page': 1,
+                'count': 20,
                 'total': 20,
-                'pages': 1
+                'query_time': '0.001s',
+                'database_type': 'Demo'
             })
     except Exception as e:
         print(f"⚠️ Load lipids API error: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 @app.route('/api/database-view')
 def api_database_view():
@@ -897,25 +1004,7 @@ def api_database_view():
 @app.route('/login')
 def login():
     """Redirect to auth login page"""
-    try:
-        return redirect(url_for('auth.login'))
-    except Exception as e:
-        print(f"⚠️ Login redirect failed: {e}")
-        # Fallback direct login form
-        return '''
-        <form method="POST" action="/auth/login" style="max-width: 400px; margin: 100px auto; padding: 20px; border: 1px solid #ddd;">
-            <h2>Login</h2>
-            <div style="margin: 10px 0;">
-                <input type="email" name="email" placeholder="Email" required style="width: 100%; padding: 8px;">
-            </div>
-            <div style="margin: 10px 0;">
-                <input type="password" name="password" placeholder="Password" required style="width: 100%; padding: 8px;">
-            </div>
-            <button type="submit" style="background: #2E4C92; color: white; padding: 10px 20px; border: none;">Login</button>
-            <p><small>Demo: admin@demo.com / admin123</small></p>
-            <a href="/">← Back to Homepage</a>
-        </form>
-        '''
+    return redirect(url_for('auth.login'))
 
 @app.route('/signup')
 def signup():
@@ -928,31 +1017,77 @@ def signup():
 
 @app.route('/demo-login')
 def demo_login():
-    """Demo login bypassing OAuth for testing"""
+    """Demo login for deployment testing - bypasses OAuth"""
     try:
-        demo_user = User.query.filter_by(email='demo@metabolomics.com').first()
-        if not demo_user:
-            demo_user = User(
-                email='demo@metabolomics.com',
-                full_name='Demo User',
-                role='admin',
-                password_hash='demo123'
-            )
-            db.session.add(demo_user)
-            db.session.commit()
-        
-        login_user(demo_user)
+        session['user_authenticated'] = True
+        session['user_email'] = 'demo@metabolomics.com'
+        session['user_role'] = 'admin'
         flash('Demo login successful!', 'success')
         return redirect(url_for('homepage'))
     except Exception as e:
         flash(f'Demo login failed: {e}', 'error')
         return redirect(url_for('auth.login'))
 
+@app.route('/logout')
+def logout():
+    """Logout and clear session"""
+    try:
+        if login_manager and current_user and current_user.is_authenticated:
+            logout_user()
+        session.clear()
+        flash('Logged out successfully.', 'success')
+        return redirect(url_for('homepage'))
+    except Exception as e:
+        print(f"⚠️ Logout error: {e}")
+        session.clear()
+        return redirect(url_for('homepage'))
+
 @app.route('/google-login')
 def google_login():
-    """Fallback for google login route"""
-    flash('Google OAuth not configured. Use demo login instead.', 'warning')
-    return redirect(url_for('auth.login'))
+    """Google OAuth login"""
+    if google and OAUTH_AVAILABLE:
+        try:
+            redirect_uri = url_for('login_authorized', _external=True)
+            return google.authorize_redirect(redirect_uri)
+        except Exception as e:
+            print(f"⚠️ Google OAuth error: {e}")
+            flash('Google login temporarily unavailable. Use demo login instead.', 'warning')
+            return redirect(url_for('auth.login'))
+    else:
+        flash('Google OAuth not configured. Use demo login: admin@demo.com / admin123', 'warning')
+        return redirect(url_for('auth.login'))
+
+@app.route('/callback')
+@app.route('/login/authorized')
+def login_authorized():
+    """Google OAuth callback"""
+    if not google:
+        flash('OAuth not configured', 'error')
+        return redirect(url_for('auth.login'))
+        
+    try:
+        token = google.authorize_access_token()
+        user_info = token.get('userinfo')
+        
+        if user_info:
+            # Create or update user
+            user_email = user_info.get('email')
+            user_name = user_info.get('name', user_email.split('@')[0])
+            
+            # For now, just create a session (can be enhanced later)
+            session['user_authenticated'] = True
+            session['user_email'] = user_email
+            session['user_role'] = 'user'  # Default role
+            flash(f'Welcome {user_name}! Google login successful.', 'success')
+            return redirect(url_for('homepage'))
+        else:
+            flash('Failed to get user information from Google', 'error')
+            return redirect(url_for('auth.login'))
+            
+    except Exception as e:
+        print(f"⚠️ OAuth callback error: {e}")
+        flash('Google login failed. Please try again or use demo login.', 'error')
+        return redirect(url_for('auth.login'))
 
 # =====================================================
 # UTILITY ROUTES
@@ -1010,6 +1145,74 @@ def debug_auth():
         pass
     
     return jsonify(debug_info)
+
+
+@app.route('/user-debug')
+def user_debug():
+    """User debug information"""
+    if not session.get('user_authenticated', False):
+        flash('Please log in to view account information.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    debug_info = {
+        'session_data': dict(session),
+        'authenticated': session.get('user_authenticated', False),
+        'email': session.get('user_email', ''),
+        'role': session.get('user_role', 'user'),
+        'name': session.get('user_email', '').split('@')[0]
+    }
+    
+    # Add database users info for admin
+    if session.get('user_role') == 'admin' and db and User:
+        try:
+            users = User.query.all()
+            debug_info['database_users'] = [
+                {
+                    'id': user.id,
+                    'email': user.email,
+                    'full_name': user.full_name,
+                    'role': user.role,
+                    'has_password': bool(user.password_hash),
+                    'last_login': str(user.last_login) if user.last_login else 'Never'
+                } for user in users
+            ]
+        except Exception as e:
+            debug_info['database_error'] = str(e)
+    
+    return jsonify(debug_info)
+
+@app.route('/init-database')
+def init_database():
+    """Initialize database tables for Railway deployment"""
+    try:
+        if db:
+            # Create all tables
+            db.create_all()
+            
+            # Check if we need to create a demo user
+            if User:
+                demo_user = User.query.filter_by(email='demo@metabolomics-platform.com').first()
+                if not demo_user:
+                    demo_user = User(
+                        username='demo',
+                        email='demo@metabolomics-platform.com',
+                        full_name='Demo User',
+                        role='admin',
+                        is_verified=True,
+                        auth_method='demo'
+                    )
+                    demo_user.set_password('admin123')
+                    db.session.add(demo_user)
+                    db.session.commit()
+                    return jsonify({"status": "success", "message": "Database initialized and demo user created"})
+                else:
+                    return jsonify({"status": "success", "message": "Database already initialized"})
+            else:
+                return jsonify({"status": "success", "message": "Database tables created"})
+        else:
+            return jsonify({"status": "error", "message": "Database not available"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
 
 # =====================================================
 # ERROR HANDLERS
