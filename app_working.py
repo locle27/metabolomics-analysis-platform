@@ -8,6 +8,17 @@ import os
 import sys
 from datetime import datetime
 
+# Global startup logging for debugging
+STARTUP_LOGS = []
+
+def log_startup(message, level="INFO"):
+    """Capture all startup messages for debugging"""
+    timestamp = datetime.now().isoformat()
+    log_entry = f"[{timestamp}] {level}: {message}"
+    STARTUP_LOGS.append(log_entry)
+    print(log_entry)
+    return log_entry
+
 # Core Flask imports - critical
 try:
     from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response, session
@@ -71,19 +82,19 @@ models_available = False
 optimized_manager = None
 get_db_stats = None
 
-print(f"🔍 Database available: {database_available}")
-print(f"🔍 Attempting to load models...")
+log_startup(f"🔍 Database available: {database_available}")
+log_startup(f"🔍 Attempting to load models...")
 
 try:
-    print("🔍 Step 1: Importing models...")
+    log_startup("🔍 Step 1: Importing models...")
     from models_postgresql_optimized import (
         db as models_db, MainLipid, optimized_manager, get_db_stats
     )
-    print("✅ Step 1: Models imported successfully")
+    log_startup("✅ Step 1: Models imported successfully")
     
-    print("🔍 Step 2: Initializing models db with app...")
+    log_startup("🔍 Step 2: Initializing models db with app...")
     models_db.init_app(app)
-    print("✅ Step 2: Models db initialized")
+    log_startup("✅ Step 2: Models db initialized")
     
     if database_available:
         print("🔍 Step 3: Testing models in app context...")
@@ -220,6 +231,17 @@ def health_check():
         }), 200
     except Exception as e:
         return f'{{"status":"healthy","error":"{str(e)}"}}', 200
+
+@app.route('/startup-logs')
+def startup_logs():
+    """Show all startup logs for debugging"""
+    return jsonify({
+        "timestamp": datetime.now().isoformat(),
+        "total_logs": len(STARTUP_LOGS),
+        "startup_logs": STARTUP_LOGS[-50:],  # Last 50 logs
+        "models_available": models_available,
+        "database_available": database_available
+    })
 
 @app.route('/debug-models')
 def debug_models():
