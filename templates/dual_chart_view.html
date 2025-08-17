@@ -519,7 +519,6 @@
                 <button class="info-toggle-btn-friendly" onclick="toggleDetailedInfo({{ lipid.lipid_id }})" id="toggle-btn-{{ lipid.lipid_id }}">
                     <i class="fas fa-info-circle"></i> View Details
                 </button>
-                {% if current_user.is_authenticated and current_user.is_admin() %}
                 <button class="zoom-settings-btn" onclick="showZoomSettings({{ lipid.lipid_id }}, 'chart1')" id="zoom-btn-chart1-{{ lipid.lipid_id }}">
                     <i class="fas fa-search-plus"></i> Set Zoom Chart 1
                 </button>
@@ -529,7 +528,6 @@
                 <button class="zoom-settings-btn" onclick="restoreDefaults({{ lipid.lipid_id }})" id="restore-btn-{{ lipid.lipid_id }}" style="background: #dc3545;">
                     <i class="fas fa-undo"></i> Restore Defaults
                 </button>
-                {% endif %}
             </div>
         </div>
         

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Excel Sequence Generator - Lipidomics Analysis Tool{% endblock %}
+{% block title %}Sample Sequence Generator - Lipidomics Analysis Tool{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -40,6 +40,34 @@
         border-radius: 12px;
         padding: 25px;
         margin-bottom: 25px;
+    }
+    
+    /* Configuration Subsections */
+    .config-subsection {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-left: 4px solid var(--phenikaa-blue);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    .config-subsection:last-child {
+        margin-bottom: 0;
+    }
+    
+    .config-subsection h5 {
+        color: var(--phenikaa-blue);
+        font-weight: 600;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .config-subsection h5 i {
+        color: var(--phenikaa-orange);
+        font-size: 16px;
     }
     
     .config-header {
@@ -347,8 +375,8 @@
     <div class="analysis-tool-container">
         <!-- Tool Header -->
         <div class="tool-header">
-            <h1><i class="fas fa-file-excel text-success"></i> Excel Sequence Generator</h1>
-            <p>Professional lipidomics sample sequence generator with automated carryover and NIST standard insertion. Generate precise Excel-ready sequences for mass spectrometry analysis.</p>
+            <h1><i class="fas fa-flask text-primary"></i> Sample Sequence Generator</h1>
+            <p>Professional lipidomics sample sequence generator with automated carryover and NIST standard insertion. Generate precise sequences for mass spectrometry analysis with multiple export formats.</p>
         </div>
         
         <!-- Configuration Section -->
@@ -358,73 +386,86 @@
                 <h4>Sequence Configuration</h4>
             </div>
             
-            <div class="config-grid">
-                <!-- Sample Configuration -->
-                <div class="config-item">
-                    <label for="sample-prefix">Sample Prefix</label>
-                    <input type="text" id="sample-prefix" value="PH-HC_" placeholder="e.g., PH-HC_">
-                    <small>Prefix for all main samples</small>
+            <!-- Sample Configuration Section -->
+            <div class="config-subsection">
+                <h5><i class="fas fa-vial"></i> Sample Configuration</h5>
+                <div class="config-grid">
+                    <div class="config-item">
+                        <label for="sample-prefix">Sample Prefix</label>
+                        <input type="text" id="sample-prefix" value="PH-HC_" placeholder="e.g., PH-HC_">
+                        <small>Prefix for all main samples</small>
+                    </div>
+                    
+                    <div class="config-item">
+                        <label for="sample-start">Starting Number</label>
+                        <input type="number" id="sample-start" value="1101" min="1">
+                        <small>First sample number</small>
+                    </div>
+                    
+                    <div class="config-item">
+                        <label for="sample-count">Batch Size</label>
+                        <input type="number" id="sample-count" value="100" min="1" max="1000">
+                        <small>Number of samples in this batch</small>
+                    </div>
+                    
+                    <div class="config-item">
+                        <label for="starting-position">Starting Position</label>
+                        <select id="starting-position">
+                            <option value="P1-B1">P1-B1</option>
+                            <option value="P1-A1">P1-A1</option>
+                            <option value="P1-C1">P1-C1</option>
+                            <option value="P2-A1">P2-A1</option>
+                        </select>
+                        <small>First position on the plate</small>
+                    </div>
                 </div>
-                
-                <div class="config-item">
-                    <label for="sample-start">Starting Number</label>
-                    <input type="number" id="sample-start" value="1101" min="1">
-                    <small>First sample number</small>
+            </div>
+            
+            <!-- Carryover Configuration Section -->
+            <div class="config-subsection">
+                <h5><i class="fas fa-recycle"></i> Carryover Configuration</h5>
+                <div class="config-grid">
+                    <div class="config-item">
+                        <label for="carryover-interval">Carryover Step</label>
+                        <input type="number" id="carryover-interval" value="3" min="1" max="10">
+                        <small>Insert carryover every N steps</small>
+                    </div>
+                    
+                    <div class="config-item">
+                        <label for="carryover-prefix">Carryover Prefix</label>
+                        <input type="text" id="carryover-prefix" value="carryover_" placeholder="carryover_">
+                        <small>Prefix for carryover samples</small>
+                    </div>
+                    
+                    <div class="config-item">
+                        <label for="carryover-position">Carryover Position</label>
+                        <input type="text" id="carryover-position" value="P1-A1" placeholder="P1-A1">
+                        <small>Fixed position for all carryovers</small>
+                    </div>
                 </div>
-                
-                <div class="config-item">
-                    <label for="sample-count">Total Samples</label>
-                    <input type="number" id="sample-count" value="100" min="1" max="1000">
-                    <small>Number of main samples to generate</small>
-                </div>
-                
-                <div class="config-item">
-                    <label for="starting-position">Starting Position</label>
-                    <select id="starting-position">
-                        <option value="P1-B1">P1-B1</option>
-                        <option value="P1-A1">P1-A1</option>
-                        <option value="P1-C1">P1-C1</option>
-                        <option value="P2-A1">P2-A1</option>
-                    </select>
-                    <small>First position on the plate</small>
-                </div>
-                
-                <!-- Carryover Configuration -->
-                <div class="config-item">
-                    <label for="carryover-interval">Carryover Interval</label>
-                    <input type="number" id="carryover-interval" value="3" min="1" max="10">
-                    <small>Insert carryover every N samples</small>
-                </div>
-                
-                <div class="config-item">
-                    <label for="carryover-prefix">Carryover Prefix</label>
-                    <input type="text" id="carryover-prefix" value="carryover_" placeholder="carryover_">
-                    <small>Prefix for carryover samples</small>
-                </div>
-                
-                <div class="config-item">
-                    <label for="carryover-position">Carryover Position</label>
-                    <input type="text" id="carryover-position" value="P1-A1" placeholder="P1-A1">
-                    <small>Fixed position for all carryovers</small>
-                </div>
-                
-                <!-- NIST Configuration -->
-                <div class="config-item">
-                    <label for="nist-interval">NIST Interval</label>
-                    <input type="number" id="nist-interval" value="25" min="1" max="100">
-                    <small>Insert NIST every N samples</small>
-                </div>
-                
-                <div class="config-item">
-                    <label for="nist-name">NIST Sample Name</label>
-                    <input type="text" id="nist-name" value="NIST_1101-1200 (1)" placeholder="NIST sample name">
-                    <small>Name for NIST standard samples</small>
-                </div>
-                
-                <div class="config-item">
-                    <label for="nist-position">NIST Position</label>
-                    <input type="text" id="nist-position" value="P2-F1" placeholder="P2-F1">
-                    <small>Fixed position for all NIST samples</small>
+            </div>
+            
+            <!-- NIST Configuration Section -->
+            <div class="config-subsection">
+                <h5><i class="fas fa-certificate"></i> NIST Standard Configuration</h5>
+                <div class="config-grid">
+                    <div class="config-item">
+                        <label for="nist-interval">NIST Step</label>
+                        <input type="number" id="nist-interval" value="25" min="1" max="100">
+                        <small>Insert NIST every N steps</small>
+                    </div>
+                    
+                    <div class="config-item">
+                        <label for="nist-name">NIST Sample Name</label>
+                        <input type="text" id="nist-name" value="NIST_1101-1200 (1)" placeholder="NIST sample name">
+                        <small>Name for NIST standard samples</small>
+                    </div>
+                    
+                    <div class="config-item">
+                        <label for="nist-position">NIST Position</label>
+                        <input type="text" id="nist-position" value="P2-F1" placeholder="P2-F1">
+                        <small>Fixed position for all NIST samples</small>
+                    </div>
                 </div>
             </div>
         </div>
@@ -433,8 +474,8 @@
         <div class="pattern-display" id="pattern-preview">
             <h5><i class="fas fa-eye"></i> Sequence Pattern Preview</h5>
             <div class="pattern-items">
-                <div class="pattern-item">🧪 Every 3 samples → Carryover</div>
-                <div class="pattern-item">📊 Every 25 samples → NIST Standard</div>
+                <div class="pattern-item">🧪 Every 3 steps → Carryover</div>
+                <div class="pattern-item">📊 Every 25 steps → NIST Standard</div>
                 <div class="pattern-item">🔬 Automated position calculation</div>
             </div>
         </div>
@@ -834,8 +875,8 @@ function updatePatternPreview() {
     
     const patternItems = document.querySelector('.pattern-items');
     patternItems.innerHTML = `
-        <div class="pattern-item">🧪 Every ${carryoverInterval} samples → Carryover</div>
-        <div class="pattern-item">📊 Every ${nistInterval} samples → NIST Standard</div>
+        <div class="pattern-item">🧪 Every ${carryoverInterval} steps → Carryover</div>
+        <div class="pattern-item">📊 Every ${nistInterval} steps → NIST Standard</div>
         <div class="pattern-item">🔬 Automated position calculation</div>
     `;
 }

@@ -925,8 +925,12 @@ function updateSelectedPanel() {
     });
     
     list.innerHTML = listHTML;
-    document.getElementById('btn-count').textContent = selectedLipids.size;
-    document.getElementById('btn-count-2').textContent = selectedLipids.size;
+    
+    // Update button counts (with null checks)
+    const btnCount = document.getElementById('btn-count');
+    const btnCount2 = document.getElementById('btn-count-2');
+    if (btnCount) btnCount.textContent = selectedLipids.size;
+    if (btnCount2) btnCount2.textContent = selectedLipids.size;
 }
 
 function deselectLipid(lipidId) {
@@ -951,7 +955,11 @@ function clearAllSelections() {
 }
 
 function updateStats() {
-    document.getElementById('selected-count').textContent = selectedLipids.size;
+    // Update selected count (with null check)
+    const selectedCountEl = document.getElementById('selected-count');
+    if (selectedCountEl) {
+        selectedCountEl.textContent = selectedLipids.size;
+    }
 }
 
 function setupSearch() {
@@ -1187,22 +1195,22 @@ function selectAllVisible() {
     });
 }
 
-// Select all lipids of a specific class
+// Select all lipids of a specific class (FIXED)
 function selectAllLipidsOfClass(className) {
     console.log(`🎯 Selecting all lipids of class: ${className}`);
     
     let selectedCount = 0;
     let totalCount = 0;
     
-    // Find all lipid cards of this class
+    // Find all lipid cards of this class (including filtered/hidden ones)
     document.querySelectorAll('.lipid-card').forEach(card => {
         const cardClass = card.dataset.class;
         
         if (cardClass === className) {
             totalCount++;
             
-            // Only select if not already selected
-            if (!card.classList.contains('selected')) {
+            // Only select if not already selected AND card is visible
+            if (!card.classList.contains('selected') && card.style.display !== 'none') {
                 toggleLipidSelection(card);
                 selectedCount++;
             }
@@ -1213,9 +1221,12 @@ function selectAllLipidsOfClass(className) {
     if (selectedCount > 0) {
         // Show success message
         showTemporaryMessage(`✅ Selected ${selectedCount}/${totalCount} ${className} lipids`, 'success');
-    } else {
+    } else if (totalCount > 0) {
         // All already selected
-        showTemporaryMessage(`ℹ️ All ${totalCount} ${className} lipids already selected`, 'info');
+        showTemporaryMessage(`ℹ️ All visible ${className} lipids already selected`, 'info');
+    } else {
+        // No lipids found (filtered out)
+        showTemporaryMessage(`⚠️ No ${className} lipids visible (check filter)`, 'warning');
     }
     
     console.log(`✅ Selected ${selectedCount} new ${className} lipids (${totalCount} total in class)`);
@@ -1231,7 +1242,8 @@ function showTemporaryMessage(message, type = 'info') {
     
     // Create new message
     const messageDiv = document.createElement('div');
-    messageDiv.className = `temp-feedback-message alert alert-${type === 'success' ? 'success' : 'info'} alert-dismissible`;
+    const alertType = type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info';
+    messageDiv.className = `temp-feedback-message alert alert-${alertType} alert-dismissible`;
     messageDiv.style.cssText = `
         position: fixed;
         top: 20px;
