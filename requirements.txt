@@ -1,23 +1,32 @@
-# Complete authentication system requirements
+# MINIMAL BULLETPROOF REQUIREMENTS
+# Only essential dependencies for core functionality
+
+# Core Flask (REQUIRED)
 Flask==2.3.3
 Werkzeug==2.3.7
 gunicorn==21.2.0
 
-# Database requirements
+# Database (REQUIRED for production)
 psycopg2-binary==2.9.7
 SQLAlchemy==2.0.21
 Flask-SQLAlchemy==3.0.5
 
+# Environment (RECOMMENDED)
+python-dotenv==1.0.0
+
+# Optional features (comment out if causing issues)
 # Authentication requirements
 Flask-Login==0.6.3
 Authlib==1.3.0
 requests-oauthlib==1.3.1
 
-# Email service requirements
+# Email service requirements  
 Flask-Mail==0.9.1
 Flask-WTF==1.1.1
 email-validator==2.0.0
 
-# Core data processing
-python-dotenv==1.0.0
-# pandas==2.1.1  # Removed - not used and causes numpy compatibility issues in Railway
+# Heavy dependencies REMOVED to prevent import failures:
+# matplotlib - Causes numpy compatibility issues
+# numpy - Large dependency, optional for basic functionality  
+# aiohttp - Only needed for external API calls
+# pandas - Not used in current codebase
