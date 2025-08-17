@@ -1,0 +1,19 @@
+# ULTRA-MINIMAL REQUIREMENTS FOR RAILWAY HEALTH CHECK SUCCESS
+# Only the absolute essentials needed for app startup
+
+# Core Flask (CRITICAL - REQUIRED)
+Flask==2.3.3
+Werkzeug==2.3.7
+gunicorn==21.2.0
+
+# Database (OPTIONAL - with error handling)
+psycopg2-binary==2.9.7
+SQLAlchemy==2.0.21
+Flask-SQLAlchemy==3.0.5
+
+# Environment (RECOMMENDED)
+python-dotenv==1.0.0
+
+# ALL OTHER DEPENDENCIES REMOVED
+# These can be re-added after health check works:
+# Flask-Login, Authlib, requests-oauthlib, Flask-Mail, Flask-WTF, email-validator

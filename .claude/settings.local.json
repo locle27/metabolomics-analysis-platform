@@ -35,7 +35,11 @@
       "Bash(add_username_column.sql)",
       "Bash(mkdir:*)",
       "Bash(touch:*)",
-      "Bash(true)"
+      "Bash(true)",
+      "Bash(jq:*)",
+      "Bash(claude /mcp)",
+      "Bash(railway logs:*)",
+      "WebFetch(domain:httpsphenikaa-lipidomics-analysis.xyz)"
     ],
     "deny": []
   }
