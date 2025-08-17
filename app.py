@@ -537,11 +537,27 @@ def dual_chart_view(lipid_id=None):
             except Exception as db_error:
                 print(f"⚠️ Database query failed: {db_error}")
         
-        # If no lipids found, provide demo data
+        # If no lipids found, try to get the first available lipid from database
+        if not selected_lipids and MainLipid and db:
+            try:
+                first_lipid = MainLipid.query.first()
+                if first_lipid:
+                    selected_lipids = [{
+                        'lipid_id': first_lipid.id,
+                        'lipid_name': first_lipid.lipid_name,
+                        'class_name': first_lipid.class_name or 'Unknown',
+                        'retention_time': first_lipid.retention_time or 0,
+                        'annotated_ions_count': 0
+                    }]
+                    print(f"ℹ️ Using first available lipid: {first_lipid.lipid_name} (ID: {first_lipid.id})")
+            except Exception as db_error:
+                print(f"⚠️ Could not get first lipid: {db_error}")
+        
+        # Final fallback to demo data
         if not selected_lipids:
             selected_lipids = [{
-                'lipid_id': lipid_id or 1,
-                'lipid_name': 'AC(16:0)',
+                'lipid_id': 999,  # Use a high ID that won't conflict
+                'lipid_name': 'Demo Lipid AC(16:0)',
                 'class_name': 'AC',
                 'retention_time': 3.2,
                 'annotated_ions_count': 3
@@ -653,15 +669,52 @@ def protocols():
 def admin_dashboard():
     """Admin dashboard with system overview"""
     try:
-        stats = {}
-        try:
-            stats = get_db_stats()
-            stats['total_users'] = User.query.count()
-            stats['total_schedules'] = ScheduleRequest.query.count()
-        except:
-            stats = {'total_lipids': 0, 'total_users': 0, 'total_schedules': 0}
+        stats = {
+            'total_lipids': 0,
+            'total_users': 0,
+            'total_schedules': 0,
+            'total_classes': 0,
+            'total_annotations': 0,
+            'database_status': 'disconnected'
+        }
         
-        return render_template('admin_dashboard.html', stats=stats)
+        # Get database stats if available
+        if get_db_stats:
+            try:
+                stats.update(get_db_stats())
+                stats['database_status'] = 'connected'
+            except Exception as db_error:
+                print(f"⚠️ Database stats failed: {db_error}")
+        
+        # Get user counts if available
+        if User and db:
+            try:
+                stats['total_users'] = User.query.count()
+            except:
+                pass
+        
+        # Get schedule counts if available
+        if ScheduleRequest and db:
+            try:
+                stats['total_schedules'] = ScheduleRequest.query.count()
+            except:
+                pass
+        
+        # Admin info for template
+        admin_info = {
+            'features_available': {
+                'database': bool(db),
+                'authentication': bool(login_manager),
+                'email': bool(mail),
+                'charts': bool(DualChartService),
+                'backup': bool(backup_system)
+            },
+            'system_status': 'operational',
+            'last_backup': 'Not configured',
+            'version': '3.0.0-production'
+        }
+        
+        return render_template('admin_dashboard.html', stats=stats, admin_info=admin_info)
     except Exception as e:
         print(f"⚠️ Admin dashboard error: {e}")
         return f"<h1>Admin Dashboard Loading...</h1><p>Error: {e}</p>"
@@ -737,14 +790,37 @@ def manage_lipids():
 def api_dual_chart_data(lipid_id):
     """Chart data for visualizations"""
     try:
-        if DualChartService:
+        if DualChartService and MainLipid:
+            # First check if lipid exists
+            lipid = MainLipid.query.get(lipid_id)
+            if not lipid:
+                # Find a valid lipid ID to use instead
+                first_lipid = MainLipid.query.first()
+                if first_lipid:
+                    print(f"⚠️ Lipid ID {lipid_id} not found, using {first_lipid.id} instead")
+                    lipid_id = first_lipid.id
+                else:
+                    return jsonify({"error": f"No lipids available in database", "chart1": {}, "chart2": {}})
+            
             chart_service = DualChartService()
             chart_data = chart_service.get_dual_chart_data(lipid_id)
             return jsonify(chart_data)
         else:
-            return jsonify({"error": "Chart service unavailable", "chart1": {}, "chart2": {}})
+            # Return demo chart data
+            return jsonify({
+                "chart1": {
+                    "data": {"datasets": []},
+                    "options": {"responsive": True}
+                },
+                "chart2": {
+                    "data": {"datasets": []}, 
+                    "options": {"responsive": True}
+                },
+                "error": "Chart service or database unavailable"
+            })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"⚠️ Chart API error: {e}")
+        return jsonify({"error": str(e), "chart1": {}, "chart2": {}}), 500
 
 @app.route('/api/load-lipids')
 def api_load_lipids():
@@ -752,30 +828,49 @@ def api_load_lipids():
     try:
         if MainLipid and db:
             page = request.args.get('page', 1, type=int)
-            per_page = 50
+            per_page = request.args.get('per_page', 100, type=int)  # Increased default
+            search = request.args.get('search', '', type=str)
             
-            lipids = MainLipid.query.paginate(
+            # Build query with search if provided
+            query = MainLipid.query
+            if search:
+                query = query.filter(MainLipid.lipid_name.ilike(f'%{search}%'))
+            
+            # Order by ID to ensure consistent results
+            query = query.order_by(MainLipid.id)
+            
+            lipids = query.paginate(
                 page=page, per_page=per_page, error_out=False
             )
             
             return jsonify({
-                'lipids': [{'id': l.id, 'name': l.lipid_name, 'class': l.class_name, 'rt': l.retention_time} 
+                'lipids': [{'id': l.id, 'name': l.lipid_name, 'class': l.class_name or 'Unknown', 'rt': l.retention_time or 0} 
                           for l in lipids.items],
                 'has_next': lipids.has_next,
-                'page': page
+                'page': page,
+                'total': lipids.total,
+                'pages': lipids.pages
             })
         else:
             # Return demo data if database unavailable
+            demo_lipids = []
+            for i in range(1, 21):  # Demo 20 lipids
+                demo_lipids.append({
+                    'id': i,
+                    'name': f'AC({14 + i}:0)',
+                    'class': 'AC',
+                    'rt': 2.0 + (i * 0.1)
+                })
+            
             return jsonify({
-                'lipids': [
-                    {'id': 1, 'name': 'AC(14:0)', 'class': 'AC', 'rt': 2.5},
-                    {'id': 2, 'name': 'AC(16:0)', 'class': 'AC', 'rt': 3.2},
-                    {'id': 3, 'name': 'AC(18:0)', 'class': 'AC', 'rt': 4.1}
-                ],
+                'lipids': demo_lipids,
                 'has_next': False,
-                'page': 1
+                'page': 1,
+                'total': 20,
+                'pages': 1
             })
     except Exception as e:
+        print(f"⚠️ Load lipids API error: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/database-view')
