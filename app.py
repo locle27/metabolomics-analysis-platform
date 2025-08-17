@@ -1133,9 +1133,19 @@ def google_login():
     """Google OAuth login with Railway domain support"""
     if google and OAUTH_AVAILABLE:
         try:
-            # Use Flask's url_for to generate correct absolute redirect URI
-            # This automatically handles HTTPS/HTTP and domain detection
-            redirect_uri = url_for('login_authorized', _external=True)
+            # Handle domain properly for OAuth redirect
+            host = request.host
+            
+            # Force HTTPS and handle both domain variants
+            if 'httpsphenikaa-lipidomics-analysis.xyz' in host:
+                # Use the www version with HTTPS as canonical
+                redirect_uri = "https://www.httpsphenikaa-lipidomics-analysis.xyz/callback"
+            else:
+                # Fallback to standard Flask url_for for other domains
+                redirect_uri = url_for('login_authorized', _external=True).replace('/login/authorized', '/callback')
+                # Ensure HTTPS for production
+                if redirect_uri.startswith('http://') and 'localhost' not in redirect_uri:
+                    redirect_uri = redirect_uri.replace('http://', 'https://')
             
             print(f"🔗 OAuth redirect URI: {redirect_uri}")
             return google.authorize_redirect(redirect_uri)
