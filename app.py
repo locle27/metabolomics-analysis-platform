@@ -897,12 +897,34 @@ def api_database_view():
 @app.route('/login')
 def login():
     """Redirect to auth login page"""
-    return redirect(url_for('auth.login'))
+    try:
+        return redirect(url_for('auth.login'))
+    except Exception as e:
+        print(f"⚠️ Login redirect failed: {e}")
+        # Fallback direct login form
+        return '''
+        <form method="POST" action="/auth/login" style="max-width: 400px; margin: 100px auto; padding: 20px; border: 1px solid #ddd;">
+            <h2>Login</h2>
+            <div style="margin: 10px 0;">
+                <input type="email" name="email" placeholder="Email" required style="width: 100%; padding: 8px;">
+            </div>
+            <div style="margin: 10px 0;">
+                <input type="password" name="password" placeholder="Password" required style="width: 100%; padding: 8px;">
+            </div>
+            <button type="submit" style="background: #2E4C92; color: white; padding: 10px 20px; border: none;">Login</button>
+            <p><small>Demo: admin@demo.com / admin123</small></p>
+            <a href="/">← Back to Homepage</a>
+        </form>
+        '''
 
 @app.route('/signup')
 def signup():
     """Redirect to auth registration page"""
-    return redirect(url_for('auth.register'))
+    try:
+        return redirect(url_for('auth.register'))
+    except Exception as e:
+        print(f"⚠️ Signup redirect failed: {e}")
+        return '<h2>Registration currently unavailable</h2><a href="/login">Login instead</a>'
 
 @app.route('/demo-login')
 def demo_login():
@@ -953,6 +975,41 @@ def email_status():
         return jsonify({"status": status})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
+
+@app.route('/debug-auth')
+def debug_auth():
+    """Debug authentication system"""
+    debug_info = {
+        "login_manager_available": bool(login_manager),
+        "auth_bp_registered": bool(auth_bp),
+        "session_data": dict(session),
+        "available_routes": {
+            "auth.login": False,
+            "auth.logout": False,
+            "auth.register": False
+        }
+    }
+    
+    # Check if auth routes are available
+    try:
+        url_for('auth.login')
+        debug_info["available_routes"]["auth.login"] = True
+    except:
+        pass
+    
+    try:
+        url_for('auth.logout') 
+        debug_info["available_routes"]["auth.logout"] = True
+    except:
+        pass
+        
+    try:
+        url_for('auth.register')
+        debug_info["available_routes"]["auth.register"] = True
+    except:
+        pass
+    
+    return jsonify(debug_info)
 
 # =====================================================
 # ERROR HANDLERS
