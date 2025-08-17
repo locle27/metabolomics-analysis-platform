@@ -25,20 +25,13 @@ from flask_mail import Mail, Message
 
 # Removed Appwrite - no longer needed
 
-# Import optimized PostgreSQL models
-from models_postgresql_optimized import (
-    db, init_db, create_all_tables,
-    MainLipid, LipidClass, AnnotatedIon, User, ScheduleRequest, AdminSettings, optimized_manager,
-    get_db_stats, get_lipids_by_class, search_lipids,
-    BackupHistory, BackupSnapshots, BackupStats
-)
+# Models will be imported after database initialization to avoid conflicts
 
 # Import chart generation services  
 from simple_chart_service import SimpleChartGenerator
 from dual_chart_service import DualChartService
 
-# Import backup system
-from backup_system_postgresql import PostgreSQLBackupSystem, auto_backup_context
+# Backup system will be imported after models are loaded
 
 # Import authentication system - PRODUCTION VERSION with email support (with error handling)
 import os
@@ -143,24 +136,45 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'echo': False  # Set to True for SQL debugging
 }
 
-# Initialize optimized database with error handling
+# Initialize database with clean SQLAlchemy instance (fixed double registration issue)
 try:
-    db = init_db(app)
-    print("✅ Database connection initialized")
-except Exception as e:
-    print(f"⚠️ Database initialization failed: {e}")
-    print("   App will start but database features may not work")
-    # Create a minimal db object to prevent crashes
+    # Use standard SQLAlchemy initialization instead of models' init_db to avoid conflicts
     from flask_sqlalchemy import SQLAlchemy
     db = SQLAlchemy()
     db.init_app(app)
-
-# Initialize backup system (skip if database failed)
-try:
-    backup_system = PostgreSQLBackupSystem(app)
-    print("✅ Backup system initialized")
+    
+    # Test database connection
+    with app.app_context():
+        from sqlalchemy import text
+        with db.engine.connect() as connection:
+            result = connection.execute(text("SELECT 1 as test"))
+            if result:
+                print("✅ Database connection initialized and tested successfully")
+    
+    # Now import models after db is properly initialized
+    from models_postgresql_optimized import (
+        MainLipid, LipidClass, AnnotatedIon, User, ScheduleRequest, AdminSettings, 
+        optimized_manager, get_db_stats, get_lipids_by_class, search_lipids,
+        BackupHistory, BackupSnapshots, BackupStats
+    )
+    print("✅ Models imported successfully after db initialization")
+    
+    # Initialize backup system after models are loaded
+    try:
+        from backup_system_postgresql import PostgreSQLBackupSystem, auto_backup_context
+        backup_system = PostgreSQLBackupSystem(app)
+        print("✅ Backup system initialized")
+    except Exception as backup_error:
+        print(f"⚠️ Backup system initialization failed: {backup_error}")
+        backup_system = None
+    
 except Exception as e:
-    print(f"⚠️ Backup system initialization failed: {e}")
+    print(f"⚠️ Database initialization failed: {e}")
+    print("   App will start but database features may not work")
+    # Create minimal fallback
+    from flask_sqlalchemy import SQLAlchemy
+    db = SQLAlchemy()
+    db.init_app(app)
     backup_system = None
 
 # Register authentication blueprint
