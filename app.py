@@ -746,6 +746,19 @@ def submit_schedule_request():
     return schedule_form()
 
 # =====================================================
+# ANALYSIS TOOLS ROUTES
+# =====================================================
+
+@app.route('/excel-generator')
+def excel_generator():
+    """Excel sequence generator for lipidomics analysis"""
+    try:
+        return render_template('excel_generator.html')
+    except Exception as e:
+        print(f"⚠️ Excel generator error: {e}")
+        return f"<h1>Excel Generator Loading...</h1><p>Error: {e}</p>"
+
+# =====================================================
 # LIPIDOMICS SECTION ROUTES
 # =====================================================
 

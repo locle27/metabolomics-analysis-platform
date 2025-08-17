@@ -1,0 +1,857 @@
+{% extends "base.html" %}
+
+{% block title %}Excel Sequence Generator - Lipidomics Analysis Tool{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Professional Analysis Tool Styling */
+    .analysis-tool-container {
+        background: var(--phenikaa-white);
+        border-radius: 15px;
+        padding: 30px;
+        margin: 20px 0;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        border-left: 5px solid var(--phenikaa-orange);
+    }
+    
+    .tool-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #f8f9fa;
+    }
+    
+    .tool-header h1 {
+        color: var(--phenikaa-blue);
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+    
+    .tool-header p {
+        color: #6c757d;
+        font-size: 16px;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    /* Configuration Section */
+    .config-section {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 25px;
+    }
+    
+    .config-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .config-header i {
+        color: var(--phenikaa-orange);
+        margin-right: 10px;
+        font-size: 18px;
+    }
+    
+    .config-header h4 {
+        color: var(--phenikaa-blue);
+        margin: 0;
+        font-weight: 600;
+    }
+    
+    .config-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+    }
+    
+    .config-item {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .config-item label {
+        font-weight: 600;
+        color: var(--phenikaa-text-blue);
+        display: block;
+        margin-bottom: 8px;
+    }
+    
+    .config-item input,
+    .config-item select {
+        width: 100%;
+        padding: 10px;
+        border: 2px solid #e9ecef;
+        border-radius: 6px;
+        font-family: 'Courier New', monospace;
+        transition: border-color 0.3s ease;
+    }
+    
+    .config-item input:focus,
+    .config-item select:focus {
+        border-color: var(--phenikaa-blue);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(46, 76, 146, 0.1);
+    }
+    
+    .config-item small {
+        color: #6c757d;
+        font-size: 12px;
+        margin-top: 5px;
+        display: block;
+    }
+    
+    /* Pattern Display */
+    .pattern-display {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin: 20px 0;
+        text-align: center;
+    }
+    
+    .pattern-display h5 {
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+    
+    .pattern-items {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    
+    .pattern-item {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 8px 12px;
+        border-radius: 20px;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+    }
+    
+    /* Generate Button */
+    .generate-btn {
+        background: linear-gradient(135deg, var(--phenikaa-orange) 0%, #d63384 100%);
+        color: white;
+        border: none;
+        padding: 15px 40px;
+        border-radius: 25px;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(233, 75, 0, 0.3);
+        display: block;
+        margin: 30px auto;
+        min-width: 200px;
+    }
+    
+    .generate-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(233, 75, 0, 0.4);
+    }
+    
+    .generate-btn:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+    
+    /* Results Section */
+    .results-section {
+        background: white;
+        border-radius: 12px;
+        border: 2px solid var(--phenikaa-blue);
+        overflow: hidden;
+        margin-top: 25px;
+        display: none;
+    }
+    
+    .results-header {
+        background: var(--phenikaa-blue);
+        color: white;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: between;
+        align-items: center;
+    }
+    
+    .results-header h5 {
+        margin: 0;
+        font-weight: 600;
+    }
+    
+    .export-buttons {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .export-btn {
+        background: var(--phenikaa-orange);
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .export-btn:hover {
+        background: #d63384;
+    }
+    
+    .sequence-table {
+        max-height: 500px;
+        overflow-y: auto;
+        border: none;
+    }
+    
+    .sequence-table table {
+        width: 100%;
+        margin: 0;
+    }
+    
+    .sequence-table th {
+        background: #f8f9fa;
+        color: var(--phenikaa-text-blue);
+        font-weight: 600;
+        padding: 12px;
+        text-align: left;
+        border-bottom: 2px solid #e9ecef;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .sequence-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #f1f3f4;
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+    }
+    
+    .sequence-table tr:hover {
+        background: #f8f9fa;
+    }
+    
+    /* Special row highlighting */
+    .carryover-row {
+        background: rgba(255, 193, 7, 0.1) !important;
+        border-left: 4px solid #ffc107;
+    }
+    
+    .nist-row {
+        background: rgba(40, 167, 69, 0.1) !important;
+        border-left: 4px solid #28a745;
+    }
+    
+    .sample-row {
+        background: rgba(13, 110, 253, 0.05) !important;
+    }
+    
+    /* Statistics Panel */
+    .stats-panel {
+        background: #f8f9fa;
+        padding: 15px;
+        border-top: 2px solid #e9ecef;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .stat-item {
+        background: white;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .stat-number {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--phenikaa-blue);
+        display: block;
+    }
+    
+    .stat-label {
+        font-size: 12px;
+        color: #6c757d;
+        text-transform: uppercase;
+        margin-top: 5px;
+    }
+    
+    /* Loading Animation */
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.9);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        border-radius: 12px;
+    }
+    
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid var(--phenikaa-blue);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .analysis-tool-container {
+            padding: 20px;
+        }
+        
+        .config-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .pattern-items {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="analysis-tool-container">
+        <!-- Tool Header -->
+        <div class="tool-header">
+            <h1><i class="fas fa-file-excel text-success"></i> Excel Sequence Generator</h1>
+            <p>Professional lipidomics sample sequence generator with automated carryover and NIST standard insertion. Generate precise Excel-ready sequences for mass spectrometry analysis.</p>
+        </div>
+        
+        <!-- Configuration Section -->
+        <div class="config-section">
+            <div class="config-header">
+                <i class="fas fa-cog"></i>
+                <h4>Sequence Configuration</h4>
+            </div>
+            
+            <div class="config-grid">
+                <!-- Sample Configuration -->
+                <div class="config-item">
+                    <label for="sample-prefix">Sample Prefix</label>
+                    <input type="text" id="sample-prefix" value="PH-HC_" placeholder="e.g., PH-HC_">
+                    <small>Prefix for all main samples</small>
+                </div>
+                
+                <div class="config-item">
+                    <label for="sample-start">Starting Number</label>
+                    <input type="number" id="sample-start" value="1101" min="1">
+                    <small>First sample number</small>
+                </div>
+                
+                <div class="config-item">
+                    <label for="sample-count">Total Samples</label>
+                    <input type="number" id="sample-count" value="100" min="1" max="1000">
+                    <small>Number of main samples to generate</small>
+                </div>
+                
+                <div class="config-item">
+                    <label for="starting-position">Starting Position</label>
+                    <select id="starting-position">
+                        <option value="P1-B1">P1-B1</option>
+                        <option value="P1-A1">P1-A1</option>
+                        <option value="P1-C1">P1-C1</option>
+                        <option value="P2-A1">P2-A1</option>
+                    </select>
+                    <small>First position on the plate</small>
+                </div>
+                
+                <!-- Carryover Configuration -->
+                <div class="config-item">
+                    <label for="carryover-interval">Carryover Interval</label>
+                    <input type="number" id="carryover-interval" value="3" min="1" max="10">
+                    <small>Insert carryover every N samples</small>
+                </div>
+                
+                <div class="config-item">
+                    <label for="carryover-prefix">Carryover Prefix</label>
+                    <input type="text" id="carryover-prefix" value="carryover_" placeholder="carryover_">
+                    <small>Prefix for carryover samples</small>
+                </div>
+                
+                <div class="config-item">
+                    <label for="carryover-position">Carryover Position</label>
+                    <input type="text" id="carryover-position" value="P1-A1" placeholder="P1-A1">
+                    <small>Fixed position for all carryovers</small>
+                </div>
+                
+                <!-- NIST Configuration -->
+                <div class="config-item">
+                    <label for="nist-interval">NIST Interval</label>
+                    <input type="number" id="nist-interval" value="25" min="1" max="100">
+                    <small>Insert NIST every N samples</small>
+                </div>
+                
+                <div class="config-item">
+                    <label for="nist-name">NIST Sample Name</label>
+                    <input type="text" id="nist-name" value="NIST_1101-1200 (1)" placeholder="NIST sample name">
+                    <small>Name for NIST standard samples</small>
+                </div>
+                
+                <div class="config-item">
+                    <label for="nist-position">NIST Position</label>
+                    <input type="text" id="nist-position" value="P2-F1" placeholder="P2-F1">
+                    <small>Fixed position for all NIST samples</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pattern Preview -->
+        <div class="pattern-display" id="pattern-preview">
+            <h5><i class="fas fa-eye"></i> Sequence Pattern Preview</h5>
+            <div class="pattern-items">
+                <div class="pattern-item">🧪 Every 3 samples → Carryover</div>
+                <div class="pattern-item">📊 Every 25 samples → NIST Standard</div>
+                <div class="pattern-item">🔬 Automated position calculation</div>
+            </div>
+        </div>
+        
+        <!-- Generate Button -->
+        <button class="generate-btn" onclick="generateSequence()">
+            <i class="fas fa-magic"></i> Generate Sequence
+        </button>
+        
+        <!-- Results Section -->
+        <div class="results-section" id="results-section" style="position: relative;">
+            <div class="loading-overlay" id="loading-overlay">
+                <div class="spinner"></div>
+            </div>
+            
+            <div class="results-header">
+                <h5><i class="fas fa-table"></i> Generated Sequence</h5>
+                <div class="export-buttons">
+                    <button class="export-btn" onclick="exportToExcel()">
+                        <i class="fas fa-file-excel"></i> Excel
+                    </button>
+                    <button class="export-btn" onclick="exportToCSV()">
+                        <i class="fas fa-file-csv"></i> CSV
+                    </button>
+                    <button class="export-btn" onclick="copyToClipboard()">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+            </div>
+            
+            <div class="sequence-table">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Step</th>
+                            <th>Sample Name</th>
+                            <th>Position</th>
+                            <th>Type</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sequence-tbody">
+                        <!-- Generated sequence will appear here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Statistics Panel -->
+            <div class="stats-panel">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-number" id="total-steps">0</span>
+                        <div class="stat-label">Total Steps</div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="main-samples">0</span>
+                        <div class="stat-label">Main Samples</div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="carryover-count">0</span>
+                        <div class="stat-label">Carryovers</div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="nist-count">0</span>
+                        <div class="stat-label">NIST Standards</div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="estimated-time">0</span>
+                        <div class="stat-label">Est. Hours</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// Global variables
+let generatedSequence = [];
+let sequenceStats = {};
+
+// Position calculation logic
+function calculateNextPosition(currentPosition, increment = 1) {
+    // Parse position (e.g., "P1-B1" -> plate=1, row=B, col=1)
+    const match = currentPosition.match(/P(\d+)-([A-Z])(\d+)/);
+    if (!match) return currentPosition;
+    
+    let plate = parseInt(match[1]);
+    let row = match[2];
+    let col = parseInt(match[3]);
+    
+    // Increment position
+    col += increment;
+    
+    // Handle column overflow (assuming 12 columns max)
+    if (col > 12) {
+        col = 1;
+        row = String.fromCharCode(row.charCodeAt(0) + 1);
+        
+        // Handle row overflow (A-H, then next plate)
+        if (row > 'H') {
+            row = 'A';
+            plate++;
+        }
+    }
+    
+    return `P${plate}-${row}${col}`;
+}
+
+// Accurate step counting algorithm
+function generateSequence() {
+    // Show loading
+    document.getElementById('loading-overlay').style.display = 'flex';
+    document.getElementById('results-section').style.display = 'block';
+    
+    // Get configuration
+    const config = {
+        samplePrefix: document.getElementById('sample-prefix').value,
+        sampleStart: parseInt(document.getElementById('sample-start').value),
+        sampleCount: parseInt(document.getElementById('sample-count').value),
+        startingPosition: document.getElementById('starting-position').value,
+        carryoverInterval: parseInt(document.getElementById('carryover-interval').value),
+        carryoverPrefix: document.getElementById('carryover-prefix').value,
+        carryoverPosition: document.getElementById('carryover-position').value,
+        nistInterval: parseInt(document.getElementById('nist-interval').value),
+        nistName: document.getElementById('nist-name').value,
+        nistPosition: document.getElementById('nist-position').value
+    };
+    
+    // Initialize variables
+    generatedSequence = [];
+    let stepNumber = 1;
+    let currentPosition = config.startingPosition;
+    let carryoverCount = 1;
+    let nistCount = 1;
+    let mainSampleCount = 0;
+    
+    // Generate sequence with accurate step counting
+    for (let i = 0; i < config.sampleCount; i++) {
+        const sampleNumber = config.sampleStart + i;
+        const sampleName = config.samplePrefix + sampleNumber.toString().padStart(4, '0');
+        
+        // Add main sample
+        generatedSequence.push({
+            step: stepNumber++,
+            sampleName: sampleName,
+            position: currentPosition,
+            type: 'Sample',
+            notes: `Main sample ${i + 1}`,
+            rowClass: 'sample-row'
+        });
+        
+        currentPosition = calculateNextPosition(currentPosition);
+        mainSampleCount++;
+        
+        // Check for carryover insertion (every N samples)
+        if ((i + 1) % config.carryoverInterval === 0) {
+            const carryoverName = config.carryoverPrefix + carryoverCount.toString().padStart(2, '0');
+            generatedSequence.push({
+                step: stepNumber++,
+                sampleName: carryoverName,
+                position: config.carryoverPosition,
+                type: 'Carryover',
+                notes: `After ${config.carryoverInterval} samples`,
+                rowClass: 'carryover-row'
+            });
+            carryoverCount++;
+        }
+        
+        // Check for NIST insertion (every N samples, but not overlapping with carryover)
+        if ((i + 1) % config.nistInterval === 0 && (i + 1) % config.carryoverInterval !== 0) {
+            const nistName = config.nistName.replace('(1)', `(${nistCount})`);
+            generatedSequence.push({
+                step: stepNumber++,
+                sampleName: nistName,
+                position: config.nistPosition,
+                type: 'NIST Standard',
+                notes: `Quality control after ${config.nistInterval} samples`,
+                rowClass: 'nist-row'
+            });
+            nistCount++;
+        }
+    }
+    
+    // Calculate statistics
+    sequenceStats = {
+        totalSteps: generatedSequence.length,
+        mainSamples: mainSampleCount,
+        carryoverCount: carryoverCount - 1,
+        nistCount: nistCount - 1,
+        estimatedTime: Math.ceil(generatedSequence.length * 0.08) // Assuming 5 minutes per sample
+    };
+    
+    // Simulate processing time
+    setTimeout(() => {
+        renderSequenceTable();
+        updateStatistics();
+        document.getElementById('loading-overlay').style.display = 'none';
+    }, 1000);
+}
+
+// Render sequence table
+function renderSequenceTable() {
+    const tbody = document.getElementById('sequence-tbody');
+    tbody.innerHTML = '';
+    
+    generatedSequence.forEach(item => {
+        const row = document.createElement('tr');
+        row.className = item.rowClass;
+        
+        row.innerHTML = `
+            <td><strong>${item.step}</strong></td>
+            <td><code>${item.sampleName}</code></td>
+            <td><span class="badge bg-secondary">${item.position}</span></td>
+            <td><span class="badge bg-${getTypeBadgeColor(item.type)}">${item.type}</span></td>
+            <td><small class="text-muted">${item.notes}</small></td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+}
+
+// Get badge color for sample type
+function getTypeBadgeColor(type) {
+    switch(type) {
+        case 'Sample': return 'primary';
+        case 'Carryover': return 'warning';
+        case 'NIST Standard': return 'success';
+        default: return 'secondary';
+    }
+}
+
+// Update statistics
+function updateStatistics() {
+    document.getElementById('total-steps').textContent = sequenceStats.totalSteps;
+    document.getElementById('main-samples').textContent = sequenceStats.mainSamples;
+    document.getElementById('carryover-count').textContent = sequenceStats.carryoverCount;
+    document.getElementById('nist-count').textContent = sequenceStats.nistCount;
+    document.getElementById('estimated-time').textContent = sequenceStats.estimatedTime;
+}
+
+// Export to Excel
+function exportToExcel() {
+    if (generatedSequence.length === 0) {
+        alert('Please generate a sequence first!');
+        return;
+    }
+    
+    // Prepare data for Excel
+    const wsData = [
+        ['Step', 'Sample Name', 'Position', 'Type', 'Notes']
+    ];
+    
+    generatedSequence.forEach(item => {
+        wsData.push([
+            item.step,
+            item.sampleName,
+            item.position,
+            item.type,
+            item.notes
+        ]);
+    });
+    
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Sample Sequence');
+    
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+    const filename = `lipidomics_sequence_${timestamp}.xlsx`;
+    
+    // Save file
+    XLSX.writeFile(wb, filename);
+    
+    // Show success message
+    showNotification('Excel file exported successfully!', 'success');
+}
+
+// Export to CSV
+function exportToCSV() {
+    if (generatedSequence.length === 0) {
+        alert('Please generate a sequence first!');
+        return;
+    }
+    
+    let csvContent = 'Step,Sample Name,Position,Type,Notes\n';
+    
+    generatedSequence.forEach(item => {
+        const row = [
+            item.step,
+            `"${item.sampleName}"`,
+            `"${item.position}"`,
+            `"${item.type}"`,
+            `"${item.notes}"`
+        ].join(',');
+        csvContent += row + '\n';
+    });
+    
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `lipidomics_sequence_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    showNotification('CSV file exported successfully!', 'success');
+}
+
+// Copy to clipboard
+function copyToClipboard() {
+    if (generatedSequence.length === 0) {
+        alert('Please generate a sequence first!');
+        return;
+    }
+    
+    let textContent = 'Step\tSample Name\tPosition\tType\tNotes\n';
+    
+    generatedSequence.forEach(item => {
+        textContent += `${item.step}\t${item.sampleName}\t${item.position}\t${item.type}\t${item.notes}\n`;
+    });
+    
+    navigator.clipboard.writeText(textContent).then(() => {
+        showNotification('Sequence copied to clipboard!', 'success');
+    }).catch(() => {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = textContent;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showNotification('Sequence copied to clipboard!', 'success');
+    });
+}
+
+// Show notification
+function showNotification(message, type = 'info') {
+    // Remove existing notification
+    const existing = document.querySelector('.notification-toast');
+    if (existing) {
+        existing.remove();
+    }
+    
+    // Create notification
+    const notification = document.createElement('div');
+    notification.className = `notification-toast alert alert-${type} alert-dismissible`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        min-width: 300px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        animation: slideInRight 0.3s ease-out;
+    `;
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.style.animation = 'slideOutRight 0.3s ease-in';
+            setTimeout(() => notification.remove(), 300);
+        }
+    }, 3000);
+}
+
+// Update pattern preview when configuration changes
+document.addEventListener('DOMContentLoaded', function() {
+    // Add event listeners to configuration inputs
+    const inputs = document.querySelectorAll('.config-item input, .config-item select');
+    inputs.forEach(input => {
+        input.addEventListener('change', updatePatternPreview);
+    });
+    
+    // Initial pattern preview
+    updatePatternPreview();
+});
+
+function updatePatternPreview() {
+    const carryoverInterval = document.getElementById('carryover-interval').value;
+    const nistInterval = document.getElementById('nist-interval').value;
+    
+    const patternItems = document.querySelector('.pattern-items');
+    patternItems.innerHTML = `
+        <div class="pattern-item">🧪 Every ${carryoverInterval} samples → Carryover</div>
+        <div class="pattern-item">📊 Every ${nistInterval} samples → NIST Standard</div>
+        <div class="pattern-item">🔬 Automated position calculation</div>
+    `;
+}
+
+// Add CSS animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideInRight {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOutRight {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}
