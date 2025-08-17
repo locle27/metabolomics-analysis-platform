@@ -760,12 +760,16 @@ function applyIndividualZoom(lipidId, chartType) {
         if (chart) {
             console.log(`🎯 Applying individual zoom to ${lipidId} ${chartType}: ${settings.start.toFixed(2)} - ${settings.end.toFixed(2)} minutes`);
             
-            // Reset and apply zoom
-            chart.resetZoom('none');
-            chart.zoomScale('x', {
-                min: settings.start,
-                max: settings.end
-            }, 'none');
+            // Reset and apply zoom only if zoom functions are available
+            if (chart.resetZoom) {
+                chart.resetZoom('none');
+            }
+            if (chart.zoomScale) {
+                chart.zoomScale('x', {
+                    min: settings.start,
+                    max: settings.end
+                }, 'none');
+            }
             
             // Add visual indicator
             const canvas = chart.canvas;
@@ -829,43 +833,51 @@ function addIndividualZoomBadge(lipidId, chartType) {
 
 // Restore defaults function
 function restoreDefaults(lipidId) {
-    // Remove zoom settings for both charts
-    delete individualZoomSettings[`${lipidId}_chart1`];
-    delete individualZoomSettings[`${lipidId}_chart2`];
-    
-    // Save updated settings to localStorage
-    saveZoomSettings();
-    
-    // Reset both charts to default zoom
-    if (chartInstances[lipidId]) {
-        if (chartInstances[lipidId].chart1) {
-            chartInstances[lipidId].chart1.resetZoom();
-            chartInstances[lipidId].chart1.canvas.style.borderTop = '';
-            chartInstances[lipidId].chart1.canvas.style.borderLeft = '';
-            chartInstances[lipidId].chart1.canvas.title = '';
+    try {
+        // Remove zoom settings for both charts
+        delete individualZoomSettings[`${lipidId}_chart1`];
+        delete individualZoomSettings[`${lipidId}_chart2`];
+        
+        // Save updated settings to localStorage
+        saveZoomSettings();
+        
+        // Reset both charts to default zoom
+        if (chartInstances[lipidId]) {
+            if (chartInstances[lipidId].chart1) {
+                if (chartInstances[lipidId].chart1.resetZoom) {
+                    chartInstances[lipidId].chart1.resetZoom();
+                }
+                chartInstances[lipidId].chart1.canvas.style.borderTop = '';
+                chartInstances[lipidId].chart1.canvas.style.borderLeft = '';
+                chartInstances[lipidId].chart1.canvas.title = '';
+            }
+            if (chartInstances[lipidId].chart2) {
+                if (chartInstances[lipidId].chart2.resetZoom) {
+                    chartInstances[lipidId].chart2.resetZoom();
+                }
+                chartInstances[lipidId].chart2.canvas.style.borderTop = '';
+                chartInstances[lipidId].chart2.canvas.style.borderLeft = '';
+                chartInstances[lipidId].chart2.canvas.title = '';
+            }
         }
-        if (chartInstances[lipidId].chart2) {
-            chartInstances[lipidId].chart2.resetZoom();
-            chartInstances[lipidId].chart2.canvas.style.borderTop = '';
-            chartInstances[lipidId].chart2.canvas.style.borderLeft = '';
-            chartInstances[lipidId].chart2.canvas.title = '';
+        
+        // Remove badges
+        const chart1Container = document.querySelector(`#lipid-container-${lipidId} .single-chart-container:nth-child(1)`);
+        const chart2Container = document.querySelector(`#lipid-container-${lipidId} .single-chart-container:nth-child(2)`);
+        
+        if (chart1Container) {
+            const badge1 = chart1Container.querySelector('.individual-zoom-badge');
+            if (badge1) badge1.remove();
         }
+        if (chart2Container) {
+            const badge2 = chart2Container.querySelector('.individual-zoom-badge');
+            if (badge2) badge2.remove();
+        }
+        
+        console.log(`🔄 Restored defaults for lipid ${lipidId} and saved to localStorage`);
+    } catch (error) {
+        console.warn('Error restoring defaults:', error);
     }
-    
-    // Remove badges
-    const chart1Container = document.querySelector(`#lipid-container-${lipidId} .single-chart-container:nth-child(1)`);
-    const chart2Container = document.querySelector(`#lipid-container-${lipidId} .single-chart-container:nth-child(2)`);
-    
-    if (chart1Container) {
-        const badge1 = chart1Container.querySelector('.individual-zoom-badge');
-        if (badge1) badge1.remove();
-    }
-    if (chart2Container) {
-        const badge2 = chart2Container.querySelector('.individual-zoom-badge');
-        if (badge2) badge2.remove();
-    }
-    
-    console.log(`🔄 Restored defaults for lipid ${lipidId} and saved to localStorage`);
 }
 
 async function initializeDualCharts(lipidId) {
@@ -970,30 +982,34 @@ function createChart(lipidId, chartType, chartConfig) {
     const chartId = `${chartType}-${lipidId}`;
     
     // Only add zoom plugin if it's available
-    if (Chart.registry && Chart.registry.plugins.get('zoom')) {
-        chartConfig.options.plugins.zoom = {
-        zoom: {
-            wheel: {
-                enabled: false,  // Disabled by default
-                speed: 0.1
-            },
-            pinch: {
-                enabled: false   // Disabled by default
-            },
-            drag: {
-                enabled: false,  // Disabled by default
-                backgroundColor: 'rgba(225, 225, 225, 0.3)'
-            },
-            mode: 'x'  // Only zoom/pan on X-axis (retention time)
-        },
-        pan: {
-            enabled: false,  // Disabled by default
-            mode: 'x',       // Only pan on X-axis
-            modifierKey: 'shift'  // Hold shift to pan
+    try {
+        if (Chart.registry && Chart.registry.plugins.get('zoom')) {
+            chartConfig.options.plugins.zoom = {
+                zoom: {
+                    wheel: {
+                        enabled: false,  // Disabled by default
+                        speed: 0.1
+                    },
+                    pinch: {
+                        enabled: false   // Disabled by default
+                    },
+                    drag: {
+                        enabled: false,  // Disabled by default
+                        backgroundColor: 'rgba(225, 225, 225, 0.3)'
+                    },
+                    mode: 'x'  // Only zoom/pan on X-axis (retention time)
+                },
+                pan: {
+                    enabled: false,  // Disabled by default
+                    mode: 'x',       // Only pan on X-axis
+                    modifierKey: 'shift'  // Hold shift to pan
+                }
+            };
+        } else {
+            console.warn(`⚠️ Zoom plugin not available for chart ${chartId} - zoom features disabled`);
         }
-        };
-    } else {
-        console.warn(`⚠️ Zoom plugin not available for chart ${chartId} - zoom features disabled`);
+    } catch (error) {
+        console.warn(`⚠️ Error configuring zoom plugin for chart ${chartId}:`, error);
     }
     
     // Professional 2D Area-Based Hover Detection System
@@ -1079,36 +1095,44 @@ function createChart(lipidId, chartType, chartConfig) {
     
     // Add click-to-activate zoom functionality
     ctx.canvas.addEventListener('click', function() {
-        // Activate zoom for this chart (only if zoom plugin is available)
-        if (chart.options.plugins && chart.options.plugins.zoom) {
-            chart.options.plugins.zoom.zoom.wheel.enabled = true;
-            chart.options.plugins.zoom.zoom.pinch.enabled = true;
-            chart.options.plugins.zoom.zoom.drag.enabled = true;
-            chart.options.plugins.zoom.pan.enabled = true;
-        }
-        
-        // Add visual indicator that chart is active
-        ctx.canvas.style.border = '2px solid #007bff';
-        ctx.canvas.style.borderRadius = '4px';
-        
-        // Deactivate other charts
-        Object.keys(chartInstances).forEach(lid => {
-            Object.keys(chartInstances[lid]).forEach(ctype => {
-                if (lid != lipidId || ctype != chartType) {
-                    const otherChart = chartInstances[lid][ctype];
-                    if (otherChart.options.plugins && otherChart.options.plugins.zoom) {
-                        otherChart.options.plugins.zoom.zoom.wheel.enabled = false;
-                        otherChart.options.plugins.zoom.zoom.pinch.enabled = false;
-                        otherChart.options.plugins.zoom.zoom.drag.enabled = false;
-                        otherChart.options.plugins.zoom.pan.enabled = false;
+        try {
+            // Activate zoom for this chart (only if zoom plugin is available)
+            if (chart.options.plugins && chart.options.plugins.zoom) {
+                chart.options.plugins.zoom.zoom.wheel.enabled = true;
+                chart.options.plugins.zoom.zoom.pinch.enabled = true;
+                chart.options.plugins.zoom.zoom.drag.enabled = true;
+                chart.options.plugins.zoom.pan.enabled = true;
+            }
+            
+            // Add visual indicator that chart is active
+            ctx.canvas.style.border = '2px solid #007bff';
+            ctx.canvas.style.borderRadius = '4px';
+            
+            // Deactivate other charts
+            Object.keys(chartInstances).forEach(lid => {
+                Object.keys(chartInstances[lid]).forEach(ctype => {
+                    if (lid != lipidId || ctype != chartType) {
+                        const otherChart = chartInstances[lid][ctype];
+                        try {
+                            if (otherChart.options.plugins && otherChart.options.plugins.zoom) {
+                                otherChart.options.plugins.zoom.zoom.wheel.enabled = false;
+                                otherChart.options.plugins.zoom.zoom.pinch.enabled = false;
+                                otherChart.options.plugins.zoom.zoom.drag.enabled = false;
+                                otherChart.options.plugins.zoom.pan.enabled = false;
+                            }
+                        } catch (error) {
+                            console.warn('Error deactivating chart zoom:', error);
+                        }
+                        otherChart.canvas.style.border = '';
+                        otherChart.canvas.style.borderRadius = '';
                     }
-                    otherChart.canvas.style.border = '';
-                    otherChart.canvas.style.borderRadius = '';
-                }
+                });
             });
-        });
-        
-        chart.update('none');
+            
+            chart.update('none');
+        } catch (error) {
+            console.warn('Error activating chart zoom:', error);
+        }
     });
     
     // Add double-click to deactivate
@@ -1354,20 +1378,24 @@ function populateDetailedIons(lipidId, annotatedIons) {
 
 // Chart interaction handlers
 function resetZoom(lipidId) {
-    if (chartInstances[lipidId]) {
-        if (chartInstances[lipidId].chart1 && chartInstances[lipidId].chart1.resetZoom) {
-            chartInstances[lipidId].chart1.resetZoom();
+    try {
+        if (chartInstances[lipidId]) {
+            if (chartInstances[lipidId].chart1 && chartInstances[lipidId].chart1.resetZoom) {
+                chartInstances[lipidId].chart1.resetZoom();
+            }
+            if (chartInstances[lipidId].chart2 && chartInstances[lipidId].chart2.resetZoom) {
+                chartInstances[lipidId].chart2.resetZoom();
+                
+                // Reapply individual zoom settings after reset
+                setTimeout(() => {
+                    if (individualZoomSettings[lipidId]) {
+                        applyIndividualZoom(lipidId);
+                    }
+                }, 100);
+            }
         }
-        if (chartInstances[lipidId].chart2 && chartInstances[lipidId].chart2.resetZoom) {
-            chartInstances[lipidId].chart2.resetZoom();
-            
-            // Reapply individual zoom settings after reset
-            setTimeout(() => {
-                if (individualZoomSettings[lipidId]) {
-                    applyIndividualZoom(lipidId);
-                }
-            }, 100);
-        }
+    } catch (error) {
+        console.warn('Error resetting zoom:', error);
     }
 }
 
@@ -1391,17 +1419,21 @@ function addDoubleClickReset(lipidId, chartType) {
     const canvas = document.getElementById(`${chartType}-${lipidId}`);
     if (canvas) {
         canvas.addEventListener('dblclick', function() {
-            if (chartInstances[lipidId] && chartInstances[lipidId][chartType] && chartInstances[lipidId][chartType].resetZoom) {
-                chartInstances[lipidId][chartType].resetZoom();
-                
-                // Reapply individual zoom settings for Chart 2
-                if (chartType === 'chart2') {
-                    setTimeout(() => {
-                        if (individualZoomSettings[lipidId]) {
-                            applyIndividualZoom(lipidId);
-                        }
-                    }, 100);
+            try {
+                if (chartInstances[lipidId] && chartInstances[lipidId][chartType] && chartInstances[lipidId][chartType].resetZoom) {
+                    chartInstances[lipidId][chartType].resetZoom();
+                    
+                    // Reapply individual zoom settings for Chart 2
+                    if (chartType === 'chart2') {
+                        setTimeout(() => {
+                            if (individualZoomSettings[lipidId]) {
+                                applyIndividualZoom(lipidId);
+                            }
+                        }, 100);
+                    }
                 }
+            } catch (error) {
+                console.warn('Error in double-click reset:', error);
             }
         });
     }
@@ -1409,29 +1441,33 @@ function addDoubleClickReset(lipidId, chartType) {
 
 // Deactivate chart function
 function deactivateChart(chart, canvas) {
-    if (chart.options.plugins && chart.options.plugins.zoom) {
-        chart.options.plugins.zoom.zoom.wheel.enabled = false;
-        chart.options.plugins.zoom.zoom.pinch.enabled = false;
-        chart.options.plugins.zoom.zoom.drag.enabled = false;
-        chart.options.plugins.zoom.pan.enabled = false;
-    }
-    canvas.style.border = '';
-    canvas.style.borderRadius = '';
-    if (chart.resetZoom) {
-        chart.resetZoom();
-    }
-    chart.update('none');
-    
-    // Reapply individual zoom settings if this is Chart 2
-    const canvasId = canvas.id;
-    const matches = canvasId.match(/chart2-(\d+)/);
-    if (matches) {
-        const lipidId = matches[1];
-        setTimeout(() => {
-            if (individualZoomSettings[lipidId]) {
-                applyIndividualZoom(lipidId);
-            }
-        }, 100);
+    try {
+        if (chart.options.plugins && chart.options.plugins.zoom) {
+            chart.options.plugins.zoom.zoom.wheel.enabled = false;
+            chart.options.plugins.zoom.zoom.pinch.enabled = false;
+            chart.options.plugins.zoom.zoom.drag.enabled = false;
+            chart.options.plugins.zoom.pan.enabled = false;
+        }
+        canvas.style.border = '';
+        canvas.style.borderRadius = '';
+        if (chart.resetZoom) {
+            chart.resetZoom();
+        }
+        chart.update('none');
+        
+        // Reapply individual zoom settings if this is Chart 2
+        const canvasId = canvas.id;
+        const matches = canvasId.match(/chart2-(\d+)/);
+        if (matches) {
+            const lipidId = matches[1];
+            setTimeout(() => {
+                if (individualZoomSettings[lipidId]) {
+                    applyIndividualZoom(lipidId);
+                }
+            }, 100);
+        }
+    } catch (error) {
+        console.warn('Error deactivating chart:', error);
     }
 }
 
