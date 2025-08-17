@@ -477,6 +477,10 @@ def homepage():
         })
 
 @app.route('/dashboard')
+def dashboard():
+    """Redirect to clean dashboard"""
+    return redirect(url_for('clean_dashboard'))
+
 @app.route('/clean-dashboard')
 def clean_dashboard():
     """Main lipid selection interface with lazy loading"""
@@ -505,13 +509,47 @@ def clean_dashboard():
 def dual_chart_view(lipid_id=None):
     """Interactive dual-chart visualization system"""
     try:
-        lipid = None
-        if lipid_id and MainLipid and db:
+        selected_lipids = []
+        
+        # Get lipid IDs from session or URL parameter
+        lipid_ids = []
+        if lipid_id:
+            lipid_ids = [lipid_id]
+        else:
+            # Get from session if multiple lipids were selected
+            lipid_ids = session.get('selected_lipid_ids', [])
+        
+        # Fetch lipids from database
+        if MainLipid and db and lipid_ids:
             try:
-                lipid = MainLipid.query.get(lipid_id)
+                for lid in lipid_ids:
+                    lipid = MainLipid.query.get(lid)
+                    if lipid:
+                        # Format lipid data for template
+                        lipid_data = {
+                            'lipid_id': lipid.id,
+                            'lipid_name': lipid.lipid_name,
+                            'class_name': lipid.class_name or 'Unknown',
+                            'retention_time': lipid.retention_time or 0,
+                            'annotated_ions_count': 0  # We'll calculate this if needed
+                        }
+                        selected_lipids.append(lipid_data)
             except Exception as db_error:
                 print(f"⚠️ Database query failed: {db_error}")
-        return render_template('dual_chart_view.html', lipid=lipid, lipid_id=lipid_id)
+        
+        # If no lipids found, provide demo data
+        if not selected_lipids:
+            selected_lipids = [{
+                'lipid_id': lipid_id or 1,
+                'lipid_name': 'AC(16:0)',
+                'class_name': 'AC',
+                'retention_time': 3.2,
+                'annotated_ions_count': 3
+            }]
+        
+        return render_template('dual_chart_view.html', 
+                             selected_lipids=selected_lipids, 
+                             lipid_id=lipid_id)
     except Exception as e:
         print(f"⚠️ Chart view error: {e}")
         return f"<h1>Chart System Loading...</h1><p>Error: {e}</p>"
@@ -670,7 +708,23 @@ def equipment_management():
 def manage_lipids():
     """Database management interface"""
     try:
-        return render_template('manage_lipids.html')
+        # Prepare data for template
+        data = {
+            'total_lipids': 0,
+            'total_classes': 0,
+            'database_available': bool(db and MainLipid),
+            'lipids': []
+        }
+        
+        if db and MainLipid and get_db_stats:
+            try:
+                stats = get_db_stats()
+                data.update(stats)
+                data['lipids'] = MainLipid.query.limit(20).all()
+            except Exception as db_error:
+                print(f"⚠️ Database query failed in manage_lipids: {db_error}")
+        
+        return render_template('manage_lipids.html', data=data)
     except Exception as e:
         print(f"⚠️ Manage lipids error: {e}")
         return f"<h1>Database Management Loading...</h1><p>Error: {e}</p>"
