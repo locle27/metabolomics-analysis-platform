@@ -1446,6 +1446,19 @@ def ping():
     """Simple ping endpoint for Railway health checks"""
     return "pong", 200
 
+@app.route('/status')
+def status():
+    """Railway deployment status check"""
+    try:
+        return {
+            "status": "ok", 
+            "timestamp": datetime.now().isoformat(),
+            "host": request.host,
+            "port": os.getenv('PORT', '5000')
+        }, 200
+    except:
+        return "ok", 200
+
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors gracefully"""
@@ -1458,7 +1471,13 @@ def internal_error(error):
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
+    print(f"🚀 Starting Flask app on port {port}")
+    print(f"🌐 Available at: http://0.0.0.0:{port}")
     app.run(host='0.0.0.0', port=port, debug=False)
+else:
+    port = int(os.getenv('PORT', 8080))
+    print(f"🚀 Gunicorn deployment on port {port}")
+    print(f"🌐 Health check: /health, /ping, /status")
 
 # For gunicorn
 application = app

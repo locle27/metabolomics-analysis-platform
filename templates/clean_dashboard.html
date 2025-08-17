@@ -579,34 +579,21 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Page Header -->
-    <div class="page-header text-center mb-4">
-        <h1 class="phenikaa-heading">Lipid Database Analysis</h1>
-        <p class="phenikaa-text">Select lipids from our comprehensive database for interactive chromatography analysis</p>
-    </div>
 
     <!-- Lipid Selector -->
     <div class="lipid-selector">
         <h2 class="text-center mb-4">🧬 Select Lipids for Analysis</h2>
         
-        <!-- Search Bar and Database Button -->
+        <!-- Enhanced Search Section -->
         <div class="search-and-database-section">
-            <div class="row align-items-center">
-                <div class="col-md-9">
-                    <div class="search-bar">
-                        <input type="text" id="search-input" class="form-control" 
-                               placeholder="🔍 Search lipids (e.g., ac120, tg480, pc341, or full names...)"
-                               autocomplete="off">
-                        <small class="form-text text-muted mt-1">
-                            💡 <strong>Quick search tips:</strong> 
-                            Type "ac120" for AC(12:0), "tg480" for TG(48:0), "180" for any 18:0 lipid
-                        </small>
-                    </div>
-                </div>
-                <div class="col-md-3 text-end">
-                    <button class="btn btn-outline-primary btn-database" onclick="openDatabaseModal()">
-                        <i class="fas fa-table"></i> Database View
-                    </button>
+            <div class="search-bar">
+                <input type="text" id="search-input" class="form-control form-control-lg" 
+                       placeholder="🔍 Search lipids (e.g., ac120, tg480, pc341, or full names...)"
+                       autocomplete="off">
+                <div class="search-tips mt-2">
+                    <small class="form-text text-muted">
+                        💡 <strong>Quick tips:</strong> Type "ac120" for AC(12:0) • "tg480" for TG(48:0) • "180" for any 18:0 lipid
+                    </small>
                 </div>
             </div>
         </div>

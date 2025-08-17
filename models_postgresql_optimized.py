@@ -315,9 +315,7 @@ class OptimizedDataManager:
         classes_with_counts = db.session.query(
             LipidClass.class_name,
             func.count(MainLipid.lipid_id).label('count')
-        ).outerjoin(MainLipid).filter(
-            MainLipid.extraction_success == True
-        ).group_by(
+        ).outerjoin(MainLipid).group_by(
             LipidClass.class_id, LipidClass.class_name
         ).order_by(LipidClass.class_name).all()
         
@@ -355,9 +353,9 @@ class OptimizedDataManager:
         """
         Get database statistics with efficient queries
         """
-        # Efficient COUNT queries
-        total_lipids = MainLipid.query.filter_by(extraction_success=True).count()
-        total_ions = AnnotatedIon.query.count()
+        # Count ALL lipids (don't filter by extraction_success - field may not exist)
+        total_lipids = MainLipid.query.count()
+        total_ions = AnnotatedIon.query.count() 
         total_classes = LipidClass.query.count()
         
         return {

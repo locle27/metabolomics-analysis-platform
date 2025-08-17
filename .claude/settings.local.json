@@ -40,7 +40,8 @@
       "Bash(claude /mcp)",
       "Bash(railway logs:*)",
       "WebFetch(domain:httpsphenikaa-lipidomics-analysis.xyz)",
-      "Bash(source:*)"
+      "Bash(source:*)",
+      "Bash(sed:*)"
     ],
     "deny": []
   }

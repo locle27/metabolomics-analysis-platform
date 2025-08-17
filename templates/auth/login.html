@@ -475,7 +475,7 @@
             {% endwith %}
 
             <!-- Login Form -->
-            <form action="{{ url_for('auth.login') }}" method="POST">
+            <form action="/auth/login" method="POST">
                 <div class="form-group">
                     <i class="fas fa-user input-icon"></i>
                     <input type="text" 
@@ -502,7 +502,7 @@
                         <input type="checkbox" name="remember_me" style="margin-right: 8px;">
                         Ghi nhớ đăng nhập
                     </label>
-                    <a href="{{ url_for('auth.forgot_password') }}">Quên mật khẩu?</a>
+                    <a href="/auth/forgot-password">Quên mật khẩu?</a>
                 </div>
 
                 <button type="submit" class="login-button">
@@ -516,19 +516,19 @@
             </div>
 
             <!-- Google OAuth Login -->
-            <a href="{{ url_for('google_login') }}" class="secondary-button" style="background: #4285f4; color: white; border-color: #4285f4;">
+            <a href="/google-login" class="secondary-button" style="background: #4285f4; color: white; border-color: #4285f4;">
                 <i class="fab fa-google" style="color: white;"></i>
                 <span>Đăng nhập với Google</span>
             </a>
 
             <!-- Registration Option -->
-            <a href="{{ url_for('auth.register') }}" class="secondary-button register-button">
+            <a href="/auth/register" class="secondary-button register-button">
                 <i class="fas fa-user-plus"></i>
                 <span>Tạo tài khoản mới</span>
             </a>
 
             <!-- Demo Access -->
-            <a href="{{ url_for('demo_login') if url_for('demo_login', _external=False) else '#' }}" class="secondary-button">
+            <a href="/demo-login" class="secondary-button">
                 <i class="fas fa-play-circle" style="color: #059669;"></i>
                 <span>Truy cập demo (Khách)</span>
             </a>

@@ -56,6 +56,30 @@
         transition: background 0.2s ease;
     }
     
+    .info-toggle-btn-friendly {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        margin-left: 15px;
+    }
+    
+    .info-toggle-btn-friendly:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        background: linear-gradient(135deg, #5a67d8 0%, #667eea 100%);
+    }
+    
+    .info-toggle-btn-friendly i {
+        margin-right: 8px;
+    }
+    
     .info-toggle-btn:hover {
         background: #218838;
     }
@@ -489,13 +513,13 @@
     <div class="chart-container" id="lipid-container-{{ lipid.lipid_id }}">
         <!-- Lipid Header -->
         <div class="lipid-header">
-            <h2 class="lipid-title">{{ lipid.lipid_name }}</h2>
-            <div class="lipid-info">
+            <h2 class="lipid-title text-center">{{ lipid.lipid_name }}</h2>
+            <div class="lipid-info justify-content-center">
                 <span class="info-badge">{{ lipid.class_name }}</span>
                 <span class="info-badge">ID: {{ lipid.lipid_id }}</span>
                 <span class="info-badge">{{ lipid.annotated_ions_count }} Ions</span>
-                <button class="info-toggle-btn" onclick="toggleDetailedInfo({{ lipid.lipid_id }})" id="toggle-btn-{{ lipid.lipid_id }}">
-                    <i class="fas fa-info-circle"></i> Show Details
+                <button class="info-toggle-btn-friendly" onclick="toggleDetailedInfo({{ lipid.lipid_id }})" id="toggle-btn-{{ lipid.lipid_id }}">
+                    <i class="fas fa-info-circle"></i> View Details
                 </button>
                 {% if current_user.is_authenticated and current_user.is_admin() %}
                 <button class="zoom-settings-btn" onclick="showZoomSettings({{ lipid.lipid_id }}, 'chart1')" id="zoom-btn-chart1-{{ lipid.lipid_id }}">
