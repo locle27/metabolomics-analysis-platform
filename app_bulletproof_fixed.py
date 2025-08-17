@@ -212,6 +212,54 @@ def homepage():
         }
         return jsonify(error_response), 500
 
+@app.route('/dashboard')
+@app.route('/lipid-selection')
+def dashboard():
+    """Lipid selection dashboard - complete website feature"""
+    try:
+        if not db or "database-connected" not in AVAILABLE_FEATURES:
+            return render_template('coming_soon.html', 
+                                 message="Database connection required for lipid selection",
+                                 features=AVAILABLE_FEATURES)
+        
+        # Try to render the dashboard template
+        return render_template('clean_dashboard.html', 
+                             lipids=[], 
+                             classes=[], 
+                             current_filters={})
+    except Exception as e:
+        return jsonify({
+            "error": "Dashboard unavailable",
+            "message": str(e),
+            "features_available": AVAILABLE_FEATURES
+        }), 503
+
+@app.route('/dual-chart-view')
+def dual_chart_view():
+    """Interactive chart view - complete website feature"""
+    try:
+        if "charts" not in AVAILABLE_FEATURES:
+            return jsonify({"error": "Charts not available"}), 503
+        
+        return render_template('dual_chart_view.html')
+    except Exception as e:
+        return jsonify({
+            "error": "Charts unavailable", 
+            "message": str(e),
+            "features_available": AVAILABLE_FEATURES
+        }), 503
+
+@app.route('/admin')
+def admin_dashboard():
+    """Admin dashboard - complete website feature"""
+    try:
+        return render_template('admin_dashboard.html')
+    except Exception as e:
+        return jsonify({
+            "error": "Admin panel unavailable",
+            "message": str(e)
+        }), 503
+
 @app.route('/health')
 def health_check():
     """Health check endpoint for Railway"""
