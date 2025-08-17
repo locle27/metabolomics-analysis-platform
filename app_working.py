@@ -170,11 +170,56 @@ def health_check():
             "debug_info": {
                 "database_url_configured": bool(os.getenv('DATABASE_URL')),
                 "get_db_stats_available": get_db_stats is not None,
-                "optimized_manager_available": optimized_manager is not None
+                "optimized_manager_available": optimized_manager is not None,
+                "database_url_length": len(os.getenv('DATABASE_URL', '')) if os.getenv('DATABASE_URL') else 0
             }
         }), 200
     except Exception as e:
         return f'{{"status":"healthy","error":"{str(e)}"}}', 200
+
+@app.route('/debug-models')
+def debug_models():
+    """Detailed models debugging endpoint"""
+    try:
+        debug_info = {
+            "timestamp": datetime.now().isoformat(),
+            "database_available": database_available,
+            "models_available": models_available,
+            "get_db_stats_function": get_db_stats is not None,
+            "optimized_manager_object": optimized_manager is not None,
+            "database_url_configured": bool(os.getenv('DATABASE_URL')),
+            "environment": os.getenv('FLASK_ENV', 'production'),
+        }
+        
+        # Try a simple models import test
+        models_import_test = "unknown"
+        try:
+            import models_postgresql_optimized
+            models_import_test = "success"
+            debug_info["models_file_accessible"] = True
+            debug_info["models_file_location"] = str(models_postgresql_optimized.__file__)
+        except Exception as e:
+            models_import_test = f"failed: {str(e)}"
+            debug_info["models_file_accessible"] = False
+            debug_info["models_import_error"] = str(e)
+        
+        debug_info["models_import_test"] = models_import_test
+        
+        # Try database connection test
+        if database_available:
+            try:
+                with app.app_context():
+                    from sqlalchemy import text
+                    result = db.engine.execute(text("SELECT version()"))
+                    debug_info["database_version"] = str(result.fetchone()[0])
+                    debug_info["database_connection_test"] = "success"
+            except Exception as e:
+                debug_info["database_connection_test"] = f"failed: {str(e)}"
+        
+        return jsonify(debug_info)
+        
+    except Exception as e:
+        return jsonify({"error": str(e), "timestamp": datetime.now().isoformat()})
 
 @app.route('/')
 def homepage():
