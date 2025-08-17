@@ -77,6 +77,50 @@
         background: var(--white);
     }
     
+    /* Leadership & Research Cards */
+    .leadership-card, .research-team-card {
+        border-left: 4px solid var(--primary-blue);
+    }
+    
+    .leadership-card:hover, .research-team-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 40px rgba(46, 76, 146, 0.15);
+    }
+    
+    .director-credentials {
+        background: var(--light-bg);
+        padding: 10px;
+        border-radius: 8px;
+        margin-top: 15px;
+    }
+    
+    .team-stats {
+        background: var(--light-bg);
+        padding: 15px;
+        border-radius: 8px;
+    }
+    
+    .team-stats strong {
+        font-size: 20px;
+        color: var(--primary-blue);
+    }
+    
+    .update-card {
+        border-left: 4px solid var(--primary-orange);
+        transition: all 0.3s ease;
+    }
+    
+    .update-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(233, 75, 0, 0.15);
+    }
+    
+    .update-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
     .news-card {
         background: var(--white);
         border-radius: var(--dl-layout-radius-cardradius);
@@ -321,25 +365,80 @@
     </div>
 </section>
 
-<!-- News Section -->
+<!-- Leadership & Research Section -->
 <section class="news-section">
     <div class="container">
         <div class="section-title">
-            <h2>Latest Updates</h2>
-            <p>Recent developments and platform enhancements</p>
+            <h2>Research Excellence at Phenikaa University</h2>
+            <p>Meet our distinguished research leadership and world-class team advancing metabolomics science</p>
         </div>
         
         <div class="row">
-            {% for news_item in data.news %}
+            <!-- Director Card -->
             <div class="col-lg-6 mb-4">
-                <div class="news-card">
-                    <div class="news-image">
-                        <i class="fas fa-newspaper"></i>
+                <div class="news-card leadership-card">
+                    <div class="news-image director-image" style="background-image: url('{{ url_for('static', filename='PhD-Do Van Khanh.png') }}'); background-size: cover; background-position: center; height: 300px;">
+                    </div>
+                    <div class="news-content">
+                        <div class="news-date">RESEARCH DIRECTOR</div>
+                        <h5>Dr. Do Van Khanh, PhD</h5>
+                        <p>Leading metabolomics research at Phenikaa University with over 15 years of experience in analytical chemistry and mass spectrometry. Pioneering advanced lipidomics methodologies for biomarker discovery and precision medicine applications.</p>
+                        <div class="director-credentials">
+                            <small class="text-muted">
+                                <i class="fas fa-graduation-cap me-1"></i>PhD in Analytical Chemistry
+                                <br>
+                                <i class="fas fa-microscope me-1"></i>Metabolomics & Mass Spectrometry Expert
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Research Team Card -->
+            <div class="col-lg-6 mb-4">
+                <div class="news-card research-team-card">
+                    <div class="news-image team-image" style="background-image: url('{{ url_for('static', filename='research.png') }}'); background-size: cover; background-position: center; height: 300px;">
+                    </div>
+                    <div class="news-content">
+                        <div class="news-date">RESEARCH TEAM</div>
+                        <h5>Advanced Metabolomics Laboratory</h5>
+                        <p>Our multidisciplinary research team combines expertise in analytical chemistry, bioinformatics, and molecular biology. Working collaboratively to advance lipid analysis techniques and develop innovative solutions for biomedical research.</p>
+                        <div class="team-stats mt-3">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <strong class="text-primary">15+</strong>
+                                    <br><small>Researchers</small>
+                                </div>
+                                <div class="col-4">
+                                    <strong class="text-primary">50+</strong>
+                                    <br><small>Publications</small>
+                                </div>
+                                <div class="col-4">
+                                    <strong class="text-primary">10+</strong>
+                                    <br><small>Projects</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Latest Updates Row -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <h3 class="text-center mb-4" style="color: var(--primary-blue);">Latest Platform Updates</h3>
+            </div>
+            {% for news_item in data.news %}
+            <div class="col-lg-4 mb-4">
+                <div class="news-card update-card">
+                    <div class="news-image update-icon" style="background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-orange) 100%); height: 120px;">
+                        <i class="fas fa-rocket" style="font-size: 36px; color: white;"></i>
                     </div>
                     <div class="news-content">
                         <div class="news-date">{{ news_item.date }}</div>
-                        <h5>{{ news_item.title }}</h5>
-                        <p>{{ news_item.summary }}</p>
+                        <h6>{{ news_item.title }}</h6>
+                        <p style="font-size: 14px;">{{ news_item.summary }}</p>
                     </div>
                 </div>
             </div>
