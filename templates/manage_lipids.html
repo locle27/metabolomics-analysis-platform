@@ -409,14 +409,6 @@
                     </select>
                 </div>
                 <div>
-                    <label class="form-label">Status</label>
-                    <select class="form-select" id="statusFilter">
-                        <option value="">All Status</option>
-                        <option value="success">Success</option>
-                        <option value="failed">Failed</option>
-                    </select>
-                </div>
-                <div>
                     <label class="form-label">Actions</label>
                     <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
                         <i class="fas fa-times"></i> Clear
@@ -441,7 +433,6 @@
                         <th style="width: 90px;">Ion Count</th>
                         <th style="width: 100px;">Peak Intensity</th>
                         <th style="width: 80px;">Int. Std.</th>
-                        <th style="width: 80px;">Status</th>
                     </tr>
                 </thead>
                 <tbody id="lipidsTableBody">
@@ -548,14 +539,6 @@
                             {% endif %}
                         </td>
                         
-                        <!-- Status -->
-                        <td>
-                            {% if lipid.extraction_success %}
-                                <span class="status-badge status-success">Success</span>
-                            {% else %}
-                                <span class="status-badge status-failed">Failed</span>
-                            {% endif %}
-                        </td>
                     </tr>
                     {% endfor %}
                     
@@ -784,14 +767,12 @@
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchInput');
     const classFilter = document.getElementById('classFilter');
-    const statusFilter = document.getElementById('statusFilter');
     const tableBody = document.getElementById('lipidsTableBody');
     const rows = Array.from(tableBody.querySelectorAll('tr[data-lipid-id]'));
     
     let currentFilters = {
         search: '',
-        class: '',
-        status: ''
+        class: ''
     };
     
     // Search functionality
@@ -806,11 +787,6 @@ document.addEventListener('DOMContentLoaded', function() {
         applyFilters();
     });
     
-    // Status filter
-    statusFilter.addEventListener('change', function() {
-        currentFilters.status = this.value;
-        applyFilters();
-    });
     
     function applyFilters() {
         let visibleCount = 0;
@@ -826,9 +802,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                  apiCode.includes(currentFilters.search);
             
             const matchesClass = !currentFilters.class || className === currentFilters.class;
-            const matchesStatus = !currentFilters.status || status === currentFilters.status;
             
-            if (matchesSearch && matchesClass && matchesStatus) {
+            if (matchesSearch && matchesClass) {
                 row.style.display = '';
                 visibleCount++;
             } else {
@@ -849,8 +824,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.clearFilters = function() {
         searchInput.value = '';
         classFilter.value = '';
-        statusFilter.value = '';
-        currentFilters = { search: '', class: '', status: '' };
+        currentFilters = { search: '', class: '' };
         applyFilters();
     };
     

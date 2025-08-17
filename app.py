@@ -91,6 +91,14 @@ app = Flask(__name__,
 )
 app.secret_key = os.getenv('SECRET_KEY', 'bulletproof-metabolomics-platform-secret-key')
 
+# Enhanced session configuration for OAuth
+app.config.update({
+    'SESSION_COOKIE_SECURE': False,  # Allow HTTP for localhost
+    'SESSION_COOKIE_HTTPONLY': True,
+    'SESSION_COOKIE_SAMESITE': 'Lax',
+    'PERMANENT_SESSION_LIFETIME': 3600,  # 1 hour
+})
+
 # Apply proxy fix if available
 if PROXY_FIX_AVAILABLE:
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1, x_for=1)
@@ -118,9 +126,12 @@ try:
         client_id=os.getenv('GOOGLE_CLIENT_ID'),
         client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
         server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-        client_kwargs={'scope': 'openid email profile'}
+        client_kwargs={
+            'scope': 'openid email profile',
+            'prompt': 'select_account'  # Force account selection to avoid state issues
+        }
     )
-    print("✅ OAuth configured")
+    print("✅ OAuth configured with enhanced state handling")
 except Exception as e:
     print(f"⚠️ OAuth failed: {e}")
 
@@ -832,39 +843,53 @@ def equipment_management():
 
 @app.route('/manage-lipids')
 def manage_lipids():
-    """Database management interface"""
+    """Database management interface with enhanced error handling"""
     try:
-        # Prepare data for template
+        # Prepare data for template with safe defaults
         data = {
             'total_lipids': 0,
             'total_classes': 0,
             'database_available': bool(db and MainLipid),
-            'lipids': []
-        }
-        
-        if db and MainLipid and get_db_stats:
-            try:
-                stats = get_db_stats()
-                data.update(stats)
-                # Add stats object for template compatibility
-                data['stats'] = {
-                    'successful_extractions': stats.get('total_lipids', 0),
-                    'total_annotated_ions': stats.get('total_annotations', 0)
-                }
-                data['lipids'] = MainLipid.query.limit(20).all()
-            except Exception as db_error:
-                print(f"⚠️ Database query failed in manage_lipids: {db_error}")
-        else:
-            # Fallback stats for template
-            data['stats'] = {
+            'lipids': [],
+            'stats': {
                 'successful_extractions': 0,
                 'total_annotated_ions': 0
             }
+        }
+        
+        if db and MainLipid:
+            try:
+                # Direct database queries with error handling
+                data['total_lipids'] = MainLipid.query.count()
+                
+                if LipidClass:
+                    data['total_classes'] = LipidClass.query.count()
+                
+                if AnnotatedIon:
+                    data['stats']['total_annotated_ions'] = AnnotatedIon.query.count()
+                
+                data['stats']['successful_extractions'] = data['total_lipids']
+                
+                # Get sample lipids for display
+                lipids_query = MainLipid.query.limit(20).all()
+                data['lipids'] = lipids_query
+                
+                print(f"✅ Manage lipids loaded: {data['total_lipids']} lipids, {data['total_classes']} classes")
+                
+            except Exception as db_error:
+                print(f"⚠️ Database query failed in manage_lipids: {db_error}")
+                # Keep safe defaults
         
         return render_template('manage_lipids.html', data=data)
     except Exception as e:
         print(f"⚠️ Manage lipids error: {e}")
-        return f"<h1>Database Management Loading...</h1><p>Error: {e}</p>"
+        # Return a simple error page instead of template rendering
+        return f"""
+        <h1>Database Management</h1>
+        <p>Loading error: {e}</p>
+        <p><a href="/">Return to Homepage</a></p>
+        <p><a href="/debug-database">Debug Database</a> (for troubleshooting)</p>
+        """
 
 # =====================================================
 # API ENDPOINTS
@@ -1044,14 +1069,24 @@ def logout():
 
 @app.route('/google-login')
 def google_login():
-    """Google OAuth login"""
+    """Google OAuth login with localhost support"""
     if google and OAUTH_AVAILABLE:
         try:
-            redirect_uri = url_for('login_authorized', _external=True)
+            # Google OAuth requires localhost for local development, not private IPs
+            host = request.host
+            if host.startswith('192.168.') or host.startswith('10.') or host.startswith('172.'):
+                # Use localhost for private IPs
+                redirect_uri = "http://localhost:5000/callback"
+            elif host.startswith('localhost') or host.startswith('127.0.0.1'):
+                redirect_uri = f"http://{host}/callback"
+            else:
+                redirect_uri = f"https://{host}/callback"
+            
+            print(f"🔗 OAuth redirect URI: {redirect_uri}")
             return google.authorize_redirect(redirect_uri)
         except Exception as e:
             print(f"⚠️ Google OAuth error: {e}")
-            flash('Google login temporarily unavailable. Use demo login instead.', 'warning')
+            flash('Google login requires localhost (not private IP). Try: http://localhost:5000', 'warning')
             return redirect(url_for('auth.login'))
     else:
         flash('Google OAuth not configured. Use demo login: admin@demo.com / admin123', 'warning')
@@ -1060,24 +1095,67 @@ def google_login():
 @app.route('/callback')
 @app.route('/login/authorized')
 def login_authorized():
-    """Google OAuth callback"""
+    """Google OAuth callback with enhanced error handling"""
     if not google:
         flash('OAuth not configured', 'error')
         return redirect(url_for('auth.login'))
         
     try:
+        # Handle OAuth callback with proper error checking
         token = google.authorize_access_token()
+        if not token:
+            flash('OAuth authorization failed. Please try again.', 'error')
+            return redirect(url_for('auth.login'))
+            
         user_info = token.get('userinfo')
         
         if user_info:
-            # Create or update user
             user_email = user_info.get('email')
             user_name = user_info.get('name', user_email.split('@')[0])
+            user_picture = user_info.get('picture', '')
             
-            # For now, just create a session (can be enhanced later)
+            print(f"🔐 OAuth user info: {user_email}, {user_name}")
+            
+            # Try to create/update user in database
+            if db and User:
+                try:
+                    existing_user = User.query.filter_by(email=user_email).first()
+                    if existing_user:
+                        # Update existing user
+                        existing_user.full_name = user_name
+                        existing_user.picture = user_picture
+                        existing_user.last_login = datetime.now()
+                        existing_user.auth_method = 'oauth'
+                        db.session.commit()
+                        user_role = existing_user.role
+                        print(f"✅ Updated existing user: {user_email}")
+                    else:
+                        # Create new user
+                        new_user = User(
+                            username=user_email.split('@')[0],
+                            email=user_email,
+                            full_name=user_name,
+                            picture=user_picture,
+                            role='user',  # Default role for OAuth users
+                            is_active=True,
+                            is_verified=True,
+                            auth_method='oauth',
+                            last_login=datetime.now()
+                        )
+                        db.session.add(new_user)
+                        db.session.commit()
+                        user_role = 'user'
+                        print(f"✅ Created new user: {user_email}")
+                except Exception as db_error:
+                    print(f"⚠️ Database user creation failed: {db_error}")
+                    user_role = 'user'  # Fallback
+            else:
+                user_role = 'user'  # Fallback if no database
+            
+            # Create session
             session['user_authenticated'] = True
             session['user_email'] = user_email
-            session['user_role'] = 'user'  # Default role
+            session['user_role'] = user_role
             flash(f'Welcome {user_name}! Google login successful.', 'success')
             return redirect(url_for('homepage'))
         else:
@@ -1086,7 +1164,11 @@ def login_authorized():
             
     except Exception as e:
         print(f"⚠️ OAuth callback error: {e}")
-        flash('Google login failed. Please try again or use demo login.', 'error')
+        # Check if it's a state mismatch error (common on first try)
+        if 'mismatching_state' in str(e) or 'CSRF' in str(e):
+            flash('Authentication security check failed. Please try Google login again.', 'warning')
+        else:
+            flash('Google login failed. Please try again or use demo login.', 'error')
         return redirect(url_for('auth.login'))
 
 # =====================================================
@@ -1180,6 +1262,85 @@ def user_debug():
             debug_info['database_error'] = str(e)
     
     return jsonify(debug_info)
+
+@app.route('/debug-database')
+def debug_database():
+    """Debug database statistics"""
+    if not session.get('user_authenticated', False):
+        return jsonify({'error': 'Please log in'})
+    
+    debug_info = {}
+    
+    # Test direct database queries
+    try:
+        if MainLipid:
+            debug_info['MainLipid_count'] = MainLipid.query.count()
+            debug_info['MainLipid_sample'] = [
+                {
+                    'id': lipid.lipid_id,
+                    'name': lipid.lipid_name,
+                    'class': getattr(lipid.lipid_class, 'class_name', 'No class') if hasattr(lipid, 'lipid_class') and lipid.lipid_class else 'No class'
+                } for lipid in MainLipid.query.limit(3).all()
+            ]
+    except Exception as e:
+        debug_info['MainLipid_error'] = str(e)
+    
+    try:
+        if AnnotatedIon:
+            debug_info['AnnotatedIon_count'] = AnnotatedIon.query.count()
+    except Exception as e:
+        debug_info['AnnotatedIon_error'] = str(e)
+        
+    try:
+        if LipidClass:
+            debug_info['LipidClass_count'] = LipidClass.query.count()
+            debug_info['LipidClass_sample'] = [
+                {'id': cls.class_id, 'name': cls.class_name}
+                for cls in LipidClass.query.limit(5).all()
+            ]
+    except Exception as e:
+        debug_info['LipidClass_error'] = str(e)
+    
+    # Test get_db_stats function
+    try:
+        if get_db_stats:
+            debug_info['get_db_stats_result'] = get_db_stats()
+    except Exception as e:
+        debug_info['get_db_stats_error'] = str(e)
+    
+    return jsonify(debug_info)
+
+@app.route('/promote-to-admin')
+def promote_to_admin():
+    """Promote user to admin (only if no admins exist)"""
+    if not session.get('user_authenticated', False):
+        flash('Please log in first.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    try:
+        if db and User:
+            # Check if any admin users exist
+            admin_count = User.query.filter_by(role='admin').count()
+            if admin_count == 0:
+                # No admins exist, promote current user
+                user_email = session.get('user_email')
+                user = User.query.filter_by(email=user_email).first()
+                if user:
+                    user.role = 'admin'
+                    db.session.commit()
+                    session['user_role'] = 'admin'
+                    flash('You have been promoted to admin!', 'success')
+                    return redirect(url_for('homepage'))
+                else:
+                    flash('User account not found in database.', 'error')
+            else:
+                flash('Admin users already exist. Contact an existing admin.', 'warning')
+        else:
+            flash('Database not available for user promotion.', 'error')
+    except Exception as e:
+        flash(f'Promotion failed: {e}', 'error')
+    
+    return redirect(url_for('homepage'))
 
 @app.route('/init-database')
 def init_database():
