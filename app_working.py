@@ -66,16 +66,33 @@ try:
 except Exception as e:
     print(f"⚠️ Database setup failed: {e}")
 
-# Try to load models safely
+# Try to load models safely  
 models_available = False
-try:
-    from models_postgresql_optimized import (
-        MainLipid, optimized_manager, get_db_stats
-    )
-    models_available = True
-    print("✅ PostgreSQL models loaded")
-except Exception as e:
-    print(f"⚠️ Models import failed: {e}")
+optimized_manager = None
+get_db_stats = None
+
+if database_available:
+    try:
+        from models_postgresql_optimized import (
+            db as models_db, MainLipid, optimized_manager, get_db_stats, init_db
+        )
+        
+        # Initialize the models database with our app
+        models_db.init_app(app)
+        
+        # Test that models work with our app context
+        with app.app_context():
+            try:
+                stats_test = get_db_stats()
+                models_available = True
+                print("✅ PostgreSQL models loaded and tested")
+            except Exception as e:
+                print(f"⚠️ Models test failed: {e}")
+                
+    except Exception as e:
+        print(f"⚠️ Models import failed: {e}")
+else:
+    print("⚠️ Skipping models - database not available")
 
 # Try to load chart services safely  
 charts_available = False
@@ -141,11 +158,13 @@ def homepage():
         stats = {"total_lipids": 0, "database_status": "unavailable"}
         recent_lipids = []
         
-        if database_available and models_available:
+        if database_available and models_available and get_db_stats:
             try:
-                stats = get_db_stats()
-                stats["database_status"] = "connected"
-                recent_lipids = optimized_manager.get_lipids_sample(3)
+                with app.app_context():
+                    stats = get_db_stats()
+                    stats["database_status"] = "connected"
+                    if optimized_manager:
+                        recent_lipids = optimized_manager.get_lipids_sample(3)
             except Exception as e:
                 stats["database_status"] = f"error: {str(e)}"
         
@@ -195,13 +214,14 @@ if database_available and models_available:
     def dashboard():
         """Lipid selection dashboard"""
         try:
-            dashboard_data = {
-                'stats': get_db_stats(),
-                'lipids': [],
-                'classes': [],
-                'query_time': '0.000s',
-                'lazy_loading': True
-            }
+            with app.app_context():
+                dashboard_data = {
+                    'stats': get_db_stats() if get_db_stats else {},
+                    'lipids': [],
+                    'classes': [],
+                    'query_time': '0.000s',
+                    'lazy_loading': True
+                }
             
             try:
                 return render_template('clean_dashboard.html', data=dashboard_data)
@@ -214,15 +234,16 @@ if database_available and models_available:
     def api_database_view():
         """Database view API"""
         try:
-            stats = get_db_stats()
-            lipids_data = optimized_manager.get_all_lipids_optimized()
-            
-            return jsonify({
-                "status": "success",
-                "stats": stats,
-                "lipids": lipids_data,
-                "total_count": len(lipids_data)
-            })
+            with app.app_context():
+                stats = get_db_stats() if get_db_stats else {}
+                lipids_data = optimized_manager.get_all_lipids_optimized() if optimized_manager else []
+                
+                return jsonify({
+                    "status": "success",
+                    "stats": stats,
+                    "lipids": lipids_data,
+                    "total_count": len(lipids_data)
+                })
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
