@@ -284,19 +284,7 @@ except Exception as e:
     def get_email_service_status(): 
         return "Email service unavailable"
 
-# OAuth Configuration  
-if OAUTH_AVAILABLE:
-    google = oauth.register(
-        name='google',
-        client_id=os.getenv('GOOGLE_CLIENT_ID'),
-        client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
-        server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-        client_kwargs={'scope': 'openid email profile'}
-    )
-    print("✅ Google OAuth configured")
-else:
-    google = None
-    print("⚠️ OAuth not available")
+# OAuth Configuration moved to initial setup section above (line ~123)
 
 # Create working authentication blueprint
 from flask import Blueprint
@@ -1145,24 +1133,9 @@ def google_login():
     """Google OAuth login with Railway domain support"""
     if google and OAUTH_AVAILABLE:
         try:
-            # Determine correct redirect URI based on environment
-            host = request.host
-            
-            # Handle Railway domains - support both custom and default domains
-            if 'httpsphenikaa-lipidomics-analysis.xyz' in host:
-                # Custom domain (may have connectivity issues)
-                redirect_uri = "https://httpsphenikaa-lipidomics-analysis.xyz/callback"
-            elif 'railway.app' in host:
-                # Railway default domain (always works)
-                redirect_uri = f"https://{host}/callback"
-            elif host.startswith('192.168.') or host.startswith('10.') or host.startswith('172.'):
-                # Use localhost for private IPs
-                redirect_uri = "http://localhost:5000/callback"
-            elif host.startswith('localhost') or host.startswith('127.0.0.1'):
-                redirect_uri = f"http://{host}/callback"
-            else:
-                # Default HTTPS for production domains
-                redirect_uri = f"https://{host}/callback"
+            # Use Flask's url_for to generate correct absolute redirect URI
+            # This automatically handles HTTPS/HTTP and domain detection
+            redirect_uri = url_for('login_authorized', _external=True)
             
             print(f"🔗 OAuth redirect URI: {redirect_uri}")
             return google.authorize_redirect(redirect_uri)
