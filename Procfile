@@ -1,1 +1,1 @@
-web: gunicorn --bind [::]:$PORT --timeout 600 --workers 1 --preload app_minimal_fixed:app
+web: gunicorn --bind [::]:$PORT --timeout 600 --workers 1 --preload app_bulletproof_complete:app
