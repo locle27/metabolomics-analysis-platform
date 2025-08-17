@@ -66,33 +66,90 @@
                             </h3>
                         </div>
 
+                        {% if current_user.can_edit_username %}
+                        <!-- OAuth User Profile Form -->
                         <form method="POST" class="auth-form">
-                            {{ form.hidden_tag() }}
-                            
+                            <!-- Username Field for OAuth Users -->
+                            <div class="form-group mb-3">
+                                <label for="username" class="form-label">
+                                    <i class="fas fa-user me-2"></i>
+                                    Display Name / Username
+                                </label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="username" 
+                                       name="username" 
+                                       value="{{ current_user.username }}" 
+                                       placeholder="Enter your preferred display name">
+                                <small class="form-text text-muted">
+                                    This is how your name will appear on the platform
+                                </small>
+                            </div>
+
+                            <!-- Email Field (Read Only for OAuth) -->
+                            <div class="form-group mb-4">
+                                <label for="email" class="form-label">
+                                    <i class="fas fa-envelope me-2"></i>
+                                    Email Address
+                                </label>
+                                <input type="email" 
+                                       class="form-control" 
+                                       id="email" 
+                                       name="email" 
+                                       value="{{ current_user.email }}" 
+                                       readonly>
+                                <small class="form-text text-muted">
+                                    Email is managed through your {{ current_user.auth_method.title() }} account
+                                </small>
+                            </div>
+
+                            <!-- Auth Method Info -->
+                            <div class="auth-method-info mb-4">
+                                <div class="info-card">
+                                    <h6>
+                                        <i class="fab fa-google text-primary me-2"></i>
+                                        OAuth Authentication
+                                    </h6>
+                                    <p class="text-muted mb-2">
+                                        Your account uses {{ current_user.auth_method.title() }} authentication. 
+                                        Password management is handled by Google.
+                                    </p>
+                                    <a href="{{ url_for('auth.forgot_password') }}" class="btn btn-outline-info btn-sm">
+                                        <i class="fas fa-key me-1"></i>
+                                        Manage Password via Google
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-save me-2"></i>
+                                    Update Profile
+                                </button>
+                            </div>
+                        </form>
+                        {% else %}
+                        <!-- Local User Profile Form -->
+                        <form method="POST" class="auth-form">
                             <!-- Full Name Field -->
                             <div class="form-group mb-3">
-                                {{ form.full_name.label(class="form-label") }}
-                                {{ form.full_name(class="form-control" + (" is-invalid" if form.full_name.errors else "")) }}
-                                {% if form.full_name.errors %}
-                                    <div class="invalid-feedback">
-                                        {% for error in form.full_name.errors %}
-                                            {{ error }}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
+                                <label for="full_name" class="form-label">Full Name</label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="full_name" 
+                                       name="full_name" 
+                                       value="{{ current_user.full_name }}">
                             </div>
 
                             <!-- Email Field -->
                             <div class="form-group mb-4">
-                                {{ form.email.label(class="form-label") }}
-                                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
-                                {% if form.email.errors %}
-                                    <div class="invalid-feedback">
-                                        {% for error in form.email.errors %}
-                                            {{ error }}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
+                                <label for="email" class="form-label">Email Address</label>
+                                <input type="email" 
+                                       class="form-control" 
+                                       id="email" 
+                                       name="email" 
+                                       value="{{ current_user.email }}">
                                 <small class="form-text text-muted">
                                     Changing your email will require re-verification
                                 </small>
@@ -100,9 +157,13 @@
 
                             <!-- Submit Button -->
                             <div class="d-grid">
-                                {{ form.submit(class="btn btn-primary btn-lg") }}
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-save me-2"></i>
+                                    Update Profile
+                                </button>
                             </div>
                         </form>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -115,10 +176,18 @@
                                 <i class="fas fa-shield-alt text-success me-2"></i>
                                 Account Security
                             </h5>
+                            {% if current_user.auth_method == 'oauth' %}
+                            <p class="text-muted small">Password is managed through your {{ current_user.auth_method.title() }} account</p>
+                            <a href="https://myaccount.google.com/security" target="_blank" class="btn btn-outline-primary w-100">
+                                <i class="fab fa-google me-2"></i>Manage Google Security
+                                <i class="fas fa-external-link-alt ms-1"></i>
+                            </a>
+                            {% else %}
                             <p class="text-muted small">Manage your password and security settings</p>
                             <a href="{{ url_for('auth.change_password') }}" class="btn btn-outline-primary w-100">
                                 <i class="fas fa-key me-2"></i>Change Password
                             </a>
+                            {% endif %}
                         </div>
 
                         <!-- Account Info -->
@@ -253,6 +322,49 @@
 
 .text-primary {
     color: #2E4C92 !important;
+}
+
+.auth-method-info {
+    margin: 20px 0;
+}
+
+.info-card {
+    background: #f0f4ff;
+    border: 2px solid #d0d9ff;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 15px;
+}
+
+.info-card h6 {
+    color: #2E4C92;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.info-card p {
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+.form-control[readonly] {
+    background-color: #f8f9fa;
+    border-color: #e9ecef;
+    color: #6c757d;
+}
+
+.btn-outline-info {
+    color: #17a2b8;
+    border-color: #17a2b8;
+    border-radius: 6px;
+    font-size: 13px;
+    padding: 8px 16px;
+}
+
+.btn-outline-info:hover {
+    background-color: #17a2b8;
+    border-color: #17a2b8;
+    color: white;
 }
 </style>
 {% endblock %}

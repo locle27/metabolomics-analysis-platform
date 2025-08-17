@@ -228,29 +228,76 @@ def send_password_reset_email(user_email, reset_token):
         return False
 
 def send_schedule_notification(consultation_data):
-    """Send schedule consultation notifications"""
+    """Send schedule consultation notifications with robust error handling"""
+    if not consultation_data:
+        print("⚠️ Schedule notification failed: consultation_data is None")
+        return False
+    
     try:
+        # Ensure consultation_data is a dictionary
+        if hasattr(consultation_data, '__dict__'):
+            # Convert model instance to dictionary
+            data_dict = {
+                'name': getattr(consultation_data, 'name', 'Unknown'),
+                'email': getattr(consultation_data, 'email', ''),
+                'organization': getattr(consultation_data, 'organization', ''),
+                'research_area': getattr(consultation_data, 'research_area', ''),
+                'message': getattr(consultation_data, 'message', ''),
+                'preferred_date': getattr(consultation_data, 'preferred_date', '')
+            }
+        else:
+            # Already a dictionary
+            data_dict = consultation_data
+        
+        # Validate required fields
+        user_email = data_dict.get('email')
+        if not user_email:
+            print("⚠️ Schedule notification failed: no user email provided")
+            return False
+        
         # Send confirmation to user
-        user_success = send_email(
-            to_email=consultation_data.get('email'),
-            subject="Consultation Scheduled - Metabolomics Platform",
-            template_name="schedule_user_confirmation.html",
-            **consultation_data
-        )
+        user_success = False
+        try:
+            user_success = send_email(
+                to_email=user_email,
+                subject="Consultation Request Received - Metabolomics Platform",
+                template_name="schedule_user_confirmation.html",
+                **data_dict
+            )
+            if user_success:
+                print(f"✅ User confirmation email sent to {user_email}")
+            else:
+                print(f"⚠️ User confirmation email failed for {user_email}")
+        except Exception as e:
+            print(f"⚠️ User confirmation email error: {e}")
         
         # Send notification to admin
+        admin_success = False
         admin_email = app.config.get('MAIL_DEFAULT_SENDER')
-        admin_success = send_email(
-            to_email=admin_email,
-            subject="New Consultation Request - Metabolomics Platform",
-            template_name="schedule_admin_notification.html",
-            **consultation_data
-        )
+        if admin_email:
+            try:
+                admin_success = send_email(
+                    to_email=admin_email,
+                    subject=f"New Consultation Request - {data_dict.get('name', 'Unknown')}",
+                    template_name="schedule_admin_notification.html",
+                    **data_dict
+                )
+                if admin_success:
+                    print(f"✅ Admin notification email sent to {admin_email}")
+                else:
+                    print(f"⚠️ Admin notification email failed for {admin_email}")
+            except Exception as e:
+                print(f"⚠️ Admin notification email error: {e}")
+        else:
+            print("⚠️ No admin email configured for notifications")
         
-        return user_success and admin_success
+        # Return success if at least one email was sent
+        return user_success or admin_success
         
     except Exception as e:
-        print(f"⚠️ Schedule notification failed: {e}")
+        print(f"⚠️ Schedule notification failed with error: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 # === DATABASE SETUP (Working + Bulletproof) ===
@@ -466,32 +513,41 @@ def register():
 
 @auth_bp.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
-    """Forgot password functionality with email sending"""
+    """Forgot password functionality with OAuth user handling"""
     if request.method == 'POST':
-        email = request.form.get('email', '').strip()
+        email = request.form.get('email', '').strip().lower()
         
         if not email:
             flash('Please enter your email address.', 'error')
             return render_template('auth/forgot_password.html')
         
-        # Check if user exists
+        # Check if user exists and handle OAuth users
         if db and User:
             user = User.query.filter_by(email=email).first()
             if user:
-                # Generate reset token
-                import secrets
-                reset_token = secrets.token_urlsafe(32)
+                # Check if this is an OAuth user
+                auth_method = getattr(user, 'auth_method', 'local')
                 
-                # Store token temporarily (in production, store in database with expiry)
-                # For demo, we'll just print it and use a simple verification
-                session[f'reset_token_{email}'] = reset_token
-                session[f'reset_token_expiry_{email}'] = time.time() + 3600  # 1 hour
-                
-                # Send reset email
-                if send_password_reset_email(email, reset_token):
-                    flash(f'Password reset instructions have been sent to {email}', 'success')
+                if auth_method == 'oauth':
+                    # OAuth users should use their provider's password reset
+                    flash(f'This account uses Google OAuth authentication. To change your password, please visit your Google Account settings at https://myaccount.google.com/security', 'info')
+                    return render_template('auth/forgot_password_oauth.html', 
+                                        email=email, 
+                                        provider='Google')
                 else:
-                    flash('Email service temporarily unavailable. Please try again later.', 'warning')
+                    # Local user - proceed with normal password reset
+                    import secrets
+                    reset_token = secrets.token_urlsafe(32)
+                    
+                    # Store token temporarily
+                    session[f'reset_token_{email}'] = reset_token
+                    session[f'reset_token_expiry_{email}'] = time.time() + 3600  # 1 hour
+                    
+                    # Send reset email
+                    if send_password_reset_email(email, reset_token):
+                        flash(f'Password reset instructions have been sent to {email}', 'success')
+                    else:
+                        flash('Email service temporarily unavailable. Please try again later.', 'warning')
             else:
                 # Don't reveal if email exists for security
                 flash(f'If an account with {email} exists, password reset instructions have been sent.', 'info')
@@ -499,6 +555,12 @@ def forgot_password():
             flash('Password reset service temporarily unavailable. Use demo login: admin@demo.com / admin123', 'warning')
         
         return redirect(url_for('auth.login'))
+    
+    # For users already logged in via OAuth, show different message
+    if session.get('user_authenticated', False):
+        if session.get('user_auth_method', '') == 'oauth':
+            flash('OAuth users can change their password through their Google account settings.', 'info')
+            return redirect(url_for('auth.profile'))
     
     return render_template('auth/forgot_password.html')
 
@@ -576,35 +638,70 @@ def reset_password_submit():
     
     return redirect(url_for('auth.login'))
 
-@auth_bp.route('/profile')
+@auth_bp.route('/profile', methods=['GET', 'POST'])
 def profile():
-    """User profile page with proper error handling"""
+    """User profile page with username editing for OAuth users"""
     try:
         if not session.get('user_authenticated', False):
             flash('Please log in to view your profile.', 'error')
             return redirect(url_for('auth.login'))
         
+        user_email = session.get('user_email', '')
+        user_role = session.get('user_role', 'user')
+        user_name = session.get('user_name', user_email.split('@')[0] if user_email else 'User')
+        auth_method = session.get('user_auth_method', 'oauth')
+        
+        # Handle profile updates
+        if request.method == 'POST':
+            new_username = request.form.get('username', '').strip()
+            
+            if new_username and new_username != user_name:
+                # Update username in session
+                session['user_name'] = new_username
+                
+                # Update in database if user exists
+                if db and User:
+                    try:
+                        user = User.query.filter_by(email=user_email).first()
+                        if user:
+                            if hasattr(user, 'full_name'):
+                                user.full_name = new_username
+                            elif hasattr(user, 'username'):
+                                user.username = new_username
+                            db.session.commit()
+                            flash('Username updated successfully!', 'success')
+                        else:
+                            flash('Username updated in session.', 'info')
+                    except Exception as e:
+                        print(f"⚠️ Database update failed: {e}")
+                        flash('Username updated in session only.', 'warning')
+                else:
+                    flash('Username updated in session.', 'info')
+                
+                # Update the user_name for the current request
+                user_name = new_username
+            
+            return redirect(url_for('auth.profile'))
+        
         # Create a user-like object with all the required attributes
         class UserData:
-            def __init__(self, email, role, name):
+            def __init__(self, email, role, name, auth_method):
                 self.email = email
                 self.role = role
                 self.full_name = name or email.split('@')[0]
+                self.username = name or email.split('@')[0]
                 self.user_id = email.replace('@', '_').replace('.', '_')
                 self.email_verified = True  # Assume verified for demo
-                self.auth_method = 'oauth'
+                self.auth_method = auth_method
                 self.created_at = None
                 self.is_active = True
                 self.last_login = None
+                self.can_edit_username = auth_method == 'oauth'  # OAuth users can edit username
             
             def is_admin(self):
                 return self.role.lower() == 'admin'
         
-        user_email = session.get('user_email', '')
-        user_role = session.get('user_role', 'user')
-        user_name = session.get('user_name', user_email.split('@')[0] if user_email else 'User')
-        
-        current_user = UserData(user_email, user_role, user_name)
+        current_user = UserData(user_email, user_role, user_name, auth_method)
         
         return render_template('auth/profile.html', current_user=current_user, user=current_user)
     except Exception as e:
