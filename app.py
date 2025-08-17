@@ -462,17 +462,25 @@ def manager_required(f):
 
 @app.route('/health')
 def health_check():
-    """Bulletproof health check for Railway - guaranteed to work"""
+    """Enhanced health check for Railway deployment debugging"""
     try:
         response_data = {
             "status": "healthy",
-            "message": "Bulletproof metabolomics platform operational",
+            "message": "Metabolomics platform operational",
             "timestamp": datetime.now().isoformat(),
-            "version": "3.0.0-bulletproof",
+            "version": "3.1.0-oauth-fixed",
+            "environment": {
+                "host": request.host,
+                "user_agent": request.headers.get('User-Agent', 'Unknown'),
+                "database_url_set": bool(os.getenv('DATABASE_URL')),
+                "google_client_id_set": bool(os.getenv('GOOGLE_CLIENT_ID')),
+                "secret_key_set": bool(os.getenv('SECRET_KEY'))
+            },
             "features": {
                 "flask": True,
                 "database": bool(db),
                 "authentication": bool(login_manager),
+                "oauth": bool(google),
                 "email": bool(mail),
                 "charts": bool(DualChartService),
                 "models": bool(MainLipid)
@@ -481,7 +489,34 @@ def health_check():
         return jsonify(response_data), 200
     except Exception as e:
         # Ultimate fallback - plain text response
-        return f'{{"status":"healthy","message":"Bulletproof platform","error":"{str(e)}"}}', 200
+        return f'{{"status":"healthy","message":"Platform running","error":"{str(e)}"}}', 200
+
+@app.route('/railway-debug')
+def railway_debug():
+    """Railway-specific debugging information"""
+    try:
+        debug_info = {
+            "railway_info": {
+                "host": request.host,
+                "scheme": request.scheme,
+                "url": request.url,
+                "base_url": request.base_url,
+                "headers": dict(request.headers)
+            },
+            "oauth_config": {
+                "client_id_set": bool(os.getenv('GOOGLE_CLIENT_ID')),
+                "client_secret_set": bool(os.getenv('GOOGLE_CLIENT_SECRET')),
+                "oauth_available": bool(google)
+            },
+            "database": {
+                "url_set": bool(os.getenv('DATABASE_URL')),
+                "connection": bool(db),
+                "models_loaded": bool(MainLipid)
+            }
+        }
+        return jsonify(debug_info), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # =====================================================
 # MAIN ROUTES
@@ -1075,7 +1110,7 @@ def google_login():
             # Determine correct redirect URI based on environment
             host = request.host
             
-            # Handle Railway domain specifically
+            # Handle Railway domain specifically (remove www if present)
             if 'httpsphenikaa-lipidomics-analysis.xyz' in host:
                 redirect_uri = "https://httpsphenikaa-lipidomics-analysis.xyz/callback"
             elif host.startswith('192.168.') or host.startswith('10.') or host.startswith('172.'):
@@ -1405,6 +1440,21 @@ def server_error(error):
 print("🎯 ORIGINAL INTERFACE METABOLOMICS PLATFORM READY")
 print("   All original features, navigation, and styling preserved")
 print("   SQLAlchemy initialization fixed for bulletproof deployment")
+
+@app.route('/ping')
+def ping():
+    """Simple ping endpoint for Railway health checks"""
+    return "pong", 200
+
+@app.errorhandler(404)
+def not_found(error):
+    """Handle 404 errors gracefully"""
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Handle 500 errors gracefully"""
+    return "Internal server error. Please try again later.", 500
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
