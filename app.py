@@ -1110,9 +1110,13 @@ def google_login():
             # Determine correct redirect URI based on environment
             host = request.host
             
-            # Handle Railway domain specifically (remove www if present)
+            # Handle Railway domains - support both custom and default domains
             if 'httpsphenikaa-lipidomics-analysis.xyz' in host:
+                # Custom domain (may have connectivity issues)
                 redirect_uri = "https://httpsphenikaa-lipidomics-analysis.xyz/callback"
+            elif 'railway.app' in host:
+                # Railway default domain (always works)
+                redirect_uri = f"https://{host}/callback"
             elif host.startswith('192.168.') or host.startswith('10.') or host.startswith('172.'):
                 # Use localhost for private IPs
                 redirect_uri = "http://localhost:5000/callback"

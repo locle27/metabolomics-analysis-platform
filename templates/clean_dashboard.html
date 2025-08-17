@@ -168,6 +168,39 @@
         color: var(--phenikaa-blue);
     }
     
+    /* Select All Class Button */
+    .select-all-class-btn {
+        background: var(--phenikaa-orange);
+        color: var(--phenikaa-white);
+        border: none;
+        border-radius: 50%;
+        width: 22px;
+        height: 22px;
+        font-size: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-left: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.8;
+    }
+    
+    .select-all-class-btn:hover {
+        opacity: 1;
+        transform: scale(1.1);
+        box-shadow: 0 2px 8px rgba(233, 75, 0, 0.4);
+    }
+    
+    .class-pill.active .select-all-class-btn {
+        background: var(--phenikaa-text-blue);
+        color: var(--phenikaa-white);
+    }
+    
+    .class-pill.active .select-all-class-btn:hover {
+        background: var(--phenikaa-orange);
+    }
+    
     
     .lipid-grid {
         display: grid;
@@ -518,44 +551,48 @@
         margin-left: 5px;
     }
     
-    /* Beautiful Search Tips Styling */
-    .search-tips {
-        text-align: center;
-        padding: 12px 20px;
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        border-radius: 25px;
-        border: 1px solid #dee2e6;
-        margin-top: 15px;
-    }
-    
-    .tips-container {
+    /* Professional Horizontal Search Layout */
+    .horizontal-search-container {
         display: flex;
         align-items: center;
-        justify-content: center;
+        gap: 20px;
         flex-wrap: wrap;
-        gap: 8px;
-        font-size: 13px;
-        line-height: 1.4;
+    }
+    
+    .search-input-wrapper {
+        flex: 1;
+        min-width: 300px;
+    }
+    
+    .search-tips-horizontal {
+        flex-shrink: 0;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 20px;
+        border: 1px solid #dee2e6;
+        padding: 8px 16px;
+    }
+    
+    .tips-container-horizontal {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        white-space: nowrap;
     }
     
     .tips-icon {
-        font-size: 16px;
-        margin-right: 8px;
+        font-size: 14px;
+        margin-right: 6px;
     }
     
-    .tips-label {
-        font-weight: 600;
-        color: var(--phenikaa-text-blue);
-        margin-right: 12px;
-    }
-    
-    .tip-item {
+    .tip-item-compact {
         background: var(--phenikaa-white);
         color: var(--phenikaa-text-blue);
-        padding: 4px 8px;
-        border-radius: 12px;
+        padding: 3px 6px;
+        border-radius: 10px;
         font-family: 'Courier New', monospace;
         font-weight: 500;
+        font-size: 11px;
         border: 1px solid #e9ecef;
         white-space: nowrap;
     }
@@ -563,7 +600,8 @@
     .tip-divider {
         color: var(--phenikaa-orange);
         font-weight: bold;
-        margin: 0 4px;
+        margin: 0 3px;
+        font-size: 12px;
     }
 
     /* Responsive Design for Pills */
@@ -607,20 +645,24 @@
             font-size: 7px;
         }
         
-        /* Responsive search tips */
-        .tips-container {
+        /* Responsive horizontal search */
+        .horizontal-search-container {
             flex-direction: column;
-            gap: 6px;
+            gap: 12px;
         }
         
-        .tips-label {
-            margin-right: 0;
-            margin-bottom: 4px;
+        .search-input-wrapper {
+            min-width: 100%;
         }
         
-        .tip-item {
-            font-size: 12px;
-            padding: 3px 6px;
+        .search-tips-horizontal {
+            align-self: center;
+        }
+        
+        .tips-container-horizontal {
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 4px;
         }
     }
     
@@ -648,21 +690,22 @@
     <div class="lipid-selector">
         <h2 class="text-center mb-4">🧬 Select Lipids for Analysis</h2>
         
-        <!-- Enhanced Search Section -->
+        <!-- Enhanced Search Section - Horizontal Layout -->
         <div class="search-and-database-section">
-            <div class="search-bar">
-                <input type="text" id="search-input" class="form-control form-control-lg" 
-                       placeholder="🔍 Search lipids (e.g., ac120, tg480, pc341, or full names...)"
-                       autocomplete="off">
-                <div class="search-tips mt-3">
-                    <div class="tips-container">
+            <div class="horizontal-search-container">
+                <div class="search-input-wrapper">
+                    <input type="text" id="search-input" class="form-control form-control-lg" 
+                           placeholder="🔍 Search lipids (e.g., ac120, tg480, pc341, or full names...)"
+                           autocomplete="off">
+                </div>
+                <div class="search-tips-horizontal">
+                    <div class="tips-container-horizontal">
                         <span class="tips-icon">💡</span>
-                        <span class="tips-label">Quick tips:</span>
-                        <span class="tip-item">Type "ac120" for AC(12:0)</span>
+                        <span class="tip-item-compact">ac120 → AC(12:0)</span>
                         <span class="tip-divider">•</span>
-                        <span class="tip-item">"tg480" for TG(48:0)</span>
+                        <span class="tip-item-compact">tg480 → TG(48:0)</span>
                         <span class="tip-divider">•</span>
-                        <span class="tip-item">"180" for any 18:0 lipid</span>
+                        <span class="tip-item-compact">180 → any 18:0</span>
                     </div>
                 </div>
             </div>
@@ -690,6 +733,10 @@
                     <div class="class-pill-content">
                         <span class="class-label">{{ cls.class_name }}</span>
                         <span class="class-count-badge">{{ cls.count or 0 }}</span>
+                        <button class="select-all-class-btn" onclick="event.stopPropagation(); selectAllLipidsOfClass('{{ cls.class_name }}')" 
+                                title="Select all {{ cls.class_name }} lipids">
+                            <i class="fas fa-check-double"></i>
+                        </button>
                     </div>
                 </div>
                 {% endfor %}
@@ -1138,6 +1185,93 @@ function selectAllVisible() {
             toggleLipidSelection(card);
         }
     });
+}
+
+// Select all lipids of a specific class
+function selectAllLipidsOfClass(className) {
+    console.log(`🎯 Selecting all lipids of class: ${className}`);
+    
+    let selectedCount = 0;
+    let totalCount = 0;
+    
+    // Find all lipid cards of this class
+    document.querySelectorAll('.lipid-card').forEach(card => {
+        const cardClass = card.dataset.class;
+        
+        if (cardClass === className) {
+            totalCount++;
+            
+            // Only select if not already selected
+            if (!card.classList.contains('selected')) {
+                toggleLipidSelection(card);
+                selectedCount++;
+            }
+        }
+    });
+    
+    // Visual feedback
+    if (selectedCount > 0) {
+        // Show success message
+        showTemporaryMessage(`✅ Selected ${selectedCount}/${totalCount} ${className} lipids`, 'success');
+    } else {
+        // All already selected
+        showTemporaryMessage(`ℹ️ All ${totalCount} ${className} lipids already selected`, 'info');
+    }
+    
+    console.log(`✅ Selected ${selectedCount} new ${className} lipids (${totalCount} total in class)`);
+}
+
+// Show temporary feedback message
+function showTemporaryMessage(message, type = 'info') {
+    // Remove existing message if any
+    const existingMessage = document.querySelector('.temp-feedback-message');
+    if (existingMessage) {
+        existingMessage.remove();
+    }
+    
+    // Create new message
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `temp-feedback-message alert alert-${type === 'success' ? 'success' : 'info'} alert-dismissible`;
+    messageDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        min-width: 300px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        animation: slideInRight 0.3s ease-out;
+    `;
+    messageDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+    `;
+    
+    document.body.appendChild(messageDiv);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        if (messageDiv.parentElement) {
+            messageDiv.style.animation = 'slideOutRight 0.3s ease-in';
+            setTimeout(() => messageDiv.remove(), 300);
+        }
+    }, 3000);
+}
+
+// Add CSS animation for feedback messages
+if (!document.querySelector('#feedback-animations')) {
+    const style = document.createElement('style');
+    style.id = 'feedback-animations';
+    style.textContent = `
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
 }
 
 // Lazy Loading System for Instant Page Load
