@@ -518,6 +518,54 @@
         margin-left: 5px;
     }
     
+    /* Beautiful Search Tips Styling */
+    .search-tips {
+        text-align: center;
+        padding: 12px 20px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 25px;
+        border: 1px solid #dee2e6;
+        margin-top: 15px;
+    }
+    
+    .tips-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    
+    .tips-icon {
+        font-size: 16px;
+        margin-right: 8px;
+    }
+    
+    .tips-label {
+        font-weight: 600;
+        color: var(--phenikaa-text-blue);
+        margin-right: 12px;
+    }
+    
+    .tip-item {
+        background: var(--phenikaa-white);
+        color: var(--phenikaa-text-blue);
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-family: 'Courier New', monospace;
+        font-weight: 500;
+        border: 1px solid #e9ecef;
+        white-space: nowrap;
+    }
+    
+    .tip-divider {
+        color: var(--phenikaa-orange);
+        font-weight: bold;
+        margin: 0 4px;
+    }
+
     /* Responsive Design for Pills */
     @media (max-width: 768px) {
         .search-and-database-section .row {
@@ -558,6 +606,22 @@
             height: 18px;
             font-size: 7px;
         }
+        
+        /* Responsive search tips */
+        .tips-container {
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .tips-label {
+            margin-right: 0;
+            margin-bottom: 4px;
+        }
+        
+        .tip-item {
+            font-size: 12px;
+            padding: 3px 6px;
+        }
     }
     
     @media (max-width: 576px) {
@@ -590,10 +654,16 @@
                 <input type="text" id="search-input" class="form-control form-control-lg" 
                        placeholder="🔍 Search lipids (e.g., ac120, tg480, pc341, or full names...)"
                        autocomplete="off">
-                <div class="search-tips mt-2">
-                    <small class="form-text text-muted">
-                        💡 <strong>Quick tips:</strong> Type "ac120" for AC(12:0) • "tg480" for TG(48:0) • "180" for any 18:0 lipid
-                    </small>
+                <div class="search-tips mt-3">
+                    <div class="tips-container">
+                        <span class="tips-icon">💡</span>
+                        <span class="tips-label">Quick tips:</span>
+                        <span class="tip-item">Type "ac120" for AC(12:0)</span>
+                        <span class="tip-divider">•</span>
+                        <span class="tip-item">"tg480" for TG(48:0)</span>
+                        <span class="tip-divider">•</span>
+                        <span class="tip-item">"180" for any 18:0 lipid</span>
+                    </div>
                 </div>
             </div>
         </div>
