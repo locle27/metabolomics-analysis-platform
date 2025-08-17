@@ -159,8 +159,7 @@ database_url = os.getenv('DATABASE_URL')
 
 if database_url:
     try:
-        from flask_sqlalchemy import SQLAlchemy
-        
+        # Configure database settings first
         app.config.update({
             'SQLALCHEMY_DATABASE_URI': database_url,
             'SQLALCHEMY_TRACK_MODIFICATIONS': False,
@@ -171,7 +170,14 @@ if database_url:
             }
         })
         
-        db = SQLAlchemy()
+        # Import models first to get the shared db instance
+        from models_postgresql_optimized import (
+            db, MainLipid, LipidClass, AnnotatedIon, User, ScheduleRequest, AdminSettings, 
+            optimized_manager, get_db_stats, get_lipids_by_class, search_lipids,
+            BackupHistory, BackupSnapshots, BackupStats
+        )
+        
+        # Initialize with the existing db instance
         db.init_app(app)
         
         # Test database connection
@@ -180,62 +186,55 @@ if database_url:
                 conn.execute(text("SELECT 1"))
                 print("✅ Database connection tested successfully")
         
-        # Import models AFTER database is properly initialized
+        print("✅ Models imported successfully")
+        
+        # Initialize backup system
         try:
-            from models_postgresql_optimized import (
-                MainLipid, LipidClass, AnnotatedIon, User, ScheduleRequest, AdminSettings, 
-                optimized_manager, get_db_stats, get_lipids_by_class, search_lipids,
-                BackupHistory, BackupSnapshots, BackupStats
-            )
-            print("✅ Models imported successfully")
-            
-            # Initialize backup system
-            try:
-                from backup_system_postgresql import PostgreSQLBackupSystem, auto_backup_context
-                backup_system = PostgreSQLBackupSystem(app)
-                print("✅ Backup system initialized")
-            except Exception as backup_error:
-                print(f"⚠️ Backup system initialization failed: {backup_error}")
+            from backup_system_postgresql import PostgreSQLBackupSystem, auto_backup_context
+            backup_system = PostgreSQLBackupSystem(app)
+            print("✅ Backup system initialized")
+        except Exception as backup_error:
+            print(f"⚠️ Backup system initialization failed: {backup_error}")
                 
-        except Exception as model_error:
-            print(f"⚠️ Model import failed: {model_error}")
-            # Create minimal fallback models for basic functionality
-            try:
-                from sqlalchemy import Column, Integer, String, Float, Text, DateTime, Boolean, ForeignKey
-                from sqlalchemy.orm import relationship
-                
-                class MainLipid(db.Model):
-                    __tablename__ = 'main_lipids'
-                    id = Column(Integer, primary_key=True)
-                    lipid_name = Column(String(255), nullable=False)
-                    class_name = Column(String(100))
-                    retention_time = Column(Float)
-                    
-                class User(db.Model):
-                    __tablename__ = 'users'
-                    id = Column(Integer, primary_key=True)
-                    email = Column(String(255), unique=True, nullable=False)
-                    full_name = Column(String(255), nullable=False)
-                    role = Column(String(50), default='user')
-                    
-                    def is_authenticated(self): return True
-                    def is_active(self): return True
-                    def is_anonymous(self): return False
-                    def get_id(self): return str(self.id)
-                    def is_admin(self): return self.role == 'admin'
-                    def is_manager(self): return self.role in ['admin', 'manager']
-                
-                def get_db_stats():
-                    return {'total_lipids': MainLipid.query.count(), 'total_classes': 0, 'total_annotations': 0}
-                
-                print("✅ Fallback models created")
-                
-            except Exception as fallback_error:
-                print(f"⚠️ Fallback models failed: {fallback_error}")
-            
     except Exception as e:
         print(f"⚠️ Database initialization failed: {e}")
-        print("   App will start but database features will be unavailable")
+        # Create minimal fallback models for basic functionality
+        try:
+            from flask_sqlalchemy import SQLAlchemy
+            from sqlalchemy import Column, Integer, String, Float, Text, DateTime, Boolean, ForeignKey
+            from sqlalchemy.orm import relationship
+            
+            db = SQLAlchemy()
+            db.init_app(app)
+            
+            class MainLipid(db.Model):
+                __tablename__ = 'main_lipids'
+                id = Column(Integer, primary_key=True)
+                lipid_name = Column(String(255), nullable=False)
+                class_name = Column(String(100))
+                retention_time = Column(Float)
+                
+            class User(db.Model):
+                __tablename__ = 'users'
+                id = Column(Integer, primary_key=True)
+                email = Column(String(255), unique=True, nullable=False)
+                full_name = Column(String(255), nullable=False)
+                role = Column(String(50), default='user')
+                
+                def is_authenticated(self): return True
+                def is_active(self): return True
+                def is_anonymous(self): return False
+                def get_id(self): return str(self.id)
+                def is_admin(self): return self.role == 'admin'
+                def is_manager(self): return self.role in ['admin', 'manager']
+            
+            def get_db_stats():
+                return {'total_lipids': MainLipid.query.count(), 'total_classes': 0, 'total_annotations': 0}
+            
+            print("✅ Fallback models created")
+            
+        except Exception as fallback_error:
+            print(f"⚠️ Fallback models failed: {fallback_error}")
 else:
     print("⚠️ No DATABASE_URL - database features unavailable")
 
@@ -325,6 +324,11 @@ except Exception as e:
         session.clear()
         flash('Logged out successfully.', 'success')
         return redirect(url_for('homepage'))
+    
+    @auth_bp.route('/google-login')
+    def google_login():
+        flash('Google OAuth not configured in fallback mode. Use demo login.', 'warning')
+        return redirect(url_for('auth.login'))
 
 # Register authentication blueprint
 app.register_blueprint(auth_bp)
@@ -477,7 +481,21 @@ def homepage():
 def clean_dashboard():
     """Main lipid selection interface with lazy loading"""
     try:
-        return render_template('clean_dashboard.html')
+        # Prepare data for template
+        data = {
+            'lipids': [],
+            'total_lipids': 0,
+            'database_available': bool(db and MainLipid)
+        }
+        
+        if db and MainLipid:
+            try:
+                data['lipids'] = MainLipid.query.limit(50).all()
+                data['total_lipids'] = MainLipid.query.count()
+            except Exception as db_error:
+                print(f"⚠️ Database query failed: {db_error}")
+        
+        return render_template('clean_dashboard.html', data=data)
     except Exception as e:
         print(f"⚠️ Dashboard error: {e}")
         return f"<h1>Dashboard Loading...</h1><p>Error: {e}</p>"
@@ -758,6 +776,12 @@ def demo_login():
     except Exception as e:
         flash(f'Demo login failed: {e}', 'error')
         return redirect(url_for('auth.login'))
+
+@app.route('/google-login')
+def google_login():
+    """Fallback for google login route"""
+    flash('Google OAuth not configured. Use demo login instead.', 'warning')
+    return redirect(url_for('auth.login'))
 
 # =====================================================
 # UTILITY ROUTES
