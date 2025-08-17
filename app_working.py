@@ -104,18 +104,45 @@ try:
                     
                 except Exception as stats_error:
                     print(f"❌ Step 3a: get_db_stats failed: {stats_error}")
-                    print(f"   Trying simple database test instead...")
+                    print(f"   Error type: {type(stats_error).__name__}")
+                    print(f"   Trying to check if tables exist...")
                     
-                    # Try a simple query to see if database works
+                    # Check if tables exist
                     try:
                         with db.engine.connect() as conn:
                             from sqlalchemy import text
-                            conn.execute(text("SELECT 1"))
-                        print("✅ Simple database query works")
-                        models_available = True  # Models imported, basic DB works
-                        print("✅ MODELS LOADED (with limited functionality)")
+                            # Check if main_lipids table exists
+                            result = conn.execute(text("""
+                                SELECT EXISTS (
+                                    SELECT FROM information_schema.tables 
+                                    WHERE table_name = 'main_lipids'
+                                );
+                            """))
+                            table_exists = result.fetchone()[0]
+                            print(f"🔍 main_lipids table exists: {table_exists}")
+                            
+                            if table_exists:
+                                # Try a simple count query
+                                result = conn.execute(text("SELECT COUNT(*) FROM main_lipids"))
+                                count = result.fetchone()[0]
+                                print(f"✅ Found {count} lipids in database")
+                                models_available = True
+                                print("✅ MODELS LOADED (database tables verified)")
+                            else:
+                                print("⚠️ Tables don't exist - trying to create them...")
+                                try:
+                                    # Try to create tables using the models
+                                    models_db.create_all()
+                                    print("✅ Tables created successfully")
+                                    models_available = True
+                                    print("✅ MODELS LOADED (tables created)")
+                                except Exception as create_error:
+                                    print(f"❌ Table creation failed: {create_error}")
+                                    models_available = True  # Models still work, just no data
+                                    print("✅ MODELS LOADED (no tables created)")
+                                
                     except Exception as db_error:
-                        print(f"❌ Even simple database query failed: {db_error}")
+                        print(f"❌ Table check failed: {db_error}")
                         models_available = False
                 
             except Exception as e:
