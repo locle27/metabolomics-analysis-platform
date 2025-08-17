@@ -1069,24 +1069,29 @@ def logout():
 
 @app.route('/google-login')
 def google_login():
-    """Google OAuth login with localhost support"""
+    """Google OAuth login with Railway domain support"""
     if google and OAUTH_AVAILABLE:
         try:
-            # Google OAuth requires localhost for local development, not private IPs
+            # Determine correct redirect URI based on environment
             host = request.host
-            if host.startswith('192.168.') or host.startswith('10.') or host.startswith('172.'):
+            
+            # Handle Railway domain specifically
+            if 'httpsphenikaa-lipidomics-analysis.xyz' in host:
+                redirect_uri = "https://httpsphenikaa-lipidomics-analysis.xyz/callback"
+            elif host.startswith('192.168.') or host.startswith('10.') or host.startswith('172.'):
                 # Use localhost for private IPs
                 redirect_uri = "http://localhost:5000/callback"
             elif host.startswith('localhost') or host.startswith('127.0.0.1'):
                 redirect_uri = f"http://{host}/callback"
             else:
+                # Default HTTPS for production domains
                 redirect_uri = f"https://{host}/callback"
             
             print(f"🔗 OAuth redirect URI: {redirect_uri}")
             return google.authorize_redirect(redirect_uri)
         except Exception as e:
             print(f"⚠️ Google OAuth error: {e}")
-            flash('Google login requires localhost (not private IP). Try: http://localhost:5000', 'warning')
+            flash('Google OAuth error. Please try again or use demo login.', 'warning')
             return redirect(url_for('auth.login'))
     else:
         flash('Google OAuth not configured. Use demo login: admin@demo.com / admin123', 'warning')
