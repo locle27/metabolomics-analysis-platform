@@ -1,0 +1,525 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Management - Metabolomics Platform{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="page-title mb-1">👥 Patient Management System</h1>
+            <p class="text-muted mb-0">Comprehensive patient data management and consultation tracking</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="exportPatientData()">
+                <i class="fas fa-download"></i> Export Data
+            </button>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addPatientModal">
+                <i class="fas fa-plus"></i> Add Patient
+            </button>
+            <button class="btn btn-primary" onclick="refreshData()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Professional Management Interface Styles */
+    .management-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+    }
+    
+    .management-header {
+        background: linear-gradient(135deg, var(--phenikaa-blue), var(--phenikaa-dark-blue));
+        color: white;
+        padding: 20px 25px;
+        border-bottom: 3px solid var(--phenikaa-orange);
+    }
+    
+    .stats-overview {
+        background: #f8f9fa;
+        padding: 15px 25px;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: #495057;
+    }
+    
+    .stat-value {
+        font-weight: 600;
+        color: var(--phenikaa-blue);
+        font-size: 16px;
+    }
+    
+    .search-controls {
+        padding: 20px 25px;
+        background: white;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .search-row {
+        display: grid;
+        grid-template-columns: 1fr 180px 150px 120px;
+        gap: 15px;
+        align-items: end;
+    }
+    
+    .form-control, .form-select {
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: var(--phenikaa-blue);
+        box-shadow: 0 0 0 0.2rem rgba(46, 76, 146, 0.15);
+    }
+    
+    .table-container {
+        overflow-x: auto;
+        max-height: 70vh;
+    }
+    
+    .patients-table {
+        margin: 0;
+        font-size: 13px;
+    }
+    
+    .patient-status {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .status-active {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-completed {
+        background: #cce5ff;
+        color: #004085;
+    }
+    
+    .status-cancelled {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .contact-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    
+    .contact-email {
+        font-size: 12px;
+        color: #6c757d;
+    }
+    
+    .consultation-date {
+        font-weight: 500;
+        color: var(--phenikaa-orange);
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 5px;
+    }
+    
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    
+    /* Modal Styles */
+    .modal-header {
+        background: linear-gradient(135deg, var(--phenikaa-blue), var(--phenikaa-dark-blue));
+        color: white;
+        border-bottom: none;
+    }
+    
+    .modal-title {
+        font-weight: 600;
+    }
+    
+    .form-label {
+        font-weight: 500;
+        color: var(--phenikaa-dark-blue);
+        margin-bottom: 5px;
+    }
+    
+    .form-section {
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid var(--phenikaa-orange);
+    }
+    
+    .section-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--phenikaa-blue);
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 1200px) {
+        .search-row {
+            grid-template-columns: 1fr 160px 130px 100px;
+            gap: 10px;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .search-row {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        
+        .stats-overview {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .table-container {
+            max-height: 60vh;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="management-container">
+    <!-- Statistics Overview -->
+    <div class="stats-overview">
+        <div class="stat-item">
+            <i class="fas fa-users text-primary"></i>
+            <span>Total Patients:</span>
+            <span class="stat-value">{{ patients_stats.total_patients or 156 }}</span>
+        </div>
+        <div class="stat-item">
+            <i class="fas fa-calendar-check text-success"></i>
+            <span>Active Consultations:</span>
+            <span class="stat-value">{{ patients_stats.active_consultations or 23 }}</span>
+        </div>
+        <div class="stat-item">
+            <i class="fas fa-clock text-warning"></i>
+            <span>Pending Appointments:</span>
+            <span class="stat-value">{{ patients_stats.pending_appointments or 8 }}</span>
+        </div>
+        <div class="stat-item">
+            <i class="fas fa-chart-line text-info"></i>
+            <span>This Month:</span>
+            <span class="stat-value">{{ patients_stats.monthly_new or 34 }}</span>
+        </div>
+    </div>
+    
+    <!-- Search Controls -->
+    <div class="search-controls">
+        <div class="search-row">
+            <div>
+                <label class="form-label">Search Patients</label>
+                <input type="text" id="searchInput" class="form-control" 
+                       placeholder="Search by name, email, patient ID, or organization...">
+            </div>
+            <div>
+                <label class="form-label">Status Filter</label>
+                <select id="statusFilter" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label">Date Range</label>
+                <select id="dateFilter" class="form-select">
+                    <option value="">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label">&nbsp;</label>
+                <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                    <i class="fas fa-times"></i> Clear
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Patients Table -->
+    <div class="table-container">
+        <table class="table table-hover patients-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Patient ID</th>
+                    <th>Name & Contact</th>
+                    <th>Organization</th>
+                    <th>Research Interest</th>
+                    <th>Consultation Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="patientsTableBody">
+                <!-- Sample Data - Replace with dynamic content -->
+                <tr>
+                    <td><strong>PT-001</strong></td>
+                    <td>
+                        <div class="contact-info">
+                            <strong>Dr. Sarah Johnson</strong>
+                            <div class="contact-email">sarah.johnson@university.edu</div>
+                            <div class="contact-email">+1 (555) 123-4567</div>
+                        </div>
+                    </td>
+                    <td>Harvard Medical School</td>
+                    <td>Lipid metabolism in cancer cells</td>
+                    <td><span class="consultation-date">2025-08-20 14:00</span></td>
+                    <td><span class="patient-status status-active">Active</span></td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewPatient('PT-001')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-success" onclick="editPatient('PT-001')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="scheduleFollowup('PT-001')">
+                                <i class="fas fa-calendar-plus"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>PT-002</strong></td>
+                    <td>
+                        <div class="contact-info">
+                            <strong>Prof. Michael Chen</strong>
+                            <div class="contact-email">m.chen@research.org</div>
+                            <div class="contact-email">+1 (555) 987-6543</div>
+                        </div>
+                    </td>
+                    <td>MIT Research Institute</td>
+                    <td>Metabolomics in drug discovery</td>
+                    <td><span class="consultation-date">2025-08-22 10:30</span></td>
+                    <td><span class="patient-status status-pending">Pending</span></td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewPatient('PT-002')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-success" onclick="editPatient('PT-002')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="cancelConsultation('PT-002')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Patient Modal -->
+<div class="modal fade" id="addPatientModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i>Add New Patient
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addPatientForm">
+                    <div class="form-section">
+                        <div class="section-title">
+                            <i class="fas fa-user"></i>Personal Information
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Full Name *</label>
+                                <input type="text" class="form-control" name="name" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email Address *</label>
+                                <input type="email" class="form-control" name="email" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" name="phone">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Organization</label>
+                                <input type="text" class="form-control" name="organization">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <div class="section-title">
+                            <i class="fas fa-flask"></i>Research Information
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Research Interest</label>
+                                <textarea class="form-control" name="research_interest" rows="3" 
+                                         placeholder="Describe the research area and specific questions..."></textarea>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Research Type</label>
+                                <select class="form-select" name="research_type">
+                                    <option value="">Select Type</option>
+                                    <option value="academic">Academic Research</option>
+                                    <option value="clinical">Clinical Research</option>
+                                    <option value="pharmaceutical">Pharmaceutical</option>
+                                    <option value="biotech">Biotechnology</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Priority Level</label>
+                                <select class="form-select" name="priority">
+                                    <option value="normal">Normal</option>
+                                    <option value="high">High</option>
+                                    <option value="urgent">Urgent</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <div class="section-title">
+                            <i class="fas fa-calendar"></i>Consultation Details
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Preferred Date</label>
+                                <input type="datetime-local" class="form-control" name="consultation_date">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Duration (minutes)</label>
+                                <select class="form-select" name="duration">
+                                    <option value="30">30 minutes</option>
+                                    <option value="60" selected>60 minutes</option>
+                                    <option value="90">90 minutes</option>
+                                    <option value="120">120 minutes</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitPatientForm()">
+                    <i class="fas fa-save me-1"></i>Add Patient
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Patient Management JavaScript Functions
+function exportPatientData() {
+    alert('Export functionality will be implemented here');
+}
+
+function refreshData() {
+    alert('Refresh functionality will be implemented here');
+}
+
+function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('dateFilter').value = '';
+}
+
+function viewPatient(patientId) {
+    alert('View patient details for: ' + patientId);
+}
+
+function editPatient(patientId) {
+    alert('Edit patient functionality for: ' + patientId);
+}
+
+function scheduleFollowup(patientId) {
+    alert('Schedule follow-up for: ' + patientId);
+}
+
+function cancelConsultation(patientId) {
+    if (confirm('Are you sure you want to cancel this consultation?')) {
+        alert('Consultation cancelled for: ' + patientId);
+    }
+}
+
+function submitPatientForm() {
+    const form = document.getElementById('addPatientForm');
+    const formData = new FormData(form);
+    
+    // Here you would typically send the data to your backend
+    console.log('Patient form data:', Object.fromEntries(formData));
+    alert('Patient added successfully! (This is a demo)');
+    
+    // Close modal and reset form
+    const modal = bootstrap.Modal.getInstance(document.getElementById('addPatientModal'));
+    modal.hide();
+    form.reset();
+}
+
+// Search and Filter Functions
+document.getElementById('searchInput').addEventListener('input', function() {
+    console.log('Search:', this.value);
+    // Implement search functionality
+});
+
+document.getElementById('statusFilter').addEventListener('change', function() {
+    console.log('Status filter:', this.value);
+    // Implement status filtering
+});
+
+document.getElementById('dateFilter').addEventListener('change', function() {
+    console.log('Date filter:', this.value);
+    // Implement date filtering
+});
+</script>
+{% endblock %}

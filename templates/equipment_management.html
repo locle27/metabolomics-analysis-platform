@@ -1,0 +1,543 @@
+{% extends "base.html" %}
+
+{% block title %}Equipment Management - Metabolomics Platform{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="page-title mb-1">🔬 Laboratory Equipment Management</h1>
+            <p class="text-muted mb-0">Monitor, maintain, and manage laboratory equipment and instrumentation</p>
+        </div>
+        <div>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEquipmentModal">
+                <i class="fas fa-plus"></i> Add Equipment
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Equipment Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-primary mb-2">
+                    <i class="fas fa-microscope fa-2x"></i>
+                </div>
+                <h3 class="text-primary mb-1">{{ stats.total_equipment or 24 }}</h3>
+                <p class="text-muted mb-0">Total Equipment</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-success mb-2">
+                    <i class="fas fa-check-circle fa-2x"></i>
+                </div>
+                <h3 class="text-success mb-1">{{ stats.operational or 20 }}</h3>
+                <p class="text-muted mb-0">Operational</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-warning mb-2">
+                    <i class="fas fa-exclamation-triangle fa-2x"></i>
+                </div>
+                <h3 class="text-warning mb-1">{{ stats.maintenance_due or 3 }}</h3>
+                <p class="text-muted mb-0">Maintenance Due</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-danger mb-2">
+                    <i class="fas fa-times-circle fa-2x"></i>
+                </div>
+                <h3 class="text-danger mb-1">{{ stats.out_of_order or 1 }}</h3>
+                <p class="text-muted mb-0">Out of Order</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Equipment Management Tabs -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom">
+        <ul class="nav nav-tabs card-header-tabs" id="equipmentTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory-pane" type="button" role="tab">
+                    <i class="fas fa-list"></i> Equipment Inventory
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="maintenance-tab" data-bs-toggle="tab" data-bs-target="#maintenance-pane" type="button" role="tab">
+                    <i class="fas fa-wrench"></i> Maintenance Schedule
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="calibration-tab" data-bs-toggle="tab" data-bs-target="#calibration-pane" type="button" role="tab">
+                    <i class="fas fa-balance-scale"></i> Calibration
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="usage-tab" data-bs-toggle="tab" data-bs-target="#usage-pane" type="button" role="tab">
+                    <i class="fas fa-chart-line"></i> Usage Tracking
+                </button>
+            </li>
+        </ul>
+    </div>
+    <div class="card-body">
+        <div class="tab-content" id="equipmentTabContent">
+            <!-- Equipment Inventory Tab -->
+            <div class="tab-pane fade show active" id="inventory-pane" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Equipment Inventory</h5>
+                    <div class="d-flex gap-2">
+                        <select class="form-select form-select-sm" id="categoryFilter" style="width: auto;">
+                            <option value="">All Categories</option>
+                            <option value="ms">Mass Spectrometry</option>
+                            <option value="chromatography">Chromatography</option>
+                            <option value="analytical">Analytical</option>
+                            <option value="sample_prep">Sample Preparation</option>
+                        </select>
+                        <select class="form-select form-select-sm" id="statusFilter" style="width: auto;">
+                            <option value="">All Status</option>
+                            <option value="operational">Operational</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="out_of_order">Out of Order</option>
+                        </select>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="exportInventory()">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Equipment ID</th>
+                                <th>Name & Model</th>
+                                <th>Category</th>
+                                <th>Location</th>
+                                <th>Status</th>
+                                <th>Last Maintenance</th>
+                                <th>Next Due</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Sample Equipment Data -->
+                            <tr>
+                                <td><strong>EQ-MS-001</strong></td>
+                                <td>
+                                    <div>
+                                        <strong>Thermo Q Exactive Plus</strong>
+                                        <div class="text-muted small">Orbitrap Mass Spectrometer</div>
+                                    </div>
+                                </td>
+                                <td><span class="badge bg-primary">Mass Spectrometry</span></td>
+                                <td>Lab Room 201A</td>
+                                <td><span class="badge bg-success">Operational</span></td>
+                                <td>2025-07-15</td>
+                                <td>2025-10-15</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="viewEquipment('EQ-MS-001')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning" onclick="scheduleMaintenance('EQ-MS-001')">
+                                            <i class="fas fa-wrench"></i>
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="viewUsageLog('EQ-MS-001')">
+                                            <i class="fas fa-chart-line"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>EQ-LC-002</strong></td>
+                                <td>
+                                    <div>
+                                        <strong>Agilent 1290 Infinity II</strong>
+                                        <div class="text-muted small">UHPLC System</div>
+                                    </div>
+                                </td>
+                                <td><span class="badge bg-info">Chromatography</span></td>
+                                <td>Lab Room 201B</td>
+                                <td><span class="badge bg-warning">Maintenance Due</span></td>
+                                <td>2025-04-20</td>
+                                <td>2025-08-20</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="viewEquipment('EQ-LC-002')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-warning" onclick="scheduleMaintenance('EQ-LC-002')">
+                                            <i class="fas fa-wrench"></i> Urgent
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="viewUsageLog('EQ-LC-002')">
+                                            <i class="fas fa-chart-line"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>EQ-SP-003</strong></td>
+                                <td>
+                                    <div>
+                                        <strong>Hamilton Microlab STAR</strong>
+                                        <div class="text-muted small">Liquid Handling System</div>
+                                    </div>
+                                </td>
+                                <td><span class="badge bg-secondary">Sample Preparation</span></td>
+                                <td>Prep Room 105</td>
+                                <td><span class="badge bg-danger">Out of Order</span></td>
+                                <td>2025-06-10</td>
+                                <td>Repair Needed</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="viewEquipment('EQ-SP-003')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-danger" onclick="reportIssue('EQ-SP-003')">
+                                            <i class="fas fa-exclamation-triangle"></i> Repair
+                                        </button>
+                                        <button class="btn btn-outline-secondary" disabled>
+                                            <i class="fas fa-chart-line"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Maintenance Schedule Tab -->
+            <div class="tab-pane fade" id="maintenance-pane" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Maintenance Schedule</h5>
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#scheduleMaintenanceModal">
+                        <i class="fas fa-plus"></i> Schedule Maintenance
+                    </button>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0"><i class="fas fa-clock"></i> Upcoming Maintenance</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="maintenance-item mb-3 pb-3 border-bottom">
+                                    <div class="d-flex justify-content-between">
+                                        <strong>EQ-LC-002 - Agilent 1290</strong>
+                                        <span class="badge bg-warning">Due: Aug 20</span>
+                                    </div>
+                                    <div class="text-muted small">Quarterly preventive maintenance</div>
+                                    <div class="mt-2">
+                                        <button class="btn btn-sm btn-outline-primary">Schedule</button>
+                                        <button class="btn btn-sm btn-outline-secondary">Postpone</button>
+                                    </div>
+                                </div>
+                                <div class="maintenance-item mb-3 pb-3 border-bottom">
+                                    <div class="d-flex justify-content-between">
+                                        <strong>EQ-MS-001 - Q Exactive Plus</strong>
+                                        <span class="badge bg-info">Due: Oct 15</span>
+                                    </div>
+                                    <div class="text-muted small">Annual calibration and cleaning</div>
+                                    <div class="mt-2">
+                                        <button class="btn btn-sm btn-outline-primary">Schedule</button>
+                                        <button class="btn btn-sm btn-outline-secondary">Details</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0"><i class="fas fa-check"></i> Recent Maintenance</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="maintenance-item mb-3 pb-3 border-bottom">
+                                    <div class="d-flex justify-content-between">
+                                        <strong>EQ-MS-001 - Q Exactive Plus</strong>
+                                        <span class="badge bg-success">Jul 15, 2025</span>
+                                    </div>
+                                    <div class="text-muted small">Quarterly maintenance completed</div>
+                                    <div class="text-muted small">Technician: John Smith</div>
+                                </div>
+                                <div class="maintenance-item mb-3 pb-3 border-bottom">
+                                    <div class="d-flex justify-content-between">
+                                        <strong>EQ-AN-004 - pH Meter</strong>
+                                        <span class="badge bg-success">Jul 10, 2025</span>
+                                    </div>
+                                    <div class="text-muted small">Calibration and buffer replacement</div>
+                                    <div class="text-muted small">Technician: Sarah Johnson</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Calibration Tab -->
+            <div class="tab-pane fade" id="calibration-pane" role="tabpanel">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Calibration Management:</strong> Track calibration schedules, certificates, and validation data for all analytical instruments.
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Equipment</th>
+                                        <th>Last Calibration</th>
+                                        <th>Next Due</th>
+                                        <th>Calibration Type</th>
+                                        <th>Certificate</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>EQ-MS-001 - Q Exactive Plus</td>
+                                        <td>2025-01-15</td>
+                                        <td>2026-01-15</td>
+                                        <td>Annual Factory Service</td>
+                                        <td><a href="#" class="btn btn-sm btn-outline-primary">View</a></td>
+                                        <td><span class="badge bg-success">Valid</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-warning">Schedule</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>EQ-LC-002 - Agilent 1290</td>
+                                        <td>2025-03-10</td>
+                                        <td>2025-09-10</td>
+                                        <td>Semi-Annual IQ/OQ</td>
+                                        <td><a href="#" class="btn btn-sm btn-outline-primary">View</a></td>
+                                        <td><span class="badge bg-warning">Due Soon</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-warning">Urgent</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Usage Tracking Tab -->
+            <div class="tab-pane fade" id="usage-pane" role="tabpanel">
+                <div class="alert alert-success">
+                    <i class="fas fa-chart-line"></i>
+                    <strong>Usage Analytics:</strong> Monitor equipment utilization, runtime hours, and performance metrics.
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Most Used Equipment (This Month)</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="usage-item d-flex justify-content-between mb-2">
+                                    <span>Q Exactive Plus</span>
+                                    <span class="fw-bold text-primary">124 hours</span>
+                                </div>
+                                <div class="usage-item d-flex justify-content-between mb-2">
+                                    <span>Agilent 1290 Infinity</span>
+                                    <span class="fw-bold text-info">98 hours</span>
+                                </div>
+                                <div class="usage-item d-flex justify-content-between mb-2">
+                                    <span>pH Meter</span>
+                                    <span class="fw-bold text-success">45 hours</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Equipment Efficiency</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="efficiency-item mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>Q Exactive Plus</span>
+                                        <span>94%</span>
+                                    </div>
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar bg-success" style="width: 94%"></div>
+                                    </div>
+                                </div>
+                                <div class="efficiency-item mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>Agilent 1290</span>
+                                        <span>87%</span>
+                                    </div>
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar bg-info" style="width: 87%"></div>
+                                    </div>
+                                </div>
+                                <div class="efficiency-item mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>Hamilton STAR</span>
+                                        <span>23%</span>
+                                    </div>
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar bg-danger" style="width: 23%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Equipment Modal -->
+<div class="modal fade" id="addEquipmentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>Add New Equipment
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addEquipmentForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Equipment Name *</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Model Number</label>
+                            <input type="text" class="form-control" name="model">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Manufacturer</label>
+                            <input type="text" class="form-control" name="manufacturer">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Serial Number</label>
+                            <input type="text" class="form-control" name="serial_number">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Category *</label>
+                            <select class="form-select" name="category" required>
+                                <option value="">Select Category</option>
+                                <option value="ms">Mass Spectrometry</option>
+                                <option value="chromatography">Chromatography</option>
+                                <option value="analytical">Analytical</option>
+                                <option value="sample_prep">Sample Preparation</option>
+                                <option value="general">General Lab Equipment</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Location</label>
+                            <input type="text" class="form-control" name="location" placeholder="e.g., Lab Room 201A">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Purchase Date</label>
+                            <input type="date" class="form-control" name="purchase_date">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Warranty Expiry</label>
+                            <input type="date" class="form-control" name="warranty_expiry">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" name="description" rows="3" 
+                                     placeholder="Brief description of the equipment and its purpose..."></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitEquipmentForm()">
+                    <i class="fas fa-save me-1"></i>Add Equipment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Equipment Management JavaScript Functions
+function exportInventory() {
+    alert('Export inventory functionality will be implemented here');
+}
+
+function viewEquipment(equipmentId) {
+    alert('View equipment details for: ' + equipmentId);
+}
+
+function scheduleMaintenance(equipmentId) {
+    alert('Schedule maintenance for: ' + equipmentId);
+}
+
+function viewUsageLog(equipmentId) {
+    alert('View usage log for: ' + equipmentId);
+}
+
+function reportIssue(equipmentId) {
+    alert('Report issue for: ' + equipmentId);
+}
+
+function submitEquipmentForm() {
+    const form = document.getElementById('addEquipmentForm');
+    const formData = new FormData(form);
+    
+    // Here you would typically send the data to your backend
+    console.log('Equipment form data:', Object.fromEntries(formData));
+    alert('Equipment added successfully! (This is a demo)');
+    
+    // Close modal and reset form
+    const modal = bootstrap.Modal.getInstance(document.getElementById('addEquipmentModal'));
+    modal.hide();
+    form.reset();
+}
+
+// Filter Functions
+document.getElementById('categoryFilter').addEventListener('change', function() {
+    console.log('Category filter:', this.value);
+    // Implement category filtering
+});
+
+document.getElementById('statusFilter').addEventListener('change', function() {
+    console.log('Status filter:', this.value);
+    // Implement status filtering
+});
+</script>
+{% endblock %}

@@ -157,6 +157,78 @@ try:
 except Exception as e:
     print(f"⚠️ Email system failed: {e}")
 
+# === EMAIL SERVICE FUNCTIONS ===
+def send_email(to_email, subject, template_name, **template_vars):
+    """Send email using Flask-Mail with template"""
+    if not mail:
+        print("⚠️ Email system not available")
+        return False
+    
+    try:
+        from flask_mail import Message
+        
+        # Create message
+        msg = Message(
+            subject=subject,
+            recipients=[to_email],
+            sender=app.config.get('MAIL_DEFAULT_SENDER')
+        )
+        
+        # Render template for email body
+        try:
+            msg.html = render_template(f'email/{template_name}', **template_vars)
+        except Exception as e:
+            # Fallback to simple text email
+            msg.body = f"Subject: {subject}\n\n" + str(template_vars.get('message', 'Email content'))
+        
+        # Send email
+        mail.send(msg)
+        print(f"✅ Email sent successfully to {to_email}")
+        return True
+        
+    except Exception as e:
+        print(f"⚠️ Email send failed: {e}")
+        return False
+
+def send_password_reset_email(user_email, reset_token):
+    """Send password reset email"""
+    reset_url = url_for('auth.reset_password_confirm', token=reset_token, _external=True)
+    
+    return send_email(
+        to_email=user_email,
+        subject="Reset Your Password - Metabolomics Platform",
+        template_name="password_reset.html",
+        user_email=user_email,
+        reset_url=reset_url,
+        reset_token=reset_token
+    )
+
+def send_schedule_notification(consultation_data):
+    """Send schedule consultation notifications"""
+    try:
+        # Send confirmation to user
+        user_success = send_email(
+            to_email=consultation_data.get('email'),
+            subject="Consultation Scheduled - Metabolomics Platform",
+            template_name="schedule_user_confirmation.html",
+            **consultation_data
+        )
+        
+        # Send notification to admin
+        admin_email = app.config.get('MAIL_DEFAULT_SENDER')
+        admin_success = send_email(
+            to_email=admin_email,
+            subject="New Consultation Request - Metabolomics Platform",
+            template_name="schedule_admin_notification.html",
+            **consultation_data
+        )
+        
+        return user_success and admin_success
+        
+    except Exception as e:
+        print(f"⚠️ Schedule notification failed: {e}")
+        return False
+
 # === DATABASE SETUP (Working + Bulletproof) ===
 db = None
 MainLipid = None
@@ -270,19 +342,37 @@ send_schedule_notification = None
 test_email_configuration = None
 get_email_service_status = None
 
-try:
-    from email_service_simple import send_schedule_notification, test_email_configuration, get_email_service_status
-    print("✅ Email service loaded")
-except Exception as e:
-    print(f"⚠️ Email service import failed: {e}")
-    # Fallback functions
-    def send_schedule_notification(*args, **kwargs): 
-        print("⚠️ Email service unavailable - notification not sent")
-        return False
-    def test_email_configuration(): 
-        return {"status": "unavailable", "message": "Email service not loaded"}
-    def get_email_service_status(): 
-        return "Email service unavailable"
+# Email service functions are now defined above
+def test_email_configuration():
+    """Test email configuration"""
+    if not mail:
+        return {"status": "unavailable", "message": "Email service not configured"}
+    
+    try:
+        # Try to send a test email to the admin
+        admin_email = app.config.get('MAIL_DEFAULT_SENDER')
+        if admin_email:
+            success = send_email(
+                to_email=admin_email,
+                subject="Email Test - Metabolomics Platform",
+                template_name="test_email.html",
+                message="This is a test email to verify the email configuration."
+            )
+            if success:
+                return {"status": "success", "message": "Email configuration is working"}
+            else:
+                return {"status": "error", "message": "Failed to send test email"}
+        else:
+            return {"status": "error", "message": "No admin email configured"}
+    except Exception as e:
+        return {"status": "error", "message": f"Email test failed: {e}"}
+
+def get_email_service_status():
+    """Get email service status"""
+    if mail and app.config.get('MAIL_USERNAME'):
+        return "Email service configured and ready"
+    else:
+        return "Email service not configured"
 
 # OAuth Configuration moved to initial setup section above (line ~123)
 
@@ -350,10 +440,103 @@ def register():
     flash('Registration currently unavailable. Use demo login: admin@demo.com / admin123', 'info')
     return redirect(url_for('auth.login'))
 
-@auth_bp.route('/forgot-password')
+@auth_bp.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
-    """Forgot password placeholder"""
-    flash('Password reset currently unavailable. Use demo login: admin@demo.com / admin123', 'info')
+    """Forgot password functionality with email sending"""
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        
+        if not email:
+            flash('Please enter your email address.', 'error')
+            return render_template('auth/forgot_password.html')
+        
+        # Check if user exists
+        if db and User:
+            user = User.query.filter_by(email=email).first()
+            if user:
+                # Generate reset token
+                import secrets
+                reset_token = secrets.token_urlsafe(32)
+                
+                # Store token temporarily (in production, store in database with expiry)
+                # For demo, we'll just print it and use a simple verification
+                session[f'reset_token_{email}'] = reset_token
+                session[f'reset_token_expiry_{email}'] = time.time() + 3600  # 1 hour
+                
+                # Send reset email
+                if send_password_reset_email(email, reset_token):
+                    flash(f'Password reset instructions have been sent to {email}', 'success')
+                else:
+                    flash('Email service temporarily unavailable. Please try again later.', 'warning')
+            else:
+                # Don't reveal if email exists for security
+                flash(f'If an account with {email} exists, password reset instructions have been sent.', 'info')
+        else:
+            flash('Password reset service temporarily unavailable. Use demo login: admin@demo.com / admin123', 'warning')
+        
+        return redirect(url_for('auth.login'))
+    
+    return render_template('auth/forgot_password.html')
+
+@auth_bp.route('/reset-password/<token>')
+def reset_password_confirm(token):
+    """Password reset confirmation page"""
+    return render_template('auth/reset_password.html', token=token)
+
+@auth_bp.route('/reset-password', methods=['POST'])
+def reset_password_submit():
+    """Process password reset"""
+    token = request.form.get('token')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+    
+    if not all([token, new_password, confirm_password]):
+        flash('All fields are required.', 'error')
+        return redirect(url_for('auth.forgot_password'))
+    
+    if new_password != confirm_password:
+        flash('Passwords do not match.', 'error')
+        return render_template('auth/reset_password.html', token=token)
+    
+    if len(new_password) < 8:
+        flash('Password must be at least 8 characters long.', 'error')
+        return render_template('auth/reset_password.html', token=token)
+    
+    # Find user by token
+    user_email = None
+    for key in session.keys():
+        if key.startswith('reset_token_') and session.get(key) == token:
+            user_email = key.replace('reset_token_', '')
+            expiry_key = f'reset_token_expiry_{user_email}'
+            
+            # Check if token is expired
+            if session.get(expiry_key, 0) < time.time():
+                flash('Reset token has expired. Please request a new one.', 'error')
+                return redirect(url_for('auth.forgot_password'))
+            
+            break
+    
+    if not user_email:
+        flash('Invalid or expired reset token.', 'error')
+        return redirect(url_for('auth.forgot_password'))
+    
+    # Update password
+    if db and User:
+        user = User.query.filter_by(email=user_email).first()
+        if user:
+            user.set_password(new_password)
+            db.session.commit()
+            
+            # Clear reset token
+            session.pop(f'reset_token_{user_email}', None)
+            session.pop(f'reset_token_expiry_{user_email}', None)
+            
+            flash('Password has been reset successfully. You can now log in with your new password.', 'success')
+        else:
+            flash('User not found.', 'error')
+    else:
+        flash('Password reset service temporarily unavailable.', 'error')
+    
     return redirect(url_for('auth.login'))
 
 @auth_bp.route('/profile')
@@ -712,9 +895,17 @@ def schedule_form():
             
             # Send notification email
             try:
-                send_schedule_notification(name, email, organization, research_area, message, preferred_date)
-            except:
-                pass
+                consultation_data = {
+                    'name': name,
+                    'email': email,
+                    'organization': organization,
+                    'research_area': research_area,
+                    'message': message,
+                    'preferred_date': preferred_date
+                }
+                send_schedule_notification(consultation_data)
+            except Exception as e:
+                print(f"⚠️ Email notification failed: {e}")
             
             flash('Consultation request submitted successfully! We will contact you soon.', 'success')
             return redirect(url_for('schedule_form'))
@@ -845,7 +1036,7 @@ def admin_stats():
     try:
         # Get system statistics
         stats = {}
-        if db_available:
+        if db and MainLipid:
             try:
                 stats['total_lipids'] = MainLipid.query.count()
                 stats['total_classes'] = db.session.query(MainLipid.lipid_class).distinct().count()
@@ -886,21 +1077,33 @@ def backup_management():
 def patient_management():
     """Patient data management system"""
     try:
-        return render_template('coming_soon.html', 
-            title="Patient Management", 
-            message="Patient data management system coming soon...")
-    except:
-        return "<h1>Patient Management</h1><p>Coming Soon</p>"
+        # Prepare sample statistics for demo
+        patients_stats = {
+            'total_patients': 156,
+            'active_consultations': 23,
+            'pending_appointments': 8,
+            'monthly_new': 34
+        }
+        return render_template('patient_management.html', patients_stats=patients_stats)
+    except Exception as e:
+        print(f"⚠️ Patient management error: {e}")
+        return f"<h1>Patient Management</h1><p>Error loading system: {e}</p>"
 
 @app.route('/equipment-management')
 def equipment_management():
     """Laboratory equipment tracking"""
     try:
-        return render_template('coming_soon.html', 
-            title="Equipment Management", 
-            message="Laboratory equipment tracking coming soon...")
-    except:
-        return "<h1>Equipment Management</h1><p>Coming Soon</p>"
+        # Prepare sample statistics for demo
+        stats = {
+            'total_equipment': 24,
+            'operational': 20,
+            'maintenance_due': 3,
+            'out_of_order': 1
+        }
+        return render_template('equipment_management.html', stats=stats)
+    except Exception as e:
+        print(f"⚠️ Equipment management error: {e}")
+        return f"<h1>Equipment Management</h1><p>Error loading system: {e}</p>"
 
 @app.route('/manage-lipids')
 def manage_lipids():
