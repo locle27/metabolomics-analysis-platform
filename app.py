@@ -1,135 +1,218 @@
 #!/usr/bin/env python3
 """
-ORIGINAL INTERFACE RESTORED - Metabolomics Platform
+BULLETPROOF METABOLOMICS PLATFORM - Original Interface Preserved
 All original features, navigation, templates, and styling preserved
-ONLY SQLAlchemy initialization fixed for bulletproof deployment
+Enhanced with bulletproof deployment patterns for Railway compatibility
 """
 
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response, send_file, session, get_flashed_messages
-from dotenv import load_dotenv
-from werkzeug.middleware.proxy_fix import ProxyFix
+import sys
 import json
-from functools import lru_cache, wraps
-from pathlib import Path
-from datetime import datetime
 import base64
 import time
+from datetime import datetime
+from pathlib import Path
+from functools import wraps
 from io import BytesIO
-from sqlalchemy import text
-from sqlalchemy.orm import joinedload, selectinload
 
-# Authentication imports
-from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from authlib.integrations.flask_client import OAuth
-from flask_mail import Mail, Message
+print("🚀 BULLETPROOF METABOLOMICS PLATFORM STARTING")
+print(f"🐍 Python: {sys.version}")
+print(f"📁 Directory: {os.getcwd()}")
+print(f"📡 Port: {os.getenv('PORT', '5000')}")
+print("=" * 60)
 
-# Configuration
+# === BULLETPROOF IMPORTS ===
+# Core Flask (REQUIRED)
+try:
+    from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response, send_file, session, get_flashed_messages
+    print("✅ Flask core loaded")
+except ImportError as e:
+    print(f"❌ CRITICAL: Flask failed: {e}")
+    sys.exit(1)
+
+# Environment loading (graceful fallback)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    print("✅ Environment loaded")
+except:
+    print("⚠️ Environment loading failed - using defaults")
+
+# Proxy fix (graceful fallback)
+try:
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    PROXY_FIX_AVAILABLE = True
+    print("✅ Proxy fix available")
+except:
+    PROXY_FIX_AVAILABLE = False
+    print("⚠️ Proxy fix unavailable")
+
+# SQLAlchemy (graceful fallback)
+try:
+    from sqlalchemy import text
+    from sqlalchemy.orm import joinedload, selectinload
+    SQLALCHEMY_AVAILABLE = True
+    print("✅ SQLAlchemy available")
+except:
+    SQLALCHEMY_AVAILABLE = False
+    print("⚠️ SQLAlchemy unavailable")
+
+# Authentication imports (graceful fallback)
+try:
+    from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+    LOGIN_MANAGER_AVAILABLE = True
+    print("✅ Flask-Login available")
+except:
+    LOGIN_MANAGER_AVAILABLE = False
+    print("⚠️ Flask-Login unavailable")
+
+try:
+    from authlib.integrations.flask_client import OAuth
+    OAUTH_AVAILABLE = True
+    print("✅ OAuth available")
+except:
+    OAUTH_AVAILABLE = False
+    print("⚠️ OAuth unavailable")
+
+try:
+    from flask_mail import Mail, Message
+    MAIL_AVAILABLE = True
+    print("✅ Flask-Mail available")
+except:
+    MAIL_AVAILABLE = False
+    print("⚠️ Flask-Mail unavailable")
+
+# === FLASK APP CONFIGURATION ===
 BASE_DIR = Path(__file__).resolve().parent
 
-# Environment loading
-load_dotenv(BASE_DIR / ".env")
-
-app = Flask(__name__, template_folder=BASE_DIR / "templates", static_folder=BASE_DIR / "static")
-
-# Fix for Railway HTTPS proxy
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1, x_for=1)
-
-app.secret_key = os.getenv('SECRET_KEY', 'metabolomics-dev-key-change-in-production')
-
-# Authentication Configuration
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'auth.login'
-login_manager.login_message = 'Please log in to access this page.'
-login_manager.login_message_category = 'info'
-
-# OAuth Configuration
-oauth = OAuth(app)
-google = oauth.register(
-    name='google',
-    client_id=os.getenv('GOOGLE_CLIENT_ID'),
-    client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
-    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-    client_kwargs={
-        'scope': 'openid email profile'
-    }
+app = Flask(__name__, 
+    template_folder=BASE_DIR / "templates", 
+    static_folder=BASE_DIR / "static"
 )
+app.secret_key = os.getenv('SECRET_KEY', 'bulletproof-metabolomics-platform-secret-key')
 
-# Email Configuration with SMTP hostname fix
-app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
-app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'True').lower() == 'true'
-app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', os.getenv('MAIL_USERNAME'))
-app.config['MAIL_SUPPRESS_SEND'] = os.getenv('MAIL_SUPPRESS_SEND', 'False').lower() == 'true'
-app.config['MAIL_MAX_EMAILS'] = None
-app.config['MAIL_ASCII_ATTACHMENTS'] = False
+# Apply proxy fix if available
+if PROXY_FIX_AVAILABLE:
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1, x_for=1)
+    print("✅ Railway proxy configured")
 
-# Fix SMTP HELO hostname issue
-try:
-    app.config['MAIL_LOCAL_HOSTNAME'] = 'metabolomics-platform.com'
-    app.config['MAIL_SUPPRESS_SEND'] = False
-    app.config['MAIL_DEBUG'] = False
-except:
-    pass
+# === AUTHENTICATION SETUP (Conditional) ===
+login_manager = None
+oauth = None
+google = None
 
-mail = Mail(app)
-
-# PostgreSQL configuration with optimization and Railway defaults
-database_url = os.getenv('DATABASE_URL')
-if not database_url:
-    database_url = 'postgresql://username:password@localhost/metabolomics_db'
-    print("⚠️ No DATABASE_URL found - using local fallback")
-
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_pre_ping': True,
-    'pool_recycle': 300,
-    'echo': False  # Set to True for SQL debugging
-}
-
-# FIXED DATABASE INITIALIZATION - No more double registration
-try:
-    from flask_sqlalchemy import SQLAlchemy
-    db = SQLAlchemy()
-    db.init_app(app)
-    
-    # Test database connection
-    with app.app_context():
-        with db.engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-            print("✅ Database connection initialized and tested successfully")
-    
-    # Import models AFTER database is properly initialized
-    from models_postgresql_optimized import (
-        MainLipid, LipidClass, AnnotatedIon, User, ScheduleRequest, AdminSettings, 
-        optimized_manager, get_db_stats, get_lipids_by_class, search_lipids,
-        BackupHistory, BackupSnapshots, BackupStats
-    )
-    print("✅ Models imported successfully after db initialization")
-    
-    # Initialize backup system after models are loaded
+if LOGIN_MANAGER_AVAILABLE:
     try:
-        from backup_system_postgresql import PostgreSQLBackupSystem, auto_backup_context
-        backup_system = PostgreSQLBackupSystem(app)
-        print("✅ Backup system initialized")
-    except Exception as backup_error:
-        print(f"⚠️ Backup system initialization failed: {backup_error}")
-        backup_system = None
-    
-except Exception as e:
-    print(f"⚠️ Database initialization failed: {e}")
-    print("   App will start but database features may not work")
-    # Create minimal fallback
-    from flask_sqlalchemy import SQLAlchemy
-    db = SQLAlchemy()
-    db.init_app(app)
-    backup_system = None
+        login_manager = LoginManager()
+        login_manager.init_app(app)
+        login_manager.login_view = 'auth.login'
+        login_manager.login_message = 'Please log in to access this page.'
+        login_manager.login_message_category = 'info'
+        print("✅ Login manager configured")
+    except Exception as e:
+        print(f"⚠️ Login manager failed: {e}")
 
-# Import chart generation services  
+if OAUTH_AVAILABLE:
+    try:
+        oauth = OAuth(app)
+        google = oauth.register(
+            name='google',
+            client_id=os.getenv('GOOGLE_CLIENT_ID'),
+            client_secret=os.getenv('GOOGLE_CLIENT_SECRET'),
+            server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+            client_kwargs={'scope': 'openid email profile'}
+        )
+        print("✅ OAuth configured")
+    except Exception as e:
+        print(f"⚠️ OAuth failed: {e}")
+
+# === EMAIL CONFIGURATION (Conditional) ===
+mail = None
+
+if MAIL_AVAILABLE:
+    try:
+        app.config.update({
+            'MAIL_SERVER': os.getenv('MAIL_SERVER', 'smtp.gmail.com'),
+            'MAIL_PORT': int(os.getenv('MAIL_PORT', 587)),
+            'MAIL_USE_TLS': os.getenv('MAIL_USE_TLS', 'True').lower() == 'true',
+            'MAIL_USERNAME': os.getenv('MAIL_USERNAME'),
+            'MAIL_PASSWORD': os.getenv('MAIL_PASSWORD'),
+            'MAIL_DEFAULT_SENDER': os.getenv('MAIL_DEFAULT_SENDER', os.getenv('MAIL_USERNAME')),
+            'MAIL_SUPPRESS_SEND': os.getenv('MAIL_SUPPRESS_SEND', 'False').lower() == 'true',
+            'MAIL_MAX_EMAILS': None,
+            'MAIL_ASCII_ATTACHMENTS': False,
+            'MAIL_LOCAL_HOSTNAME': 'metabolomics-platform.com',
+            'MAIL_DEBUG': False
+        })
+        mail = Mail(app)
+        print("✅ Email system configured")
+    except Exception as e:
+        print(f"⚠️ Email system failed: {e}")
+
+# === DATABASE SETUP (Bulletproof) ===
+db = None
+MainLipid = None
+User = None
+ScheduleRequest = None
+backup_system = None
+optimized_manager = None
+get_db_stats = None
+
+database_url = os.getenv('DATABASE_URL')
+
+if database_url and SQLALCHEMY_AVAILABLE:
+    try:
+        from flask_sqlalchemy import SQLAlchemy
+        
+        app.config.update({
+            'SQLALCHEMY_DATABASE_URI': database_url,
+            'SQLALCHEMY_TRACK_MODIFICATIONS': False,
+            'SQLALCHEMY_ENGINE_OPTIONS': {
+                'pool_pre_ping': True,
+                'pool_recycle': 300,
+                'echo': False
+            }
+        })
+        
+        db = SQLAlchemy()
+        db.init_app(app)
+        
+        # Test database connection
+        with app.app_context():
+            with db.engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+                print("✅ Database connection tested successfully")
+        
+        # Import models AFTER database is properly initialized
+        try:
+            from models_postgresql_optimized import (
+                MainLipid, LipidClass, AnnotatedIon, User, ScheduleRequest, AdminSettings, 
+                optimized_manager, get_db_stats, get_lipids_by_class, search_lipids,
+                BackupHistory, BackupSnapshots, BackupStats
+            )
+            print("✅ Models imported successfully")
+            
+            # Initialize backup system
+            try:
+                from backup_system_postgresql import PostgreSQLBackupSystem, auto_backup_context
+                backup_system = PostgreSQLBackupSystem(app)
+                print("✅ Backup system initialized")
+            except Exception as backup_error:
+                print(f"⚠️ Backup system initialization failed: {backup_error}")
+                
+        except Exception as model_error:
+            print(f"⚠️ Model import failed: {model_error}")
+            
+    except Exception as e:
+        print(f"⚠️ Database initialization failed: {e}")
+        print("   App will start but database features will be unavailable")
+else:
+    print("⚠️ Database unavailable - using fallback mode")
+
+# === CHART SERVICES (Conditional) ===
+SimpleChartGenerator = None
+DualChartService = None
+
 try:
     from simple_chart_service import SimpleChartGenerator
     from dual_chart_service import DualChartService
@@ -137,7 +220,28 @@ try:
 except Exception as e:
     print(f"⚠️ Chart services failed: {e}")
 
-# Import authentication system
+# === EMAIL SERVICE (Conditional) ===
+send_schedule_notification = None
+test_email_configuration = None
+get_email_service_status = None
+
+try:
+    from email_service_simple import send_schedule_notification, test_email_configuration, get_email_service_status
+    print("✅ Email service loaded")
+except Exception as e:
+    print(f"⚠️ Email service import failed: {e}")
+    # Fallback functions
+    def send_schedule_notification(*args, **kwargs): 
+        print("⚠️ Email service unavailable - notification not sent")
+        return False
+    def test_email_configuration(): 
+        return {"status": "unavailable", "message": "Email service not loaded"}
+    def get_email_service_status(): 
+        return "Email service unavailable"
+
+# === AUTHENTICATION BLUEPRINT (Conditional) ===
+auth_bp = None
+
 try:
     if os.getenv('FLASK_ENV') == 'production' or os.getenv('ENV') == 'production':
         from email_auth_production import auth_bp
@@ -150,27 +254,32 @@ except Exception as e:
     # Create minimal auth blueprint
     from flask import Blueprint
     auth_bp = Blueprint('auth', __name__)
-
-# Import email service
-try:
-    from email_service_simple import send_schedule_notification, test_email_configuration, get_email_service_status
-    print("✅ Email service loaded")
-except Exception as e:
-    print(f"⚠️ Email service import failed: {e}")
-    def send_schedule_notification(*args, **kwargs): return False
-    def test_email_configuration(): return {"status": "unavailable"}
-    def get_email_service_status(): return "Email service unavailable"
+    
+    @auth_bp.route('/login')
+    def login():
+        return '<h2>Authentication Unavailable</h2><p>Login system is not available.</p><a href="/">Return Home</a>'
+    
+    @auth_bp.route('/logout')
+    def logout():
+        return redirect(url_for('homepage'))
 
 # Register authentication blueprint
-app.register_blueprint(auth_bp)
+if auth_bp:
+    app.register_blueprint(auth_bp)
+    print("✅ Authentication blueprint registered")
 
-@login_manager.user_loader
-def load_user(user_id):
-    """Load user for Flask-Login"""
-    try:
-        return db.session.get(User, int(user_id))
-    except:
+# === USER LOADER (Conditional) ===
+if login_manager and LOGIN_MANAGER_AVAILABLE:
+    @login_manager.user_loader
+    def load_user(user_id):
+        """Load user for Flask-Login"""
+        try:
+            if db and User:
+                return db.session.get(User, int(user_id))
+        except:
+            pass
         return None
+    print("✅ User loader configured")
 
 # Decorators
 def admin_required(f):
@@ -201,16 +310,26 @@ def manager_required(f):
 
 @app.route('/health')
 def health_check():
-    """Simple health check for Railway"""
+    """Bulletproof health check for Railway - guaranteed to work"""
     try:
-        return jsonify({
+        response_data = {
             "status": "healthy",
-            "message": "Metabolomics platform is running",
+            "message": "Bulletproof metabolomics platform operational",
             "timestamp": datetime.now().isoformat(),
-            "environment": os.getenv('FLASK_ENV', 'development')
-        }), 200
+            "version": "3.0.0-bulletproof",
+            "features": {
+                "flask": True,
+                "database": bool(db),
+                "authentication": bool(login_manager),
+                "email": bool(mail),
+                "charts": bool(DualChartService),
+                "models": bool(MainLipid)
+            }
+        }
+        return jsonify(response_data), 200
     except Exception as e:
-        return f'{{"status":"healthy","message":"Basic health check","error":"{str(e)}"}}', 200
+        # Ultimate fallback - plain text response
+        return f'{{"status":"healthy","message":"Bulletproof platform","error":"{str(e)}"}}', 200
 
 # =====================================================
 # MAIN ROUTES
@@ -221,18 +340,21 @@ def homepage():
     """University-style homepage with project overview."""
     try:
         # Try to get database stats, but don't crash if database is unavailable
-        try:
-            stats = get_db_stats()
-            recent_lipids = optimized_manager.get_lipids_sample(limit=3)
-        except Exception as db_error:
-            print(f"⚠️ Database unavailable for homepage: {db_error}")
-            stats = {
-                'total_lipids': 0,
-                'total_classes': 0,
-                'total_annotations': 0,
-                'database_status': 'disconnected'
-            }
-            recent_lipids = []
+        stats = {
+            'total_lipids': 0,
+            'total_classes': 0,
+            'total_annotations': 0,
+            'database_status': 'disconnected'
+        }
+        recent_lipids = []
+        
+        if get_db_stats and optimized_manager:
+            try:
+                stats = get_db_stats()
+                recent_lipids = optimized_manager.get_lipids_sample(limit=3)
+                stats['database_status'] = 'connected'
+            except Exception as db_error:
+                print(f"⚠️ Database unavailable for homepage: {db_error}")
         
         # Homepage data structure
         homepage_data = {
@@ -280,11 +402,11 @@ def dual_chart_view(lipid_id=None):
     """Interactive dual-chart visualization system"""
     try:
         lipid = None
-        if lipid_id:
+        if lipid_id and MainLipid and db:
             try:
                 lipid = MainLipid.query.get(lipid_id)
-            except:
-                pass
+            except Exception as db_error:
+                print(f"⚠️ Database query failed: {db_error}")
         return render_template('dual_chart_view.html', lipid=lipid, lipid_id=lipid_id)
     except Exception as e:
         print(f"⚠️ Chart view error: {e}")
