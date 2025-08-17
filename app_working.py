@@ -71,28 +71,49 @@ models_available = False
 optimized_manager = None
 get_db_stats = None
 
-if database_available:
-    try:
-        from models_postgresql_optimized import (
-            db as models_db, MainLipid, optimized_manager, get_db_stats, init_db
-        )
-        
-        # Initialize the models database with our app
-        models_db.init_app(app)
-        
-        # Test that models work with our app context
+print(f"🔍 Database available: {database_available}")
+print(f"🔍 Attempting to load models...")
+
+try:
+    print("🔍 Step 1: Importing models...")
+    from models_postgresql_optimized import (
+        db as models_db, MainLipid, optimized_manager, get_db_stats
+    )
+    print("✅ Step 1: Models imported successfully")
+    
+    print("🔍 Step 2: Initializing models db with app...")
+    models_db.init_app(app)
+    print("✅ Step 2: Models db initialized")
+    
+    if database_available:
+        print("🔍 Step 3: Testing models in app context...")
         with app.app_context():
             try:
+                print("🔍 Step 3a: Testing get_db_stats...")
                 stats_test = get_db_stats()
-                models_available = True
-                print("✅ PostgreSQL models loaded and tested")
-            except Exception as e:
-                print(f"⚠️ Models test failed: {e}")
+                print(f"✅ Step 3a: Stats test successful: {stats_test}")
                 
-    except Exception as e:
-        print(f"⚠️ Models import failed: {e}")
-else:
-    print("⚠️ Skipping models - database not available")
+                print("🔍 Step 3b: Testing optimized_manager...")
+                if optimized_manager:
+                    sample_test = optimized_manager.get_lipids_sample(1)
+                    print(f"✅ Step 3b: Manager test successful: {len(sample_test)} lipids")
+                
+                models_available = True
+                print("✅ ALL MODELS TESTS PASSED")
+                
+            except Exception as e:
+                print(f"❌ Step 3: Models test failed: {e}")
+                print(f"   Error type: {type(e).__name__}")
+                import traceback
+                print(f"   Traceback: {traceback.format_exc()}")
+    else:
+        print("⚠️ Step 3: Skipped - database not available")
+        
+except Exception as e:
+    print(f"❌ Models import failed: {e}")
+    print(f"   Error type: {type(e).__name__}")
+    import traceback
+    print(f"   Traceback: {traceback.format_exc()}")
 
 # Try to load chart services safely  
 charts_available = False
@@ -145,6 +166,11 @@ def health_check():
                 "models": models_available, 
                 "charts": charts_available,
                 "auth": auth_available
+            },
+            "debug_info": {
+                "database_url_configured": bool(os.getenv('DATABASE_URL')),
+                "get_db_stats_available": get_db_stats is not None,
+                "optimized_manager_available": optimized_manager is not None
             }
         }), 200
     except Exception as e:
