@@ -152,60 +152,80 @@ try:
         'MAIL_LOCAL_HOSTNAME': 'metabolomics-platform.com',
         'MAIL_DEBUG': False
     })
-    mail = Mail(app)
-    print("✅ Email system configured")
+    if MAIL_AVAILABLE:
+        mail = Mail(app)
+        print("✅ Email system configured with Flask-Mail")
+    else:
+        print("⚠️ Flask-Mail unavailable, will use email_service fallback")
 except Exception as e:
     print(f"⚠️ Email system failed: {e}")
 
 # === EMAIL SERVICE FUNCTIONS ===
 def send_email(to_email, subject, template_name, **template_vars):
-    """Send email using Flask-Mail with template"""
-    if not mail:
-        print("⚠️ Email system not available")
-        return False
-    
-    try:
-        if MAIL_AVAILABLE:
-            from flask_mail import Message
-        else:
-            print("⚠️ Flask-Mail not available")
-            return False
-        
-        # Create message
-        msg = Message(
-            subject=subject,
-            recipients=[to_email],
-            sender=app.config.get('MAIL_DEFAULT_SENDER')
-        )
-        
-        # Render template for email body
+    """Send email using Flask-Mail with fallback to email_service"""
+    # Try Flask-Mail first if available
+    if mail and MAIL_AVAILABLE:
         try:
-            msg.html = render_template(f'email/{template_name}', **template_vars)
+            from flask_mail import Message
+            
+            # Create message
+            msg = Message(
+                subject=subject,
+                recipients=[to_email],
+                sender=app.config.get('MAIL_DEFAULT_SENDER')
+            )
+            
+            # Render template for email body
+            try:
+                msg.html = render_template(f'email/{template_name}', **template_vars)
+            except Exception as e:
+                # Fallback to simple text email
+                msg.body = f"Subject: {subject}\n\n" + str(template_vars.get('message', 'Email content'))
+            
+            # Send email
+            mail.send(msg)
+            print(f"✅ Email sent successfully to {to_email} via Flask-Mail")
+            return True
+            
         except Exception as e:
-            # Fallback to simple text email
-            msg.body = f"Subject: {subject}\n\n" + str(template_vars.get('message', 'Email content'))
-        
-        # Send email
-        mail.send(msg)
-        print(f"✅ Email sent successfully to {to_email}")
-        return True
-        
+            print(f"⚠️ Flask-Mail send failed: {e}, trying email_service...")
+    
+    # Fallback to external email_service
+    try:
+        from email_service import send_email as external_send_email
+        return external_send_email(
+            subject=subject,
+            recipients=to_email,
+            template=f'email/{template_name}',
+            context=template_vars
+        )
+    except ImportError:
+        print("⚠️ External email_service not available")
+        return False
     except Exception as e:
-        print(f"⚠️ Email send failed: {e}")
+        print(f"⚠️ All email methods failed: {e}")
         return False
 
 def send_password_reset_email(user_email, reset_token):
-    """Send password reset email"""
-    reset_url = url_for('auth.reset_password_confirm', token=reset_token, _external=True)
-    
-    return send_email(
-        to_email=user_email,
-        subject="Reset Your Password - Metabolomics Platform",
-        template_name="password_reset.html",
-        user_email=user_email,
-        reset_url=reset_url,
-        reset_token=reset_token
-    )
+    """Send password reset email with proper URL generation"""
+    try:
+        # Generate proper reset URL with base URL
+        base_url = os.getenv('BASE_URL', request.url_root.rstrip('/'))
+        reset_url = f"{base_url}/auth/reset-password/{reset_token}"
+        
+        return send_email(
+            to_email=user_email,
+            subject="Reset Your Password - Metabolomics Platform",
+            template_name="password_reset.html",
+            user={'username': user_email.split('@')[0], 'email': user_email},
+            reset_url=reset_url,
+            reset_token=reset_token,
+            platform_name="Metabolomics Platform",
+            expires_hours=1
+        )
+    except Exception as e:
+        print(f"⚠️ Password reset email failed: {e}")
+        return False
 
 def send_schedule_notification(consultation_data):
     """Send schedule consultation notifications"""
@@ -558,17 +578,39 @@ def reset_password_submit():
 
 @auth_bp.route('/profile')
 def profile():
-    """User profile page"""
-    if not session.get('user_authenticated', False):
-        flash('Please log in to view your profile.', 'error')
+    """User profile page with proper error handling"""
+    try:
+        if not session.get('user_authenticated', False):
+            flash('Please log in to view your profile.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        # Create a user-like object with all the required attributes
+        class UserData:
+            def __init__(self, email, role, name):
+                self.email = email
+                self.role = role
+                self.full_name = name or email.split('@')[0]
+                self.user_id = email.replace('@', '_').replace('.', '_')
+                self.email_verified = True  # Assume verified for demo
+                self.auth_method = 'oauth'
+                self.created_at = None
+                self.is_active = True
+                self.last_login = None
+            
+            def is_admin(self):
+                return self.role.lower() == 'admin'
+        
+        user_email = session.get('user_email', '')
+        user_role = session.get('user_role', 'user')
+        user_name = session.get('user_name', user_email.split('@')[0] if user_email else 'User')
+        
+        current_user = UserData(user_email, user_role, user_name)
+        
+        return render_template('auth/profile.html', current_user=current_user, user=current_user)
+    except Exception as e:
+        print(f"⚠️ Profile route error: {e}")
+        flash(f'Error loading profile: {e}', 'error')
         return redirect(url_for('auth.login'))
-    
-    user_data = {
-        'email': session.get('user_email', ''),
-        'role': session.get('user_role', 'user'),
-        'name': session.get('user_email', '').split('@')[0]
-    }
-    return render_template('auth/profile.html', user=user_data)
 
 @auth_bp.route('/change-password')
 def change_password():
