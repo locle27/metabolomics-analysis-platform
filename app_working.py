@@ -41,11 +41,11 @@ try:
 except Exception as e:
     print(f"⚠️ Environment loading failed: {e}")
 
-# Database setup with safe imports
+# Database configuration (but don't initialize SQLAlchemy yet)
 database_available = False
 db = None
+
 try:
-    from flask_sqlalchemy import SQLAlchemy
     database_url = os.getenv('DATABASE_URL')
     
     if database_url:
@@ -57,25 +57,13 @@ try:
             'echo': False,
             'connect_args': {"connect_timeout": 10}
         }
-        
-        db = SQLAlchemy()
-        db.init_app(app)
-        
-        # Test connection
-        with app.app_context():
-            try:
-                from sqlalchemy import text
-                with db.engine.connect() as conn:
-                    conn.execute(text("SELECT 1"))
-                database_available = True
-                print("✅ Database connected successfully")
-            except Exception as e:
-                print(f"⚠️ Database connection failed: {e}")
+        database_available = True
+        log_startup("✅ Database configuration set")
     else:
-        print("⚠️ DATABASE_URL not configured")
+        log_startup("⚠️ DATABASE_URL not configured")
         
 except Exception as e:
-    print(f"⚠️ Database setup failed: {e}")
+    log_startup(f"⚠️ Database setup failed: {e}")
 
 # Try to load models safely  
 models_available = False
@@ -88,35 +76,36 @@ log_startup(f"🔍 Attempting to load models...")
 try:
     log_startup("🔍 Step 1: Importing models...")
     from models_postgresql_optimized import (
-        db as models_db, MainLipid, optimized_manager, get_db_stats
+        MainLipid, optimized_manager, get_db_stats, init_db
     )
     log_startup("✅ Step 1: Models imported successfully")
     
-    log_startup("🔍 Step 2: Initializing models db with app...")
-    models_db.init_app(app)
-    log_startup("✅ Step 2: Models db initialized")
+    log_startup("🔍 Step 2: Initializing models database...")
+    # Use the init_db function from models instead of direct db.init_app
+    db = init_db(app)
+    log_startup("✅ Step 2: Models database initialized properly")
     
     if database_available:
-        print("🔍 Step 3: Testing models in app context...")
+        log_startup("🔍 Step 3: Testing models in app context...")
         with app.app_context():
             try:
-                print("🔍 Step 3a: Testing get_db_stats...")
+                log_startup("🔍 Step 3a: Testing get_db_stats...")
                 try:
                     stats_test = get_db_stats()
-                    print(f"✅ Step 3a: Stats test successful: {stats_test}")
+                    log_startup(f"✅ Step 3a: Stats test successful: {stats_test}")
                     
-                    print("🔍 Step 3b: Testing optimized_manager...")
+                    log_startup("🔍 Step 3b: Testing optimized_manager...")
                     if optimized_manager:
                         sample_test = optimized_manager.get_lipids_sample(1)
-                        print(f"✅ Step 3b: Manager test successful: {len(sample_test)} lipids")
+                        log_startup(f"✅ Step 3b: Manager test successful: {len(sample_test)} lipids")
                     
                     models_available = True
-                    print("✅ ALL MODELS TESTS PASSED")
+                    log_startup("✅ ALL MODELS TESTS PASSED")
                     
                 except Exception as stats_error:
-                    print(f"❌ Step 3a: get_db_stats failed: {stats_error}")
-                    print(f"   Error type: {type(stats_error).__name__}")
-                    print(f"   Trying to check if tables exist...")
+                    log_startup(f"❌ Step 3a: get_db_stats failed: {stats_error}", "ERROR")
+                    log_startup(f"   Error type: {type(stats_error).__name__}")
+                    log_startup(f"   Trying to check if tables exist...")
                     
                     # Check if tables exist
                     try:
