@@ -1789,5 +1789,7 @@ if __name__ == '__main__':
     print(f"   Features: ✅ No N+1 Queries ✅ Proper Caching ✅ Fast Performance")
     print(f"   Environment: {os.getenv('FLASK_ENV', 'development')}")
     print(f"   Custom Domain: {os.getenv('CUSTOM_DOMAIN', 'Not configured')}")
+    print(f"   IPv6 Binding: Railway v2 runtime compatible")
     
-    app.run(debug=debug_mode, host='0.0.0.0', port=port)
+    # Use IPv6 binding for Railway v2 runtime compatibility
+    app.run(debug=debug_mode, host='::', port=port)
