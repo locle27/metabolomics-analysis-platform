@@ -114,11 +114,12 @@ app.config.update({
     'SESSION_COOKIE_PATH': '/',  # Available for all paths
     'PERMANENT_SESSION_LIFETIME': timedelta(hours=1),  # 1 hour
     'SESSION_REFRESH_EACH_REQUEST': True,  # Keep session alive
-    # WTF-CSRF Configuration
+    # WTF-CSRF Configuration (Following Flask-WTF docs)
     'WTF_CSRF_ENABLED': True,
-    'WTF_CSRF_TIME_LIMIT': 3600,  # 1 hour
+    'WTF_CSRF_TIME_LIMIT': None,  # Token valid for session lifetime
     'WTF_CSRF_SSL_STRICT': False,  # Allow HTTP for development
     'WTF_CSRF_CHECK_DEFAULT': True,
+    'WTF_CSRF_SECRET_KEY': None,  # Use main SECRET_KEY
 })
 
 # Enable CSRF protection properly
@@ -129,10 +130,14 @@ if CSRF_AVAILABLE:
     from flask_wtf.csrf import CSRFError
     @app.errorhandler(CSRFError)
     def handle_csrf_error(e):
-        return render_template('error.html', 
-                             error_title='Security Error', 
-                             error_message='Form security token expired. Please try again.',
-                             error_code=400), 400
+        # Log CSRF error details for debugging
+        print(f"❌ CSRF Error: {e.description}")
+        print(f"🔍 Session keys: {list(session.keys())}")
+        print(f"🔍 Session permanent: {session.permanent}")
+        
+        # Clear the session and redirect to form with a helpful message
+        flash('Security token expired. Please try your request again.', 'warning')
+        return redirect(request.referrer or url_for('auth.update_password'))
     
     # Only exempt OAuth callback routes from CSRF protection
     OAUTH_EXEMPT_ROUTES = [
@@ -1401,6 +1406,9 @@ def update_password():
         flash('Please log in to update your password.', 'error')
         return redirect(url_for('auth.login'))
     
+    # Ensure session is permanent to prevent CSRF token expiration
+    session.permanent = True
+    
     # Import form class safely
     try:
         from forms import PasswordUpdateForm
@@ -1412,6 +1420,16 @@ def update_password():
     # Get user details
     user_email = session.get('user_email', '')
     error = None
+    
+    # Debug CSRF token on GET requests
+    if request.method == 'GET':
+        if CSRF_AVAILABLE:
+            try:
+                from flask_wtf.csrf import generate_csrf
+                token = generate_csrf()
+                print(f"✅ Generated CSRF token for form: {token[:10]}...")
+            except Exception as e:
+                print(f"❌ CSRF token generation failed: {e}")
     
     # Handle POST request following Flask documentation pattern
     if request.method == 'POST' and form.validate_on_submit():
@@ -1478,6 +1496,33 @@ def update_password():
                     flash(f'{field}: {error}', 'error')
     
     return render_template('auth/password_form.html', form=form)
+
+# Debug route for CSRF testing (remove in production)
+@auth_bp.route('/csrf-debug')
+def csrf_debug():
+    """Debug CSRF token generation and session state"""
+    if not session.get('user_authenticated', False):
+        return "Not authenticated"
+    
+    session.permanent = True
+    debug_info = {
+        'session_keys': list(session.keys()),
+        'session_permanent': session.permanent,
+        'session_id': session.get('_id', 'No ID'),
+        'csrf_available': CSRF_AVAILABLE
+    }
+    
+    if CSRF_AVAILABLE:
+        try:
+            from flask_wtf.csrf import generate_csrf
+            token = generate_csrf()
+            debug_info['csrf_token'] = f"{token[:20]}...({len(token)} chars)"
+            debug_info['csrf_generation'] = 'SUCCESS'
+        except Exception as e:
+            debug_info['csrf_error'] = str(e)
+            debug_info['csrf_generation'] = 'FAILED'
+    
+    return f"<pre>{json.dumps(debug_info, indent=2)}</pre>"
 
 # Legacy route redirect
 @auth_bp.route('/update-password-legacy', methods=['POST'])
