@@ -42,7 +42,21 @@
       "WebFetch(domain:httpsphenikaa-lipidomics-analysis.xyz)",
       "Bash(source:*)",
       "Bash(sed:*)",
-      "WebFetch(domain:www.httpsphenikaa-lipidomics-analysis.xyz)"
+      "WebFetch(domain:www.httpsphenikaa-lipidomics-analysis.xyz)",
+      "Bash(timeout:*)",
+      "WebFetch(domain:help.railway.com)",
+      "WebFetch(domain:station.railway.com)",
+      "Bash(claude --debug)",
+      "Bash(node:*)",
+      "Bash(rg -n \"health\" /mnt/c/Users/T14/Desktop/metabolomics-project/app.py)",
+      "Bash(rg -n -A 10 -B 5 \"CSRFError|CSRF.*error\" /mnt/c/Users/T14/Desktop/metabolomics-project/app.py)",
+      "Bash(rg -n -A 15 \"handle_csrf_error\" /mnt/c/Users/T14/Desktop/metabolomics-project/app.py)",
+      "Bash(rg -n \"render_template.*update_password\" app.py)",
+      "Bash(rg -n \"auth/login\" app.py)",
+      "Bash(rg -n -B 5 -A 10 \"def.*login\" app.py)",
+      "Bash(find templates -name \"*login*\")",
+      "Bash(rg -n -A 5 -B 5 \"<form\" templates/auth/login.html)",
+      "Bash(rg -n \"{{.*}}\" templates/email/password_reset.html)"
     ],
     "deny": []
   }

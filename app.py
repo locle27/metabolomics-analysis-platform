@@ -1312,7 +1312,17 @@ def forgot_password():
 @auth_bp.route('/reset-password/<token>')
 def reset_password_confirm(token):
     """Password reset confirmation page"""
-    return render_template('auth/reset_password.html', token=token)
+    # Generate CSRF token for template
+    csrf_token = ''
+    if CSRF_AVAILABLE:
+        try:
+            from flask_wtf.csrf import generate_csrf
+            csrf_token = generate_csrf()
+            print(f"✅ Reset password CSRF token generated: {csrf_token[:10]}...")
+        except Exception as e:
+            print(f"⚠️ CSRF token generation failed in reset_password_confirm: {e}")
+    
+    return render_template('auth/reset_password.html', token=token, csrf_token=csrf_token)
 
 @auth_bp.route('/reset-password', methods=['POST'])
 def reset_password_submit():
