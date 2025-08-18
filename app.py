@@ -1205,11 +1205,28 @@ def forgot_password():
                 auth_method = getattr(user, 'auth_method', 'local')
                 
                 if auth_method == 'oauth':
-                    # OAuth users should use their provider's password reset
-                    flash(f'This account uses Google OAuth authentication. To change your password, please visit your Google Account settings at https://myaccount.google.com/security', 'info')
-                    return render_template('auth/forgot_password_oauth.html', 
-                                        email=email, 
-                                        provider='Google')
+                    # Check if OAuth user has a local password set up
+                    has_local_password = hasattr(user, 'password_hash') and user.password_hash
+                    
+                    if has_local_password:
+                        # OAuth user with local password - allow local password reset
+                        import secrets
+                        reset_token = secrets.token_urlsafe(32)
+                        
+                        # Store token temporarily
+                        session[f'reset_token_{email}'] = reset_token
+                        session[f'reset_token_expiry_{email}'] = (datetime.utcnow() + timedelta(hours=1)).isoformat()
+                        
+                        flash(f'Password reset instructions have been sent to {email}. Check your email and click the reset link.', 'success')
+                        print(f"✅ Password reset token generated for OAuth user with local password: {email}")
+                        return redirect(url_for('auth.login'))
+                    else:
+                        # OAuth user without local password - suggest they set one up instead
+                        flash(f'This account uses Google OAuth authentication and has no local password yet. You can set up a local password from your profile page instead of resetting.', 'info')
+                        return render_template('auth/forgot_password_oauth.html', 
+                                            email=email, 
+                                            provider='Google',
+                                            suggest_create=True)
                 else:
                     # Local user - proceed with normal password reset
                     import secrets
@@ -1383,6 +1400,18 @@ def profile():
                 self.is_active = True
                 self.last_login = None
                 self.can_edit_username = auth_method == 'oauth'  # OAuth users can edit username
+                
+                # Check if user has local password for profile display
+                self.password_hash = None
+                self.last_password_change = None
+                if db and User:
+                    try:
+                        db_user = User.query.filter_by(email=email).first()
+                        if db_user:
+                            self.password_hash = getattr(db_user, 'password_hash', None)
+                            self.last_password_change = getattr(db_user, 'last_password_change', None)
+                    except Exception as e:
+                        print(f"⚠️ Could not fetch user password info: {e}")
             
             def is_admin(self):
                 return self.role.lower() == 'admin'
@@ -1480,18 +1509,28 @@ def update_password():
     user_email = session.get('user_email', '')
     error = None
     
-    # Check if user has existing password and set session variable for template
-    user_has_password = False
+    # Check if user has existing LOCAL password (not OAuth-only)
+    user_has_local_password = False
+    user_auth_method = session.get('user_auth_method', 'local')
+    
     if db and User:
         try:
             user = User.query.filter_by(email=user_email).first()
             if user and hasattr(user, 'password_hash') and user.password_hash:
-                user_has_password = True
+                # Only consider it a "local password" if they actually have one
+                # OAuth users setting their FIRST local password should not be asked for current password
+                user_has_local_password = True
         except Exception:
             pass
     
+    # For OAuth users setting their FIRST local password, don't require current password
+    if user_auth_method == 'oauth' and not user_has_local_password:
+        user_has_local_password = False  # First time setting local password
+        print(f"🔍 OAuth user setting FIRST local password - no current password required")
+    
     # Update session for template consistency
-    session['user_password_exists'] = user_has_password
+    session['user_password_exists'] = user_has_local_password
+    print(f"🔍 user_password_exists set to: {user_has_local_password} (auth_method: {user_auth_method})")
     
     # Debug CSRF token on GET requests
     if request.method == 'GET':
