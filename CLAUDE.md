@@ -398,12 +398,74 @@ python -c "from models import *; print(f'Lipids: {MainLipid.query.count()}')"
 - **Interactions**: ✅ Click-to-zoom, static tooltips, compressed Y-axis
 - **Colors**: ✅ Updated annotation color system
 
+## 🚨 **CRITICAL: Railway Health Check Error Fix (SOLVED - August 2025)**
+
+### **❌ The Problem That Was Fixed:**
+When deploying to Railway, the health check would fail with these symptoms:
+- "Internal server error. Please try again later."
+- Railway deployment failing at health check stage
+- App would start but Railway would kill it due to failed `/health` endpoint
+
+### **🔍 Root Cause (SOLVED):**
+**Complex CSRF error handler** was interfering with health check responses during deployment:
+1. CSRF error handler tried to use `session`, `flash()`, and complex redirects
+2. During deployment startup, these operations could timeout or fail
+3. Health check endpoint (`/health`) would get blocked by CSRF processing
+4. Railway would timeout waiting for health check response
+
+### **✅ PERMANENT SOLUTION (Commits: ac79ac8, dcb1859):**
+
+#### **1. Simplified CSRF Error Handler:**
+```python
+@app.errorhandler(CSRFError)
+def handle_csrf_error(e):
+    # Simple CSRF error handler that won't interfere with health checks
+    print(f"❌ CSRF Error: {e.description}")
+    return 'CSRF Error: Security token expired. Please refresh the page and try again.', 400
+```
+
+#### **2. Health Check Exemption from CSRF:**
+```python
+# Exempt health check routes from CSRF protection
+OAUTH_EXEMPT_ROUTES = [
+    'login_authorized', 'auth.oauth_authorized', 'oauth_login',
+    'immediate_health_check', 'immediate_ping', 'immediate_healthz'  # Health checks
+]
+
+OAUTH_EXEMPT_PATHS = ['/callback', '/authorized', '/health', '/ping', '/healthz']
+```
+
+#### **3. Fixed CSRF Secret Key Configuration:**
+```python
+# WTF-CSRF Configuration
+'WTF_CSRF_SECRET_KEY': SECRET_KEY,  # Explicitly set (was None before)
+```
+
+### **🔧 Current Health Check Setup (WORKING):**
+- **Railway Config**: `railway.json` points to `/health` with 600s timeout
+- **Health Endpoints**: `/health`, `/ping`, `/healthz` (all return simple "OK")
+- **Position**: Health checks defined at top of app.py (lines 108-121) for immediate availability
+- **CSRF Protection**: Health checks completely exempt from CSRF
+
+### **🚀 Deployment Success Indicators:**
+```
+✅ App ready
+🔓 CSRF disabled for OAuth endpoint: immediate_health_check
+```
+
+### **⚠️ NEVER CHANGE THESE (They Fix Health Checks):**
+1. **Keep CSRF error handler simple** - No session access, no redirects, no flash messages
+2. **Keep health checks exempt from CSRF** - Always include in OAUTH_EXEMPT_ROUTES and OAUTH_EXEMPT_PATHS  
+3. **Set WTF_CSRF_SECRET_KEY explicitly** - Never use None
+4. **Keep health checks at top of app.py** - Before complex initialization
+
 ### **🚨 If System Breaks**:
 1. **Check PostgreSQL connection** - Most common issue
 2. **Verify Chart.js CDN loading** - Required for interactivity
 3. **Test with simple lipid first** - AC100 or AC120 are reliable
 4. **Check browser console** - JavaScript errors will show here
 5. **Restart Flask app** - Clears any memory issues
+6. **Health Check Issues**: Check that CSRF error handler is still simple and health checks are still exempt
 
 ### **📝 Testing Checklist**:
 - [ ] Dashboard loads with lipid selection grid
