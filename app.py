@@ -372,29 +372,37 @@ Request Method: {request.method}
 
 @app.route('/session-test')
 def session_test():
-    """Test session persistence"""
-    # Set test values if not present
-    if 'test_counter' not in session:
-        session['test_counter'] = 0
-    
-    session['test_counter'] += 1
+    """Test session persistence - simplified"""
+    session['test_counter'] = session.get('test_counter', 0) + 1
     session['test_time'] = datetime.now().isoformat()
     session.permanent = True
     
+    # Debug session details
+    secret_key_hash = hash(app.secret_key) if app.secret_key else None
+    
     return f"""
-    <h2>Session Test</h2>
+    <h2>🔬 Session Debug</h2>
     <pre>
-Session ID: {session.get('_id', 'No ID')}
-Test Counter: {session.get('test_counter', 0)}
-Test Time: {session.get('test_time', 'Not set')}
-User Authenticated: {session.get('user_authenticated', False)}
-User Email: {session.get('user_email', 'Not set')}
+<strong>Session Data:</strong>
+Counter: {session.get('test_counter', 0)}
+Time: {session.get('test_time', 'Not set')}
 All Keys: {list(session.keys())}
-Session Permanent: {session.permanent}
+Permanent: {session.permanent}
+
+<strong>Configuration:</strong>
+SECRET_KEY length: {len(app.secret_key) if app.secret_key else 0}
+SECRET_KEY hash: {secret_key_hash}
+SECRET_KEY from env: {bool(os.getenv('SECRET_KEY'))}
+Cookie name: {app.config.get('SESSION_COOKIE_NAME')}
+
+<strong>Request:</strong>
 Cookies: {list(request.cookies.keys())}
+Host: {request.host}
     </pre>
-    <p><a href="/session-test">Refresh to test persistence</a></p>
-    <p><a href="/auth/login">Login</a> | <a href="/auth/update-password">Password Update</a></p>
+    <p><a href="/session-test" style="padding: 10px 20px; background: #007bff; color: white; text-decoration: none;">🔄 Refresh Test</a></p>
+    <p><a href="/auth/login" style="padding: 10px 20px; background: #28a745; color: white; text-decoration: none;">🔐 Test Login</a></p>
+    <hr>
+    <p><em>If counter increases on refresh, sessions work. If it stays at 1, there's a persistence issue.</em></p>
     """
 
 @app.route('/password-help')
@@ -560,6 +568,17 @@ def fix_session_persistence():
     # Skip all processing for health check routes
     if request.endpoint in ['ping', 'health', 'status', 'healthz']:
         return
+    
+    # Debug empty sessions - only for auth routes
+    if request.endpoint and 'auth.' in str(request.endpoint) and len(session.keys()) == 0:
+        print(f"🔍 DEBUG: Empty session on {request.endpoint}")
+        print(f"🔍 Session cookie exists: {'session' in request.cookies}")
+        print(f"🔍 SECRET_KEY length: {len(app.secret_key) if app.secret_key else 0}")
+        print(f"🔍 SECRET_KEY source: {'env' if os.getenv('SECRET_KEY') else 'default'}")
+        
+        # Test session write
+        session['test_debug'] = 'debug_value'
+        print(f"🔍 After test write, session keys: {list(session.keys())}")
     
     # Only make sessions permanent for non-health routes
     if session:
