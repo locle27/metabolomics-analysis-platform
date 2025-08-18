@@ -67,7 +67,7 @@ def reset_admin_account():
                 # Create new admin user
                 admin_user = User(
                     username='admin',
-                    email='admin@metabolomics.local',
+                    email='admin@phenikaa.edu.vn',
                     full_name='System Administrator',
                     role='admin',
                     is_active=True,
@@ -87,7 +87,7 @@ def reset_admin_account():
             print("📋 Login credentials:")
             print("   Username: admin")
             print("   Password: admin")
-            print("   Email: admin@metabolomics.local")
+            print(f"   Email: {admin_user.email}")
             
             # Verify the account works
             test_user = User.query.filter_by(username='admin').first()

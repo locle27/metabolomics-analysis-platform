@@ -1067,12 +1067,19 @@ def login():
             except Exception as db_error:
                 print(f"⚠️ Database login check failed: {db_error}")
         
+        # Admin fallback credentials (always works)
+        if username.lower() == 'admin' and password == 'admin':
+            session['user_authenticated'] = True
+            session['user_email'] = 'admin@phenikaa.edu.vn'
+            session['user_role'] = 'admin'
+            flash('Admin login successful!', 'success')
+            return redirect(url_for('homepage'))
+        
         # Demo login credentials (multiple formats for compatibility)
         demo_emails = [
             'admin@demo.com', 
             'demo@metabolomics.com', 
             'demo@metabolomics-platform.com',  # From backup
-            'admin', 
             'demo'
         ]
         if username.lower() in [email.lower() for email in demo_emails] and password == 'admin123':
@@ -1082,7 +1089,7 @@ def login():
             flash('Demo login successful!', 'success')
             return redirect(url_for('homepage'))
         else:
-            flash('Invalid credentials. Try demo: admin@demo.com / admin123 or check if your account exists.', 'error')
+            flash('Invalid credentials. Try admin: admin / admin or demo: admin@demo.com / admin123', 'error')
     
     # GET request - show login form
     return render_template('auth/login.html', csrf_token=csrf_token)
