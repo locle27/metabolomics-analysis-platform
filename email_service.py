@@ -146,6 +146,13 @@ def send_schedule_notification(schedule_request):
             logging.info("✅ Single SMTP connection established")
             
             # 1. Send notifications to all configured recipients
+            # CRITICAL: Ensure notification settings are loaded from database
+            try:
+                from app import ensure_notification_settings_loaded
+                ensure_notification_settings_loaded()
+            except Exception as e:
+                logging.warning(f"⚠️ Could not ensure notification settings loaded: {e}")
+            
             notification_recipients = current_app.config.get('NOTIFICATION_EMAILS', [])
             
             # If no recipients configured, fallback to default admin email

@@ -2185,6 +2185,18 @@ def load_notification_settings():
         print(f"⚠️ Error loading notification settings from database: {e}")
         return []
 
+def ensure_notification_settings_loaded():
+    """Ensure notification settings are loaded - fallback for startup issues"""
+    try:
+        # Check if settings are already loaded
+        if not hasattr(app, 'config') or 'NOTIFICATION_EMAILS' not in app.config or not app.config['NOTIFICATION_EMAILS']:
+            print("🔄 Fallback: Loading notification settings...")
+            app.config['NOTIFICATION_EMAILS'] = load_notification_settings()
+            print(f"✅ Fallback loaded {len(app.config['NOTIFICATION_EMAILS'])} notification recipients")
+    except Exception as e:
+        print(f"⚠️ Fallback notification loading failed: {e}")
+        app.config['NOTIFICATION_EMAILS'] = []
+
 def save_notification_setting(email, enabled=True):
     """Save notification setting to database - DEPLOYMENT SAFE"""
     try:
@@ -2240,14 +2252,17 @@ def migrate_notification_settings_to_db():
     except Exception as e:
         print(f"⚠️ Error migrating notification settings: {e}")
 
-# Load notification settings from database (deployment-safe)
+# Load notification settings from database (deployment-safe) with proper Flask context
 try:
-    app.config['NOTIFICATION_EMAILS'] = load_notification_settings()
-    # Auto-migrate from file to database if needed
-    if not app.config['NOTIFICATION_EMAILS'] and os.path.exists(os.path.join(BASE_DIR, 'notification_settings.json')):
-        print("🔄 Auto-migrating notification settings to database...")
-        migrate_notification_settings_to_db()
+    with app.app_context():
         app.config['NOTIFICATION_EMAILS'] = load_notification_settings()
+        # Auto-migrate from file to database if needed
+        if not app.config['NOTIFICATION_EMAILS'] and os.path.exists(os.path.join(BASE_DIR, 'notification_settings.json')):
+            print("🔄 Auto-migrating notification settings to database...")
+            migrate_notification_settings_to_db()
+            app.config['NOTIFICATION_EMAILS'] = load_notification_settings()
+        
+        print(f"✅ Notification settings loaded successfully: {len(app.config['NOTIFICATION_EMAILS'])} recipients")
 except Exception as e:
     print(f"⚠️ Error initializing notification settings: {e}")
     app.config['NOTIFICATION_EMAILS'] = []
@@ -2294,6 +2309,9 @@ def inject_user():
         
         def is_manager(self):
             return self.role in ['admin', 'manager']
+    
+    # CRITICAL: Ensure notification settings are always loaded for templates
+    ensure_notification_settings_loaded()
     
     return dict(current_user=MockUser())
 
