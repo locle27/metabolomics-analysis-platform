@@ -101,45 +101,87 @@ def send_email(subject, recipients, template, context):
 
 def send_schedule_notification(schedule_request):
     """
-    Send admin notification, user confirmation, and follow-up request for schedule requests
+    OPTIMIZED: Send admin notification and user confirmation efficiently
+    Reduced from 3 emails to 2 emails to minimize delays
     
     Args:
         schedule_request: ScheduleRequest model instance
     
     Returns:
-        dict: Results of all email attempts
+        dict: Results of email attempts
     """
     results = {
         'admin_sent': False,
         'user_sent': False,
-        'followup_sent': False
+        'followup_sent': False  # Keeping for compatibility but not sending
     }
     
-    # 1. Send notification to admin
-    admin_email = current_app.config.get('MAIL_USERNAME')
-    if admin_email:
-        results['admin_sent'] = send_email(
-            subject=f"New Consultation Request - {schedule_request.full_name}",
-            recipients=[admin_email],
-            template='email/schedule_admin_notification.html',
-            context={'request': schedule_request}
-        )
+    mail_username = current_app.config.get('MAIL_USERNAME')
+    mail_password = current_app.config.get('MAIL_PASSWORD')
     
-    # 2. Send confirmation to user
-    results['user_sent'] = send_email(
-        subject="Consultation Request Received - Metabolomics Platform",
-        recipients=[schedule_request.email],
-        template='email/schedule_user_confirmation.html',
-        context={'request': schedule_request}
-    )
+    if not mail_username or not mail_password:
+        logging.error("❌ Email configuration missing - notifications skipped")
+        return results
     
-    # 3. Send follow-up request to user (asking for response within 3 hours)
-    results['followup_sent'] = send_email(
-        subject=f"⏰ Action Required: Confirm Your Consultation Details - {schedule_request.full_name}",
-        recipients=[schedule_request.email],
-        template='email/schedule_customer_followup.html',
-        context={'request': schedule_request}
-    )
+    # OPTIMIZATION: Use a single SMTP connection for both emails
+    try:
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        from flask import render_template
+        
+        mail_server = current_app.config.get('MAIL_SERVER', 'smtp.gmail.com')
+        mail_port = current_app.config.get('MAIL_PORT', 587)
+        mail_sender = current_app.config.get('MAIL_DEFAULT_SENDER', mail_username)
+        
+        logging.info(f"🚀 OPTIMIZED: Sending emails for {schedule_request.full_name}")
+        
+        # Single SMTP connection for multiple emails (much faster!)
+        with smtplib.SMTP(mail_server, mail_port) as server:
+            # Setup connection once
+            server.ehlo('metabolomics-platform.com')
+            server.starttls()
+            server.ehlo('metabolomics-platform.com')
+            server.login(mail_username, mail_password)
+            logging.info("✅ Single SMTP connection established")
+            
+            # 1. Send admin notification (priority email)
+            try:
+                admin_html = render_template('email/schedule_admin_notification.html', request=schedule_request)
+                admin_msg = MIMEMultipart('alternative')
+                admin_msg['Subject'] = f"🔔 New Consultation Request - {schedule_request.full_name}"
+                admin_msg['From'] = f"Metabolomics Platform <{mail_sender}>"
+                admin_msg['To'] = mail_username
+                admin_msg.attach(MIMEText(admin_html, 'html', 'utf-8'))
+                
+                server.send_message(admin_msg)
+                results['admin_sent'] = True
+                logging.info("✅ Admin notification sent")
+            except Exception as e:
+                logging.error(f"❌ Admin email failed: {e}")
+            
+            # 2. Send user confirmation
+            try:
+                user_html = render_template('email/schedule_user_confirmation.html', request=schedule_request)
+                user_msg = MIMEMultipart('alternative')
+                user_msg['Subject'] = "✅ Consultation Request Confirmed - Metabolomics Platform"
+                user_msg['From'] = f"Metabolomics Platform <{mail_sender}>"
+                user_msg['To'] = schedule_request.email
+                user_msg.attach(MIMEText(user_html, 'html', 'utf-8'))
+                
+                server.send_message(user_msg)
+                results['user_sent'] = True
+                logging.info(f"✅ User confirmation sent to {schedule_request.email}")
+            except Exception as e:
+                logging.error(f"❌ User email failed: {e}")
+            
+            # NOTE: Removed follow-up email to reduce delays and avoid spam
+            # Follow-up can be sent later via a scheduled task if needed
+            
+        logging.info(f"🎉 Email batch completed: Admin={results['admin_sent']}, User={results['user_sent']}")
+        
+    except Exception as e:
+        logging.error(f"❌ SMTP connection failed: {e}")
     
     return results
 

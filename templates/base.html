@@ -618,6 +618,7 @@
                                                 <div class="sub-links">
                                                     <ul>
                                                         <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                                                        <li><a href="{{ url_for('manage_users') }}"><i class="fas fa-users-cog"></i> User Management</a></li>
                                                         <li><a href="{{ url_for('patient_management') }}"><i class="fas fa-users"></i> Patient Management</a></li>
                                                         <li><a href="{{ url_for('equipment_management') }}"><i class="fas fa-cogs"></i> Equipment Management</a></li>
                                                         <li><hr class="dropdown-divider"></li>
@@ -636,12 +637,18 @@
                                         </a>
                                     </li>
                                     
-                                    <!-- Authentication -->
-                                    {% if current_user.is_authenticated %}
+                                    <!-- Authentication - Enhanced with session check -->
+                                    {% if current_user.is_authenticated or session.get('user_authenticated') %}
                                     <li class="nav-item has-submenu">
                                         <a class="nav-link" href="#">
-                                            <i class="fas fa-user"></i>
-                                            {{ current_user.full_name.split()[0] }}
+                                            <i class="fas fa-user-circle"></i>
+                                            {% if current_user.full_name %}
+                                                {{ current_user.full_name.split()[0] }}
+                                            {% elif session.get('user_email') %}
+                                                {{ session.get('user_email').split('@')[0].title() }}
+                                            {% else %}
+                                                User
+                                            {% endif %}
                                             <span class="sub-nav-toggler"></span>
                                         </a>
                                         <div class="sub-menu">
@@ -649,13 +656,14 @@
                                                 <div class="sub-links">
                                                     <ul>
                                                         <li><a href="{{ url_for('auth.profile') }}"><i class="fas fa-user-circle"></i> Profile</a></li>
-                                                        {% if current_user.is_admin() %}
+                                                        {% if current_user.is_admin() or session.get('user_role') == 'admin' %}
                                                         <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-shield-alt"></i> Admin Dashboard</a></li>
                                                         {% endif %}
                                                         {% if session.get('user_email') == 'loc22100302@gmail.com' %}
                                                         <li><a href="{{ url_for('backup_management') }}"><i class="fas fa-database"></i> System Backup</a></li>
                                                         <li><a href="{{ url_for('change_tracker_dashboard') }}"><i class="fas fa-history"></i> Change History</a></li>
                                                         {% endif %}
+                                                        <li><a href="{{ url_for('clean_dashboard') }}"><i class="fas fa-chart-line"></i> Analysis Dashboard</a></li>
                                                         <li><hr class="dropdown-divider"></li>
                                                         <li><a href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                                                     </ul>
@@ -664,7 +672,7 @@
                                         </div>
                                     </li>
                                     {% else %}
-                                    <!-- Simple LOGIN button when not authenticated -->
+                                    <!-- LOGIN button only when not authenticated -->
                                     <li class="nav-item">
                                         <a class="nav-link" href="{{ url_for('auth.login') }}">
                                             <i class="fas fa-sign-in-alt"></i>

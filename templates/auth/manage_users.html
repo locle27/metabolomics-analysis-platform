@@ -32,7 +32,7 @@
                         <p class="text-muted mb-0">Total: {{ users|length }} users</p>
                     </div>
                     <div class="col-md-6 text-md-end">
-                        <a href="{{ url_for('auth.register_local') }}" class="btn btn-success">
+                        <a href="{{ url_for('auth.register') }}" class="btn btn-success">
                             <i class="fas fa-user-plus me-2"></i>Add New User
                         </a>
                     </div>
@@ -86,7 +86,10 @@
                                     {% endif %}
                                 </td>
                                 <td class="user-role">
-                                    <form method="POST" action="{{ url_for('auth.update_user_role') }}" class="role-form d-inline">
+                                    <form method="POST" action="{{ url_for('update_user_role') }}" class="role-form d-inline">
+                                        {% if csrf_token %}
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        {% endif %}
                                         <input type="hidden" name="user_id" value="{{ user.id }}">
                                         <select name="role" class="form-select form-select-sm role-select" 
                                                 onchange="this.form.submit()"

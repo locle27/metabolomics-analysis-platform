@@ -2774,6 +2774,71 @@ def equipment_management():
         print(f"⚠️ Equipment management error: {e}")
         return f"<h1>Equipment Management</h1><p>Error loading system: {e}</p>"
 
+@app.route('/manage-users')
+@admin_required
+def manage_users():
+    """User Management - View and manage user accounts and roles"""
+    try:
+        if not (db and User):
+            # Fallback for when database is not available
+            return render_template('auth/manage_users.html', 
+                                 users=[],
+                                 error_message="Database not available. User management requires a working database connection.")
+        
+        # Get all users with error handling
+        users = User.query.order_by(User.created_at.desc()).all()
+        
+        return render_template('auth/manage_users.html', users=users)
+        
+    except Exception as e:
+        print(f"⚠️ User management error: {e}")
+        return render_template('auth/manage_users.html', 
+                             users=[],
+                             error_message=f"Error loading users: {str(e)}")
+
+@app.route('/update-user-role', methods=['POST'])
+@admin_required  
+def update_user_role():
+    """Update user role - Admin only"""
+    try:
+        if not (db and User):
+            flash("Database not available", "error")
+            return redirect(url_for('manage_users'))
+            
+        user_id = request.form.get('user_id')
+        new_role = request.form.get('role')
+        
+        if not user_id or not new_role:
+            flash("Missing required fields", "error")
+            return redirect(url_for('manage_users'))
+            
+        if new_role not in ['user', 'manager', 'admin']:
+            flash("Invalid role specified", "error")
+            return redirect(url_for('manage_users'))
+        
+        user = User.query.get(user_id)
+        if not user:
+            flash("User not found", "error")
+            return redirect(url_for('manage_users'))
+            
+        # Prevent changing your own role
+        current_user_email = session.get('user_email')
+        if user.email == current_user_email:
+            flash("Cannot change your own role", "warning")
+            return redirect(url_for('manage_users'))
+            
+        old_role = user.role
+        user.role = new_role
+        db.session.commit()
+        
+        flash(f"Successfully updated {user.full_name or user.email}'s role from {old_role} to {new_role}", "success")
+        
+    except Exception as e:
+        print(f"⚠️ Role update error: {e}")
+        flash(f"Error updating role: {str(e)}", "error")
+        
+    return redirect(url_for('manage_users'))
+
 @app.route('/manage-lipids')
 def manage_lipids():
     """Database management interface with enhanced error handling"""
