@@ -14,10 +14,13 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from functools import wraps
 from io import BytesIO
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
+# Try to load dotenv, but don't fail if not available (Railway sets env vars directly)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    print("✅ Environment variables loaded from .env file")
+except ImportError:
+    print("ℹ️ python-dotenv not available, using system environment variables")
 
 print("🚀 BULLETPROOF METABOLOMICS PLATFORM STARTING")
 print(f"🐍 Python: {sys.version}")
@@ -3126,14 +3129,27 @@ def internal_error(error):
     return "Internal server error. Please try again later.", 500
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 5000))
-    print(f"🚀 Starting Flask app on port {port}")
-    print(f"🌐 Available at: http://0.0.0.0:{port}")
-    app.run(host='0.0.0.0', port=port, debug=False)
+    try:
+        port = int(os.getenv('PORT', 5000))
+        print(f"🚀 Starting Flask app on port {port}")
+        print(f"🌐 Available at: http://0.0.0.0:{port}")
+        app.run(host='0.0.0.0', port=port, debug=False)
+    except Exception as e:
+        print(f"❌ Flask startup failed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 else:
-    port = int(os.getenv('PORT', 8080))
-    print(f"🚀 Gunicorn deployment on port {port}")
-    print(f"🌐 Health check: /health, /ping, /status")
+    try:
+        port = int(os.getenv('PORT', 8080))
+        print(f"🚀 Gunicorn deployment on port {port}")
+        print(f"🌐 Health check: /health, /ping, /status")
+        print("✅ App successfully initialized for gunicorn")
+    except Exception as e:
+        print(f"❌ Gunicorn initialization failed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
 # For gunicorn
 application = app
