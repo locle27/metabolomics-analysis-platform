@@ -122,21 +122,40 @@ if CSRF_AVAILABLE:
         'login_authorized', 'auth.oauth_authorized', 'oauth_login'
     ]
     
+    # TEMPORARY: Add password update for debugging
+    CSRF_DEBUG_EXEMPT_ROUTES = [
+        'auth.update_password'
+    ]
+    
     OAUTH_EXEMPT_PATHS = ['/callback', '/authorized']
+    
+    # TEMPORARY: Add password update path for debugging
+    CSRF_DEBUG_EXEMPT_PATHS = ['/auth/update-password']
     
     @app.before_request
     def disable_csrf_for_oauth_routes():
         """Disable CSRF only for OAuth callback routes"""
         try:
-            # Check endpoint
+            # Check OAuth endpoints
             if request.endpoint in OAUTH_EXEMPT_ROUTES:
                 print(f"🔓 CSRF disabled for OAuth endpoint: {request.endpoint}")
                 return None
             
-            # Check path
+            # TEMPORARY: Check debug exempt endpoints 
+            if request.endpoint in CSRF_DEBUG_EXEMPT_ROUTES:
+                print(f"🔓 CSRF TEMPORARILY disabled for debugging endpoint: {request.endpoint}")
+                return None
+            
+            # Check OAuth paths
             for path in OAUTH_EXEMPT_PATHS:
                 if path in request.path:
                     print(f"🔓 CSRF disabled for OAuth path: {request.path}")
+                    return None
+            
+            # TEMPORARY: Check debug exempt paths
+            for path in CSRF_DEBUG_EXEMPT_PATHS:
+                if path in request.path:
+                    print(f"🔓 CSRF TEMPORARILY disabled for debugging path: {request.path}")
                     return None
                     
         except Exception as e:
@@ -292,6 +311,57 @@ def test_basic_csrf():
     <p>CSRF Token: <code>{csrf_token[:20]}...</code></p>
     """
 
+@app.route('/ultra-simple-csrf', methods=['GET', 'POST'])
+def ultra_simple_csrf():
+    """Ultra simple CSRF test with minimal code"""
+    print(f"\n🔍 ULTRA SIMPLE CSRF TEST - {request.method}")
+    
+    if request.method == 'POST':
+        print(f"🔍 POST received - Form data: {dict(request.form)}")
+        
+        # Just return success without any redirects or complex logic
+        return """
+        <h1 style="color: green;">✅ ULTRA SIMPLE TEST SUCCESS!</h1>
+        <p>POST request processed successfully without CSRF error!</p>
+        <p><a href="/ultra-simple-csrf">Try Again</a></p>
+        """
+    
+    # GET request - show ultra simple form
+    csrf_token = ""
+    if CSRF_AVAILABLE:
+        try:
+            from flask_wtf.csrf import generate_csrf
+            csrf_token = generate_csrf()
+            print(f"🔍 CSRF token generated: {csrf_token[:20]}...")
+        except Exception as e:
+            print(f"❌ CSRF generation failed: {e}")
+            return f"CSRF Error: {e}"
+    
+    return f"""
+    <h2>🔍 Ultra Simple CSRF Test</h2>
+    <p>This is the simplest possible test with no redirects or complex logic.</p>
+    
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{csrf_token}">
+        <p>
+            <label>Simple test:</label><br>
+            <input type="text" name="test" value="hello" required>
+        </p>
+        <p>
+            <input type="submit" value="Test CSRF">
+        </p>
+    </form>
+    
+    <h3>Debug Info:</h3>
+    <pre>
+CSRF Available: {CSRF_AVAILABLE}
+Token Length: {len(csrf_token)}
+Token Preview: {csrf_token[:30]}...
+Session Keys: {list(session.keys())}
+Request Method: {request.method}
+    </pre>
+    """
+
 @app.route('/password-help')
 def password_help():
     """Show password requirements and examples"""
@@ -371,6 +441,74 @@ def password_success():
                 </div>
             </div>
         </div>
+    </body>
+    </html>
+    """
+
+@app.route('/simple-password-test', methods=['GET', 'POST'])
+def simple_password_test():
+    """Simple password test without WTForms complexity"""
+    print(f"\n🔍 SIMPLE PASSWORD TEST - {request.method}")
+    
+    if request.method == 'POST':
+        print(f"🔍 POST received")
+        print(f"🔍 Form data: {dict(request.form)}")
+        print(f"🔍 Session: {dict(session)}")
+        
+        # Simple success without redirects
+        return """
+        <h1 style="color: green;">✅ SIMPLE PASSWORD TEST SUCCESS!</h1>
+        <p>Password form submitted successfully!</p>
+        <p><a href="/simple-password-test">Try Again</a></p>
+        <p><a href="/auth/update-password">Real Password Update</a></p>
+        """
+    
+    # GET - simple form
+    csrf_token = ""
+    if CSRF_AVAILABLE:
+        try:
+            from flask_wtf.csrf import generate_csrf
+            csrf_token = generate_csrf()
+        except Exception as e:
+            return f"CSRF Error: {e}"
+    
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head><title>Simple Password Test</title></head>
+    <body style="font-family: Arial; margin: 40px;">
+    
+    <h2>🔐 Simple Password Test</h2>
+    <p>Testing password form submission without complex WTForms</p>
+    
+    <form method="POST" style="background: #f5f5f5; padding: 20px; border-radius: 8px;">
+        <input type="hidden" name="csrf_token" value="{csrf_token}">
+        
+        <p>
+            <label>New Password:</label><br>
+            <input type="password" name="new_password" value="Password123!" required style="padding: 8px; width: 200px;">
+        </p>
+        
+        <p>
+            <label>Confirm Password:</label><br>
+            <input type="password" name="confirm_password" value="Password123!" required style="padding: 8px; width: 200px;">
+        </p>
+        
+        <p>
+            <input type="submit" value="Test Password Submit" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px;">
+        </p>
+    </form>
+    
+    <div style="background: #e9ecef; padding: 15px; border-radius: 5px; margin-top: 20px;">
+        <h3>Debug Info:</h3>
+        <pre>
+CSRF Token: {csrf_token[:50]}...
+Session Keys: {list(session.keys())}
+User Email: {session.get('user_email', 'Not set')}
+Authenticated: {session.get('user_authenticated', False)}
+        </pre>
+    </div>
+    
     </body>
     </html>
     """
@@ -1777,7 +1915,28 @@ def dual_chart_view():
 def browse_lipids():
     """Browse and search lipids with advanced filtering"""
     try:
-        return render_template('browse_lipids.html')
+        # Provide empty current_filters to prevent template error
+        current_filters = {
+            'search': request.args.get('search', ''),
+            'class': request.args.get('class', ''),
+            'rt_min': request.args.get('rt_min', ''),
+            'rt_max': request.args.get('rt_max', ''),
+            'multi_ion': request.args.get('multi_ion', False)
+        }
+        
+        # Get lipid classes for filter dropdown
+        lipid_classes = []
+        try:
+            if db and MainLipid:
+                lipid_classes = db.session.query(MainLipid.lipid_class).distinct().all()
+                lipid_classes = [{'class_name': cls[0]} for cls in lipid_classes if cls[0]]
+        except Exception:
+            pass
+        
+        return render_template('browse_lipids.html', 
+                             current_filters=current_filters,
+                             lipid_classes=lipid_classes,
+                             lipids={'items': [], 'pages': 0, 'page': 1})
     except Exception as e:
         print(f"⚠️ Browse lipids error: {e}")
         return f"<h1>Browse System Loading...</h1><p>Error: {e}</p>"
