@@ -1,0 +1,39 @@
+# Ignore files that don't need to be in Docker container
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.env.local
+.env.example
+.git/
+.gitignore
+README.md
+*.md
+.vscode/
+.idea/
+*.log
+node_modules/
+.DS_Store
+Thumbs.db
+
+# Backup files
+*backup*
+*-backup-*
+metabolomics-project-backup-*
+metabolomics-project-cleanup-backup-*
+
+# Chart images
+chart-error.png
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# Excel files
+*.xlsx
+*.xls
+
+# Test files
+test_*
+*_test.py
