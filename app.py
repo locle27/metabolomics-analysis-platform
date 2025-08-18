@@ -1193,11 +1193,11 @@ def schedule_form():
             # Save to database
             try:
                 schedule_request = ScheduleRequest(
-                    name=full_name, 
+                    full_name=full_name, 
                     email=email, 
                     phone=phone,
                     organization=organization,
-                    research_area=request_type,
+                    request_type=request_type,
                     message=message, 
                     preferred_date=preferred_date,
                     preferred_time=preferred_time
@@ -1210,10 +1210,29 @@ def schedule_form():
                 
                 # Try to send email notification (don't fail if email fails)
                 try:
-                    from email_service import send_schedule_notification_email
-                    send_schedule_notification_email(schedule_request)
+                    # Import the correct function from the email service
+                    from email_service import send_schedule_notification
+                    
+                    # Call the function and pass the database object
+                    print(f"Attempting to send notification for: {schedule_request.full_name}")
+                    email_results = send_schedule_notification(schedule_request)
+                    
+                    # Log the results for debugging
+                    if email_results.get('user_sent'):
+                        print(f"✅ User confirmation sent to {schedule_request.email}")
+                    else:
+                        print(f"⚠️ Failed to send user confirmation to {schedule_request.email}")
+                    
+                    if email_results.get('admin_sent'):
+                        print("✅ Admin notification sent successfully.")
+                    else:
+                        print("⚠️ Failed to send admin notification.")
+                        
+                except ImportError:
+                    print("Email notification failed: Could not import 'send_schedule_notification' from email_service.")
                 except Exception as email_error:
-                    print(f"Email notification failed: {email_error}")
+                    # This will catch other errors during the email sending process
+                    print(f"Email notification failed with an unexpected error: {email_error}")
                     
             except Exception as db_error:
                 print(f"Database error: {db_error}")

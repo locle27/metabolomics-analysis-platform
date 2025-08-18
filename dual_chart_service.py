@@ -430,8 +430,8 @@ class DualChartService:
                         },
                         'grid': {'color': 'rgba(0, 0, 0, 0.1)'},
                         'ticks': {
-                            'stepSize': 1,  # FORCE 1-unit intervals: 0, 1, 2, 3, 4...
-                            'maxTicksLimit': 20  # Allow enough ticks for 1-unit steps
+                            'maxTicksLimit': 16,  # Allow enough ticks for good spacing
+                            'precision': 1  # Safe decimal precision for time values
                         }
                     },
                     'y': {

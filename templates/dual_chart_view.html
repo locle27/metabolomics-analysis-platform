@@ -762,10 +762,18 @@ function applyIndividualZoom(lipidId, chartType) {
             
             // Apply zoom using Chart.js v3.9.1 zoom plugin API with safe formatting
             if (chart.zoom) {
-                // Temporarily disable number formatting to prevent errors
-                const originalYCallback = chart.options.scales.y.ticks.callback;
-                chart.options.scales.y.ticks.callback = function(value) {
-                    return Math.round(value).toString();
+                // Completely disable automatic tick generation during zoom
+                const originalXTicks = chart.options.scales.x.ticks;
+                const originalYTicks = chart.options.scales.y.ticks;
+                
+                // Set safe, simple tick configurations
+                chart.options.scales.x.ticks = {
+                    maxTicksLimit: 10,
+                    callback: function(value) { return value.toFixed(1); }
+                };
+                chart.options.scales.y.ticks = {
+                    maxTicksLimit: 6,
+                    callback: function(value) { return Math.round(value).toString(); }
                 };
                 
                 chart.zoom({
@@ -775,8 +783,9 @@ function applyIndividualZoom(lipidId, chartType) {
                     }
                 });
                 
-                // Restore original callback
-                chart.options.scales.y.ticks.callback = originalYCallback;
+                // Restore original tick configurations
+                chart.options.scales.x.ticks = originalXTicks;
+                chart.options.scales.y.ticks = originalYTicks;
             } else {
                 console.warn('Zoom function not available on chart');
             }
@@ -987,33 +996,39 @@ function createChart(lipidId, chartType, chartConfig) {
         chartConfig.options.plugins = {};
     }
     
-    // Enhance chart config with JavaScript callbacks for better formatting
-    if (chartConfig.options && chartConfig.options.scales && chartConfig.options.scales.y) {
-        chartConfig.options.scales.y.ticks = {
-            ...chartConfig.options.scales.y.ticks,
-            callback: function(value, index) {
-                // HIDE the first (lowest) intensity axis number to avoid ugly small numbers
-                // but keep the chart drawing exactly as before
-                if (index === 0) {
-                    return ''; // Hide the first/lowest tick label
+    // Safe chart config - completely override any problematic backend settings
+    if (chartConfig.options && chartConfig.options.scales) {
+        // X-axis: Safe time formatting
+        if (chartConfig.options.scales.x) {
+            chartConfig.options.scales.x.ticks = {
+                maxTicksLimit: 12,
+                callback: function(value) {
+                    // Safe time formatting - just show rounded minutes
+                    return Math.round(value * 10) / 10; // Round to 1 decimal place safely
                 }
-                
-                // Format remaining numbers normally with safe decimal places
-                if (value >= 1000) {
-                    return value.toExponential(1);
-                } else if (value >= 100) {
-                    return Math.round(value).toString();
-                } else if (value >= 10) {
-                    return Number(value.toFixed(1)).toString();
-                } else {
-                    return Number(value.toFixed(2)).toString();
-                }
-            }
-        };
+            };
+        }
         
-        // Ensure we don't have invalid formatting options
-        if (chartConfig.options.scales.y.ticks.maxTicksLimit === undefined) {
-            chartConfig.options.scales.y.ticks.maxTicksLimit = 8;
+        // Y-axis: Safe intensity formatting
+        if (chartConfig.options.scales.y) {
+            chartConfig.options.scales.y.ticks = {
+                maxTicksLimit: 6,
+                callback: function(value, index) {
+                    // HIDE the first (lowest) intensity axis number to avoid ugly small numbers
+                    if (index === 0) {
+                        return ''; // Hide the first/lowest tick label
+                    }
+                    
+                    // Safe number formatting - avoid any decimal precision issues
+                    if (value >= 1000) {
+                        return Math.round(value / 100) * 100; // Round to nearest 100
+                    } else if (value >= 100) {
+                        return Math.round(value);
+                    } else {
+                        return Math.round(value * 10) / 10; // Round to 1 decimal safely
+                    }
+                }
+            };
         }
     }
     
