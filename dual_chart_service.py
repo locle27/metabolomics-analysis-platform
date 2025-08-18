@@ -92,11 +92,6 @@ class DualChartService:
             if not time_points:
                 raise ValueError("No valid XIC data points found")
             
-            print(f"DEBUG: Loaded {len(time_points)} XIC data points")
-            print(f"DEBUG: Sample time points: {time_points[:5] if len(time_points) >= 5 else time_points}")
-            print(f"DEBUG: Sample intensity points: {intensity_points[:5] if len(intensity_points) >= 5 else intensity_points}")
-            print(f"DEBUG: XIC data type: {type(xic_data)}")
-            print(f"DEBUG: XIC data sample: {str(xic_data)[:200]}...")
             
             # Convert annotated ions data to objects for compatibility
             annotated_ions = []
@@ -184,23 +179,18 @@ class DualChartService:
         # Filter data to chart range
         filtered_data = []
         filtered_intensities = []
-        print(f"DEBUG: Filtering data for range {x_min} - {x_max}")
-        print(f"DEBUG: Total time points to filter: {len(time_points)}")
         
         for i, time in enumerate(time_points):
             if x_min <= time <= x_max:
                 filtered_data.append({'x': time, 'y': intensity_points[i]})
                 filtered_intensities.append(intensity_points[i])
         
-        print(f"DEBUG: Filtered data points: {len(filtered_data)}")
-        print(f"DEBUG: Sample filtered data: {filtered_data[:3] if len(filtered_data) >= 3 else filtered_data}")
         
         # Calculate optimized Y-axis range - ALWAYS start from 0
         if filtered_intensities:
             min_intensity = min(filtered_intensities)
             max_intensity = max(filtered_intensities)
             
-            print(f"DEBUG: Chart range {x_min}-{x_max}, Min: {min_intensity}, Max: {max_intensity}")
             
             # Y-axis ALWAYS starts from 0 (as requested)
             y_min = 0
@@ -218,7 +208,6 @@ class DualChartService:
             # Goal: If lowest point is 40, it should appear almost touching 0
             # No proportional spacing - just make it visually close
             
-            print(f"DEBUG: Min: {min_intensity}, Max: {max_intensity}, Y_max: {y_max}")
             
             # Safety check: ensure we have valid data
             if y_max <= 0 or max_intensity <= 0:
@@ -282,11 +271,8 @@ class DualChartService:
                 # Final safety check
                 calculated_step_size = max(int(step_size), 1)  # Absolute minimum is 1
                 
-                print(f"DEBUG: Step size: {calculated_step_size}, Total ticks: {int(y_max/calculated_step_size)+1 if calculated_step_size > 0 else 'N/A'}")
                 # Calculate how close to 0 the data will appear
                 ticks_to_data = min_intensity / calculated_step_size if calculated_step_size > 0 else 0
-                print(f"DEBUG: Data appears {ticks_to_data:.1f} ticks from 0, lowest point at ~{min_intensity:.1f}, step size: {calculated_step_size}")
-                print(f"DEBUG: Tick sequence: 0, {calculated_step_size}, {calculated_step_size*2}, {calculated_step_size*3}... (data at ~{min_intensity:.1f})")
             
         else:
             print(f"WARNING: No filtered intensities found, using fallback values")
@@ -312,8 +298,6 @@ class DualChartService:
             }
         ]
         
-        print(f"DEBUG: Created main dataset with {len(filtered_data)} data points")
-        print(f"DEBUG: Total datasets before annotations: {len(datasets)}")
         
         # EMERGENCY FIX: Add dummy data if no data points found (for testing chart rendering)
         if len(filtered_data) == 0:
@@ -327,7 +311,6 @@ class DualChartService:
             
             # Update the main dataset with test data
             datasets[0]['data'] = test_data
-            print(f"DEBUG: Added {len(test_data)} dummy data points for testing")
         
         # Add annotated ion datasets (only integration areas with targeted hover info)
         # Find the main/current lipid for boundary display

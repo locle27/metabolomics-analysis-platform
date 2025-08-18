@@ -159,8 +159,10 @@
                                         <input type="hidden" name="user_id" value="{{ user.id }}">
                                         <select name="role" class="form-select form-select-sm role-select" 
                                                 onchange="handleRoleChange(this)"
-                                                {% if user.id == current_user.id %}disabled title="Cannot change your own role"
-                                                {% elif user.role == 'admin' and session.get('user_email') != 'loc22100302@gmail.com' %}disabled title="Only super admin can modify admin roles"
+                                                data-user-id="{{ user.id }}"
+                                                data-original-role="{{ user.role }}"
+                                                {% if user.id == current_user.id %}data-disabled="own-role" title="Cannot change your own role"
+                                                {% elif user.role == 'admin' and session.get('user_email') != 'loc22100302@gmail.com' %}data-disabled="admin-protected" title="Only super admin can modify admin roles"
                                                 {% endif %}>
                                             <option value="user" {% if user.role == 'user' %}selected{% endif %}>
                                                 🔬 Researcher - Analysis Access
@@ -515,13 +517,26 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// NEW APPROACH: Handle role changes properly with explicit value capture
+// FIXED APPROACH: Handle role changes with proper disabled state management
 function handleRoleChange(selectElement) {
     const form = selectElement.closest('form');
     const userRow = selectElement.closest('tr');
     const userName = userRow.querySelector('.fw-bold').textContent;
-    const oldRole = selectElement.getAttribute('data-original-value') || 'unknown';
+    const oldRole = selectElement.getAttribute('data-original-role') || selectElement.getAttribute('data-original-value') || 'unknown';
     const newRole = selectElement.value;
+    
+    // Check if this select should be disabled
+    const disabledReason = selectElement.getAttribute('data-disabled');
+    if (disabledReason) {
+        // Prevent the change and restore original value
+        selectElement.value = oldRole;
+        if (disabledReason === 'own-role') {
+            alert('You cannot change your own role for security reasons.');
+        } else if (disabledReason === 'admin-protected') {
+            alert('Only the super administrator can modify admin roles.');
+        }
+        return;
+    }
     
     // Professional role descriptions
     const roleDescriptions = {
@@ -533,18 +548,16 @@ function handleRoleChange(selectElement) {
     const message = `Change ${userName}'s access level?\n\nFrom: ${roleDescriptions[oldRole] || oldRole}\nTo: ${roleDescriptions[newRole]}\n\nThis change will take effect immediately.`;
     
     if (confirm(message)) {
-        // CRITICAL: Ensure the role value is properly set BEFORE submission
-        console.log('🔧 PRE-SUBMISSION DEBUG:', {
-            selectElement_value: selectElement.value,
-            selectElement_name: selectElement.name,
-            form_role_value: form.querySelector('select[name="role"]').value,
+        console.log('🔧 Role Change Debug:', {
             user_id: form.querySelector('input[name="user_id"]').value,
-            csrf_token: form.querySelector('input[name="csrf_token"]')?.value
+            old_role: oldRole,
+            new_role: newRole,
+            select_disabled: selectElement.disabled,
+            form_action: form.action
         });
         
-        // Show loading state
+        // Show loading state BEFORE disabling
         selectElement.classList.add('loading');
-        selectElement.disabled = true;
         
         // Add visual loading indicator
         const loadingSpan = document.createElement('span');
@@ -552,26 +565,26 @@ function handleRoleChange(selectElement) {
         loadingSpan.className = 'role-loading-indicator';
         selectElement.parentNode.appendChild(loadingSpan);
         
-        // FORCE the role value to be set explicitly
-        const roleInput = form.querySelector('select[name="role"]');
-        roleInput.value = newRole;
+        // CRITICAL FIX: Add hidden input with role value to ensure submission
+        const hiddenRoleInput = document.createElement('input');
+        hiddenRoleInput.type = 'hidden';
+        hiddenRoleInput.name = 'role';
+        hiddenRoleInput.value = newRole;
+        form.appendChild(hiddenRoleInput);
         
-        // Double-check the value is set
-        console.log('🔧 FINAL CHECK before submit:', {
-            role_value_final: roleInput.value,
-            form_data_check: new FormData(form).get('role')
+        // Disable select AFTER adding hidden input
+        selectElement.disabled = true;
+        
+        console.log('🔧 Final form data:', {
+            hidden_role_added: hiddenRoleInput.value,
+            form_data: new FormData(form).get('role')
         });
         
-        // Longer delay to ensure DOM updates complete
-        setTimeout(() => {
-            form.submit();
-        }, 200);
+        // Submit immediately
+        form.submit();
     } else {
         // Restore original value
-        const originalValue = selectElement.getAttribute('data-original-value');
-        if (originalValue) {
-            selectElement.value = originalValue;
-        }
+        selectElement.value = oldRole;
     }
 }
 
