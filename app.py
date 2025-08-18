@@ -10,14 +10,19 @@ import sys
 import json
 import base64
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from functools import wraps
 from io import BytesIO
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 print("🚀 BULLETPROOF METABOLOMICS PLATFORM STARTING")
 print(f"🐍 Python: {sys.version}")
 print(f"📁 Directory: {os.getcwd()}")
+print(f"🔑 SECRET_KEY loaded: {'Yes' if os.getenv('SECRET_KEY') else 'No (using default)'}")
 print(f"📡 Port: {os.getenv('PORT', '5000')}")
 print("=" * 60)
 
@@ -107,7 +112,7 @@ app.config.update({
     'SESSION_COOKIE_SAMESITE': 'Lax',
     'SESSION_COOKIE_NAME': 'metabolomics_session',
     'SESSION_COOKIE_PATH': '/',  # Available for all paths
-    'PERMANENT_SESSION_LIFETIME': 3600,  # 1 hour
+    'PERMANENT_SESSION_LIFETIME': timedelta(hours=1),  # 1 hour
     'SESSION_REFRESH_EACH_REQUEST': True,  # Keep session alive
     # WTF-CSRF Configuration
     'WTF_CSRF_ENABLED': True,
@@ -553,14 +558,26 @@ if PROXY_FIX_AVAILABLE:
 def fix_session_persistence():
     """Fix session persistence issues in production"""
     # Make sessions permanent to prevent loss
-    if request.endpoint and session:
-        session.permanent = True
+    session.permanent = True
     
-    # Debug empty sessions
-    if request.endpoint and 'auth' in str(request.endpoint) and not session:
-        print(f"⚠️ Empty session on auth route: {request.endpoint}")
+    # Debug empty sessions - comprehensive logging
+    if request.endpoint and ('auth' in str(request.endpoint) or len(session.keys()) == 0):
+        print(f"⚠️ Session debug for {request.endpoint}")
+        print(f"⚠️ Session keys: {list(session.keys())}")
+        print(f"⚠️ Session data: {dict(session)}")
         print(f"⚠️ Request cookies: {list(request.cookies.keys())}")
-        print(f"⚠️ Request headers: {dict(request.headers)}")
+        print(f"⚠️ Session permanent: {session.permanent}")
+        
+        if 'session' in request.cookies or 'metabolomics_session' in request.cookies:
+            cookie_name = 'metabolomics_session' if 'metabolomics_session' in request.cookies else 'session'
+            session_cookie = request.cookies.get(cookie_name, 'none')
+            print(f"⚠️ Cookie '{cookie_name}' length: {len(session_cookie)}")
+            print(f"⚠️ Cookie starts: {session_cookie[:50]}...")
+        
+        # Test secret key
+        print(f"⚠️ SECRET_KEY loaded from env: {bool(os.getenv('SECRET_KEY'))}")
+        print(f"⚠️ App secret key length: {len(app.secret_key) if app.secret_key else 0}")
+        print("⚠️ " + "="*50)
 
 @app.after_request
 def after_request(response):
@@ -3046,6 +3063,52 @@ def status():
         }, 200
     except:
         return "ok", 200
+
+@app.route('/session-test')
+def session_test():
+    """Test session persistence - CRITICAL DEBUG TOOL"""
+    visit_count = session.get('visit_count', 0) + 1
+    session['visit_count'] = visit_count
+    session['last_visit'] = datetime.now().isoformat()
+    session['test_data'] = 'Session is working!'
+    
+    debug_info = f"""
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 40px; }}
+        .debug {{ background: #f0f0f0; padding: 20px; border-radius: 5px; margin: 10px 0; }}
+        .success {{ background: #d4edda; border: 1px solid #c3e6cb; }}
+        .warning {{ background: #fff3cd; border: 1px solid #ffeaa7; }}
+    </style>
+    <h1>🔬 Session Persistence Test</h1>
+    
+    <div class="debug success">
+        <h3>Session Data</h3>
+        <p><strong>Visit count:</strong> {visit_count}</p>
+        <p><strong>Last visit:</strong> {session.get('last_visit')}</p>
+        <p><strong>Session permanent:</strong> {session.permanent}</p>
+        <p><strong>Session keys:</strong> {list(session.keys())}</p>
+        <p><strong>Session ID:</strong> {id(session)}</p>
+    </div>
+    
+    <div class="debug warning">
+        <h3>Configuration</h3>
+        <p><strong>Cookie name:</strong> {app.config.get('SESSION_COOKIE_NAME')}</p>
+        <p><strong>Secret key length:</strong> {len(app.secret_key) if app.secret_key else 0}</p>
+        <p><strong>SECRET_KEY from env:</strong> {bool(os.getenv('SECRET_KEY'))}</p>
+        <p><strong>Session lifetime:</strong> {app.config.get('PERMANENT_SESSION_LIFETIME')}</p>
+    </div>
+    
+    <p><a href="/session-test" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">🔄 Refresh Test</a></p>
+    <p><a href="/" style="background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">🏠 Back to Home</a></p>
+    
+    <div class="debug">
+        <h3>Instructions</h3>
+        <p>If the visit count increases each time you refresh, sessions are working correctly.</p>
+        <p>If it stays at 1, there's a session persistence issue.</p>
+    </div>
+    """
+    
+    return debug_info
 
 @app.errorhandler(404)
 def not_found(error):
