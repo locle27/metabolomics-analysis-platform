@@ -3043,16 +3043,20 @@ print("🎯 ORIGINAL INTERFACE METABOLOMICS PLATFORM READY")
 print("   All original features, navigation, and styling preserved")
 print("   SQLAlchemy initialization fixed for bulletproof deployment")
 print("🤖 Automated change tracking system integrated")
+print(f"💚 Health endpoint available at /health")
+print(f"🔧 Debug endpoint available at /session-test")
 
 @app.route('/ping')
 def ping():
     """Simple ping endpoint for Railway health checks"""
     return "pong", 200
 
-@app.route('/health')
-def health():
-    """Railway health check endpoint"""
-    return {"status": "healthy", "timestamp": datetime.now().isoformat()}, 200
+@app.route('/healthz')
+def healthz():
+    """Ultra-simple Kubernetes-style health check"""
+    return "OK", 200
+
+# Health endpoint is defined earlier in the file as health_check()
 
 @app.route('/status')
 def status():
@@ -3137,7 +3141,8 @@ if __name__ == '__main__':
 else:
     port = int(os.getenv('PORT', 8080))
     print(f"🚀 Gunicorn deployment on port {port} (startup: {time.time() - startup_time:.2f}s)")
-    print(f"🌐 Health check: /health, /ping, /status") 
+    print(f"🌐 Health checks: /health, /healthz, /ping, /status") 
+    print(f"🎯 App will be available at: http://0.0.0.0:{port}")
     print("✅ App successfully initialized for gunicorn")
 
 # For gunicorn
