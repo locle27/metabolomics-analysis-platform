@@ -121,25 +121,21 @@
                     <th colspan="2">📋 Your Request Summary</th>
                 </tr>
                 <tr>
-                    <td><strong>Request ID:</strong></td>
-                    <td>#{{ request.request_id }}</td>
-                </tr>
-                <tr>
-                    <td><strong>Request Type:</strong></td>
+                    <td><strong>Consultation Type:</strong></td>
                     <td>{{ request.request_type.replace('_', ' ').title() }}</td>
                 </tr>
+                {% if request.preferred_date %}
                 <tr>
                     <td><strong>Preferred Date:</strong></td>
-                    <td>{{ request.preferred_date.strftime('%A, %B %d, %Y') if request.preferred_date else 'Flexible' }}</td>
+                    <td>{{ request.preferred_date.strftime('%A, %B %d, %Y') }}</td>
                 </tr>
+                {% endif %}
+                {% if request.preferred_time %}
                 <tr>
                     <td><strong>Preferred Time:</strong></td>
-                    <td>{{ request.preferred_time or 'Flexible' }}</td>
+                    <td>{{ request.preferred_time }}</td>
                 </tr>
-                <tr>
-                    <td><strong>Submitted:</strong></td>
-                    <td>{{ request.created_at.strftime('%B %d, %Y at %I:%M %p UTC') }}</td>
-                </tr>
+                {% endif %}
             </table>
             
             <table class="info-table">
@@ -151,24 +147,11 @@
                 </tr>
             </table>
             
-            <div class="next-steps">
-                <strong>📅 What Happens Next:</strong>
-                <ol>
-                    <li><strong>Review Process:</strong> Our team will review your request within 24 hours</li>
-                    <li><strong>Confirmation:</strong> We'll email you to confirm the consultation details</li>
-                    <li><strong>Preparation:</strong> We'll send you any materials to review before the meeting</li>
-                    <li><strong>Consultation:</strong> Meet with our metabolomics experts</li>
-                </ol>
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+                <p style="margin: 0; font-size: 16px; color: #155724;">
+                    <strong>Our team will review your request and contact you within 24 hours.</strong>
+                </p>
             </div>
-            
-            <h3>🔬 What We Can Help You With:</h3>
-            <ul>
-                <li><strong>Data Analysis:</strong> Advanced lipid chromatography data processing</li>
-                <li><strong>Method Development:</strong> Custom analytical method design</li>
-                <li><strong>Research Planning:</strong> Experimental design consultation</li>
-                <li><strong>Technical Training:</strong> Platform usage and best practices</li>
-                <li><strong>Collaboration:</strong> Joint research opportunities</li>
-            </ul>
             
         </div>
         
