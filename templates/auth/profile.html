@@ -72,11 +72,11 @@
                             {% if csrf_token %}
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
                             {% endif %}
-                            <!-- Username Field for OAuth Users -->
+                            <!-- Display Name Field for OAuth Users -->
                             <div class="form-group mb-3">
                                 <label for="username" class="form-label">
                                     <i class="fas fa-user me-2"></i>
-                                    Display Name / Username
+                                    Display Name
                                 </label>
                                 <input type="text" 
                                        class="form-control" 
@@ -85,7 +85,8 @@
                                        value="{{ current_user.username }}" 
                                        placeholder="Enter your preferred display name">
                                 <small class="form-text text-muted">
-                                    This is how your name will appear on the platform
+                                    This is how your name will appear on the platform. 
+                                    <strong>Note:</strong> To log in, you must use your email address below, not this display name.
                                 </small>
                             </div>
 
@@ -93,7 +94,7 @@
                             <div class="form-group mb-4">
                                 <label for="email" class="form-label">
                                     <i class="fas fa-envelope me-2"></i>
-                                    Email Address
+                                    Email Address (Login Username)
                                 </label>
                                 <input type="email" 
                                        class="form-control" 
@@ -101,8 +102,9 @@
                                        name="email" 
                                        value="{{ current_user.email }}" 
                                        readonly>
-                                <small class="form-text text-muted">
-                                    Email is managed through your {{ current_user.auth_method.title() }} account
+                                <small class="form-text text-success">
+                                    <strong><i class="fas fa-key me-1"></i>This is your login username.</strong> 
+                                    Use this full email address to log in. Email is managed through your {{ current_user.auth_method.title() }} account.
                                 </small>
                             </div>
 
