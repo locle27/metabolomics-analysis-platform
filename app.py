@@ -1314,6 +1314,16 @@ def profile():
         user_name = session.get('user_name', user_email.split('@')[0] if user_email else 'User')
         auth_method = session.get('user_auth_method', 'oauth')
         
+        # Generate CSRF token safely
+        csrf_token = ''
+        if CSRF_AVAILABLE:
+            try:
+                from flask_wtf.csrf import generate_csrf
+                csrf_token = generate_csrf()
+            except Exception as e:
+                print(f"⚠️ CSRF token generation failed: {e}")
+                csrf_token = ''
+        
         # Handle profile updates
         if request.method == 'POST':
             new_username = request.form.get('username', '').strip()
@@ -1366,7 +1376,7 @@ def profile():
         
         current_user = UserData(user_email, user_role, user_name, auth_method)
         
-        return render_template('auth/profile.html', current_user=current_user, user=current_user)
+        return render_template('auth/profile.html', current_user=current_user, user=current_user, csrf_token=csrf_token)
     except Exception as e:
         print(f"⚠️ Profile route error: {e}")
         print(f"🔍 CSRF_AVAILABLE: {CSRF_AVAILABLE}")
