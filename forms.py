@@ -38,25 +38,33 @@ class PasswordUpdateForm(FlaskForm):
     submit = SubmitField('Save Password')
     
     def validate_new_password(self, field):
-        """Custom password strength validation"""
+        """Custom password strength validation with helpful feedback"""
         password = field.data
+        if not password:  # Skip validation if no password provided
+            return
+            
         errors = []
         
+        if len(password) < 8:
+            errors.append("Password must be at least 8 characters long")
+        
         if not re.search(r'[A-Z]', password):
-            errors.append("Password must contain at least one uppercase letter")
+            errors.append("Password must contain at least one UPPERCASE letter (A-Z)")
         
         if not re.search(r'[a-z]', password):
-            errors.append("Password must contain at least one lowercase letter")
+            errors.append("Password must contain at least one lowercase letter (a-z)")
         
         if not re.search(r'\d', password):
-            errors.append("Password must contain at least one number")
+            errors.append("Password must contain at least one number (0-9)")
         
-        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
-            errors.append("Password must contain at least one special character")
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>_+=\-\[\]\\;/~`]', password):
+            errors.append("Password must contain at least one special character (!@#$%^&*)")
         
         if errors:
             from wtforms.validators import ValidationError
-            raise ValidationError(". ".join(errors))
+            # Create a more user-friendly error message
+            error_msg = "Password requirements not met:\n• " + "\n• ".join(errors)
+            raise ValidationError(error_msg)
 
 class ConsultationForm(FlaskForm):
     """Form for consultation requests with CSRF protection"""

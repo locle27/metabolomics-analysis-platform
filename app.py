@@ -292,6 +292,47 @@ def test_basic_csrf():
     <p>CSRF Token: <code>{csrf_token[:20]}...</code></p>
     """
 
+@app.route('/password-help')
+def password_help():
+    """Show password requirements and examples"""
+    return """
+    <h2>🔐 Password Requirements & Examples</h2>
+    
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3>Requirements:</h3>
+        <ul>
+            <li>✅ At least 8 characters long</li>
+            <li>✅ At least one UPPERCASE letter (A-Z)</li>
+            <li>✅ At least one lowercase letter (a-z)</li>
+            <li>✅ At least one number (0-9)</li>
+            <li>✅ At least one special character (!@#$%^&*)</li>
+        </ul>
+    </div>
+    
+    <div style="background: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3>✅ Valid Password Examples:</h3>
+        <ul>
+            <li><code>Password123!</code> - Simple and effective</li>
+            <li><code>MySecure2024#</code> - Easy to remember</li>
+            <li><code>Test@2024</code> - Short but valid</li>
+            <li><code>Admin123$</code> - Works for testing</li>
+        </ul>
+    </div>
+    
+    <div style="background: #f8d7da; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3>❌ Invalid Examples (and why):</h3>
+        <ul>
+            <li><code>password123</code> - Missing uppercase & special char</li>
+            <li><code>PASSWORD123</code> - Missing lowercase & special char</li>
+            <li><code>Password</code> - Missing number & special char</li>
+            <li><code>Pass1!</code> - Too short (less than 8 chars)</li>
+        </ul>
+    </div>
+    
+    <p><a href="/auth/update-password">→ Try Password Update</a></p>
+    <p><a href="/test-wtform">→ Test Simple Form</a></p>
+    """
+
 # Apply proxy fix if available
 if PROXY_FIX_AVAILABLE:
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1, x_for=1)
@@ -1185,13 +1226,20 @@ def update_password():
                     db.session.rollback()
         
         else:
-            # Form validation failed
-            print(f"❌ Form validation failed")
-            print(f"🔍 Form errors after validation: {form.errors}")
+            # Form validation failed - show user-friendly errors
+            print(f"❌ Form validation failed: {form.errors}")
             for field, errors in form.errors.items():
                 for error in errors:
                     print(f"   - {field}: {error}")
-                    flash(f'{field}: {error}', 'error')
+                    # Make error messages more user-friendly
+                    if 'Password requirements not met' in error:
+                        # Show the detailed password requirements
+                        flash('Please check the password requirements below and try again.', 'error')
+                        for req_error in error.split('\n• '):
+                            if req_error.strip():
+                                flash(req_error.replace('Password requirements not met:', '').strip(), 'warning')
+                    else:
+                        flash(f'{field}: {error}', 'error')
     
     # Return to password form with errors
     print("🔄 Returning to password form")
