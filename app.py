@@ -898,7 +898,7 @@ if database_url:
         # Import models first to get the shared db instance
         from models_postgresql_optimized import (
             db, MainLipid, LipidClass, AnnotatedIon, User, ScheduleRequest, AdminSettings, 
-            optimized_manager, get_db_stats, get_lipids_by_class, search_lipids,
+            NotificationSetting, optimized_manager, get_db_stats, get_lipids_by_class, search_lipids,
             BackupHistory, BackupSnapshots, BackupStats
         )
         from sqlalchemy.orm import joinedload, selectinload
@@ -2167,20 +2167,89 @@ if login_manager:
         return None
     print("✅ User loader configured")
 
-# === LOAD NOTIFICATION SETTINGS ===
+# === DEPLOYMENT-SAFE NOTIFICATION SETTINGS (Database Storage) ===
+def load_notification_settings():
+    """Load notification settings from database - DEPLOYMENT SAFE"""
+    try:
+        if not (db and NotificationSetting):
+            print("⚠️ Database not available for notification settings")
+            return []
+        
+        # Get enabled notification emails from database
+        enabled_notifications = NotificationSetting.query.filter_by(enabled=True).all()
+        emails = [setting.email for setting in enabled_notifications]
+        print(f"✅ Loaded {len(emails)} notification email recipients from database")
+        return emails
+        
+    except Exception as e:
+        print(f"⚠️ Error loading notification settings from database: {e}")
+        return []
+
+def save_notification_setting(email, enabled=True):
+    """Save notification setting to database - DEPLOYMENT SAFE"""
+    try:
+        if not (db and NotificationSetting):
+            print("⚠️ Database not available for notification settings")
+            return False
+        
+        # Find or create notification setting
+        setting = NotificationSetting.query.filter_by(email=email).first()
+        if setting:
+            setting.enabled = enabled
+            setting.updated_at = datetime.now()
+        else:
+            setting = NotificationSetting(email=email, enabled=enabled)
+            db.session.add(setting)
+        
+        db.session.commit()
+        print(f"✅ Saved notification setting: {email} = {enabled}")
+        return True
+        
+    except Exception as e:
+        print(f"⚠️ Error saving notification setting: {e}")
+        db.session.rollback()
+        return False
+
+def migrate_notification_settings_to_db():
+    """ONE-TIME MIGRATION: Move notification settings from file to database"""
+    try:
+        import json
+        settings_file = os.path.join(BASE_DIR, 'notification_settings.json')
+        
+        if os.path.exists(settings_file):
+            with open(settings_file, 'r') as f:
+                settings = json.load(f)
+                emails = settings.get('notification_emails', [])
+                
+            print(f"🔄 Migrating {len(emails)} notification settings to database...")
+            
+            for email in emails:
+                # Check if already exists
+                existing = NotificationSetting.query.filter_by(email=email).first()
+                if not existing:
+                    setting = NotificationSetting(email=email, enabled=True)
+                    db.session.add(setting)
+                    
+            db.session.commit()
+            print(f"✅ Successfully migrated {len(emails)} notification settings to database")
+            
+            # Backup old file
+            os.rename(settings_file, settings_file + '.migrated')
+            print("📁 Old settings file backed up as .migrated")
+            
+    except Exception as e:
+        print(f"⚠️ Error migrating notification settings: {e}")
+
+# Load notification settings from database (deployment-safe)
 try:
-    import json
-    settings_file = os.path.join(BASE_DIR, 'notification_settings.json')
-    if os.path.exists(settings_file):
-        with open(settings_file, 'r') as f:
-            settings = json.load(f)
-            app.config['NOTIFICATION_EMAILS'] = settings.get('notification_emails', [])
-            print(f"✅ Loaded {len(app.config['NOTIFICATION_EMAILS'])} notification email recipients")
-    else:
-        app.config['NOTIFICATION_EMAILS'] = []
-        print("ℹ️ No notification settings found, using defaults")
+    app.config['NOTIFICATION_EMAILS'] = load_notification_settings()
+    # Auto-migrate from file to database if needed
+    if not app.config['NOTIFICATION_EMAILS'] and os.path.exists(os.path.join(BASE_DIR, 'notification_settings.json')):
+        print("🔄 Auto-migrating notification settings to database...")
+        migrate_notification_settings_to_db()
+        app.config['NOTIFICATION_EMAILS'] = load_notification_settings()
 except Exception as e:
-    print(f"⚠️ Error loading notification settings: {e}")
+    print(f"⚠️ Error initializing notification settings: {e}")
     app.config['NOTIFICATION_EMAILS'] = []
 
 # === CONTEXT PROCESSOR FOR TEMPLATES ===
@@ -2946,40 +3015,20 @@ def update_user_notifications():
         if not user:
             return jsonify({'success': False, 'message': 'User not found'})
         
-        # Load current notification settings
-        notification_emails = app.config.get('NOTIFICATION_EMAILS', [])
+        # DEPLOYMENT-SAFE: Save to database instead of file
+        success = save_notification_setting(user.email, notifications_enabled)
         
-        # Update notification list
-        if notifications_enabled:
-            # Add user email if not already in list
-            if user.email not in notification_emails:
-                notification_emails.append(user.email)
-        else:
-            # Remove user email from list
-            if user.email in notification_emails:
-                notification_emails.remove(user.email)
-        
-        # Save updated notification settings
-        notification_settings_file = os.path.join(os.path.dirname(__file__), 'notification_settings.json')
-        try:
-            with open(notification_settings_file, 'w') as f:
-                json.dump({
-                    'notification_emails': notification_emails,
-                    'updated_at': datetime.now().isoformat()
-                }, f, indent=2)
-            
-            # Update app config
-            app.config['NOTIFICATION_EMAILS'] = notification_emails
+        if success:
+            # Reload notification settings from database
+            app.config['NOTIFICATION_EMAILS'] = load_notification_settings()
             
             return jsonify({
                 'success': True, 
                 'message': f'Notification settings updated for {user.full_name or user.email}',
                 'enabled': notifications_enabled
             })
-            
-        except Exception as e:
-            print(f"Error saving notification settings: {e}")
-            return jsonify({'success': False, 'message': 'Error saving settings'})
+        else:
+            return jsonify({'success': False, 'message': 'Error saving notification settings to database'})
     
     except Exception as e:
         print(f"Error updating user notifications: {e}")
@@ -3022,33 +3071,16 @@ def bulk_user_actions():
             db.session.commit()
             
         elif action in ['enable_notifications', 'disable_notifications']:
-            # Load current notification settings
-            notification_emails = current_app.config.get('NOTIFICATION_EMAILS', [])
+            # DEPLOYMENT-SAFE: Use database instead of files
+            enabled = (action == 'enable_notifications')
             
             for user in users:
-                if action == 'enable_notifications':
-                    if user.email not in notification_emails:
-                        notification_emails.append(user.email)
-                        affected_users += 1
-                else:  # disable_notifications
-                    if user.email in notification_emails:
-                        notification_emails.remove(user.email)
-                        affected_users += 1
+                success = save_notification_setting(user.email, enabled)
+                if success:
+                    affected_users += 1
             
-            # Save updated notification settings
-            notification_settings_file = os.path.join(os.path.dirname(__file__), 'notification_settings.json')
-            try:
-                with open(notification_settings_file, 'w') as f:
-                    json.dump({
-                        'notification_emails': notification_emails,
-                        'updated_at': datetime.now().isoformat()
-                    }, f, indent=2)
-                
-                # Update app config
-                current_app.config['NOTIFICATION_EMAILS'] = notification_emails
-            except Exception as e:
-                print(f"Error saving notification settings: {e}")
-                return jsonify({'success': False, 'message': 'Error saving notification settings'})
+            # Reload notification settings from database
+            app.config['NOTIFICATION_EMAILS'] = load_notification_settings()
         
         else:
             return jsonify({'success': False, 'message': 'Unknown action'})

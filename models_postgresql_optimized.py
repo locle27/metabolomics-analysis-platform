@@ -18,6 +18,20 @@ from datetime import datetime, timedelta
 # SQLAlchemy instance
 db = SQLAlchemy()
 
+class NotificationSetting(db.Model):
+    """Notification settings - DEPLOYMENT-SAFE storage in database"""
+    __tablename__ = 'notification_settings'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    email = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    enabled = db.Column(db.Boolean, default=True, nullable=False)
+    setting_type = db.Column(db.String(50), default='schedule_consultation', nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    
+    def __repr__(self):
+        return f'<NotificationSetting {self.email}: {self.enabled}>'
+
 class User(UserMixin, db.Model):
     """User model for authentication and authorization"""
     __tablename__ = 'users'

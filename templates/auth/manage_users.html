@@ -215,6 +215,7 @@
                                                type="checkbox" 
                                                id="notifications_{{ user.id }}" 
                                                data-user-id="{{ user.id }}"
+                                               data-user-email="{{ user.email }}"
                                                {% if user.email in config.NOTIFICATION_EMAILS %}checked{% endif %}>
                                         <label class="form-check-label" for="notifications_{{ user.id }}">
                                             <small>Email</small>
