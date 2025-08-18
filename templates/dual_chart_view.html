@@ -626,22 +626,29 @@
 {% endblock %}
 
 {% block extra_js %}
-<script type="module">
-    import { Chart, registerables } from 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.js/+esm';
-    import zoomPlugin from 'https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.js/+esm';
-
-    Chart.register(...registerables, zoomPlugin);
-
-    // Make Chart object globally available for your existing script
-    window.Chart = Chart;
-</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1/dist/chartjs-plugin-zoom.min.js"></script>
 
 <script>
 // Chart instances storage
 const chartInstances = {};
 const chartData = {};
 
-// Chart.js and zoom plugin are now registered automatically via modern modules above
+// Register Chart.js zoom plugin - Fixed CDN compatibility
+try {
+    // Check if zoom plugin is available
+    if (typeof window.ChartZoom !== 'undefined') {
+        Chart.register(window.ChartZoom);
+        console.log('✅ Chart.js zoom plugin registered successfully');
+    } else if (typeof ChartZoom !== 'undefined') {
+        Chart.register(ChartZoom);
+        console.log('✅ Chart.js zoom plugin registered successfully');
+    } else {
+        console.warn('⚠️ Chart.js zoom plugin not found - zoom features will be disabled');
+    }
+} catch (error) {
+    console.warn('⚠️ Failed to register Chart.js zoom plugin:', error);
+}
 
 // Individual zoom settings storage with localStorage persistence
 let individualZoomSettings = {};
