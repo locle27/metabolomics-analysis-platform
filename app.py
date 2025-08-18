@@ -1180,12 +1180,22 @@ def register():
 @auth_bp.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     """Forgot password functionality with OAuth user handling"""
+    
+    # Generate CSRF token for template
+    csrf_token = ''
+    if CSRF_AVAILABLE:
+        try:
+            from flask_wtf.csrf import generate_csrf
+            csrf_token = generate_csrf()
+        except Exception as e:
+            print(f"⚠️ CSRF token generation failed in forgot_password: {e}")
+    
     if request.method == 'POST':
         email = request.form.get('email', '').strip().lower()
         
         if not email:
             flash('Please enter your email address.', 'error')
-            return render_template('auth/forgot_password_new.html')
+            return render_template('auth/forgot_password_new.html', csrf_token=csrf_token)
         
         # Check if user exists and handle OAuth users
         if db and User:
@@ -1228,7 +1238,7 @@ def forgot_password():
             flash('OAuth users can change their password through their Google account settings.', 'info')
             return redirect(url_for('auth.profile'))
     
-    return render_template('auth/forgot_password_new.html')
+    return render_template('auth/forgot_password_new.html', csrf_token=csrf_token)
 
 @auth_bp.route('/reset-password/<token>')
 def reset_password_confirm(token):
@@ -1455,6 +1465,13 @@ def update_password():
     try:
         from forms import PasswordUpdateForm
         form = PasswordUpdateForm()
+        
+        # Debug CSRF token in form
+        if CSRF_AVAILABLE and hasattr(form, 'csrf_token'):
+            print(f"🔍 Form CSRF token field exists: {hasattr(form.csrf_token, 'data')}")
+            if hasattr(form.csrf_token, 'data') and form.csrf_token.data:
+                print(f"🔍 Form CSRF token: {form.csrf_token.data[:10]}...")
+        
     except ImportError:
         flash('System error: Forms not available', 'error')
         return redirect(url_for('auth.password_settings'))
@@ -1552,7 +1569,17 @@ def update_password():
                 else:
                     flash(f'{field}: {error}', 'error')
     
-    return render_template('auth/password_form.html', form=form)
+    # Generate manual CSRF token as backup
+    csrf_token_backup = ''
+    if CSRF_AVAILABLE:
+        try:
+            from flask_wtf.csrf import generate_csrf
+            csrf_token_backup = generate_csrf()
+            print(f"🔍 Manual CSRF token backup: {csrf_token_backup[:10]}...")
+        except Exception as e:
+            print(f"❌ Manual CSRF token backup failed: {e}")
+    
+    return render_template('auth/password_form.html', form=form, csrf_token_backup=csrf_token_backup)
 
 # Debug route for CSRF testing (remove in production)
 @auth_bp.route('/csrf-debug')
