@@ -391,14 +391,30 @@
                 <h5><i class="fas fa-vial"></i> Sample Configuration</h5>
                 <div class="config-grid">
                     <div class="config-item">
+                        <label for="project-name">Project Name</label>
+                        <select id="project-name">
+                            <option value="PH-HC">PH-HC</option>
+                            <option value="Phenikaa">Phenikaa</option>
+                            <option value="BachMai">BachMai</option>
+                        </select>
+                        <small>Select the project for data file path</small>
+                    </div>
+                    
+                    <div class="config-item">
+                        <label for="batch-date">Batch Date</label>
+                        <input type="date" id="batch-date" value="">
+                        <small>Date for batch folder naming</small>
+                    </div>
+                    
+                    <div class="config-item">
                         <label for="sample-prefix">Sample Prefix</label>
-                        <input type="text" id="sample-prefix" value="PH-HC_" placeholder="e.g., PH-HC_">
+                        <input type="text" id="sample-prefix" value="PKM_" placeholder="e.g., PKM_">
                         <small>Prefix for all main samples</small>
                     </div>
                     
                     <div class="config-item">
                         <label for="sample-start">Starting Number</label>
-                        <input type="number" id="sample-start" value="1101" min="1">
+                        <input type="number" id="sample-start" value="1" min="1">
                         <small>First sample number</small>
                     </div>
                     
@@ -474,8 +490,8 @@
         <div class="pattern-display" id="pattern-preview">
             <h5><i class="fas fa-eye"></i> Sequence Pattern Preview</h5>
             <div class="pattern-items">
-                <div class="pattern-item">🧪 Every 3 steps → Carryover</div>
-                <div class="pattern-item">📊 Every 25 steps → NIST Standard</div>
+                <div class="pattern-item">🧪 Every 5 steps → Carryover</div>
+                <div class="pattern-item">📊 Every 30 steps → NIST Standard</div>
                 <div class="pattern-item">🔬 Automated position calculation</div>
             </div>
         </div>
@@ -510,12 +526,11 @@
                 <table class="table table-sm">
                     <thead>
                         <tr>
-                            <th>Step</th>
-                            <th>Sample Name</th>
-                            <th>Position</th>
+                            <th>Order</th>
+                            <th>Name</th>
+                            <th>Pos</th>
                             <th>Method</th>
-                            <th>Type</th>
-                            <th>Notes</th>
+                            <th>Datafile</th>
                         </tr>
                     </thead>
                     <tbody id="sequence-tbody">
@@ -597,6 +612,8 @@ function generateSequence() {
     
     // Get configuration
     const config = {
+        projectName: document.getElementById('project-name').value,
+        batchDate: document.getElementById('batch-date').value,
         samplePrefix: document.getElementById('sample-prefix').value,
         sampleStart: parseInt(document.getElementById('sample-start').value),
         sampleCount: parseInt(document.getElementById('sample-count').value),
@@ -622,12 +639,18 @@ function generateSequence() {
         const sampleNumber = config.sampleStart + i;
         const sampleName = config.samplePrefix + sampleNumber.toString().padStart(4, '0');
         
+        // Generate datafile path
+        const formattedDate = config.batchDate ? config.batchDate.replace(/-/g, '') : '20250101';
+        const batchRange = `${config.sampleStart.toString().padStart(2, '0')}-${(config.sampleStart + config.sampleCount - 1).toString().padStart(3, '0')}`;
+        const datafilePath = `D:\\Projects\\OQ-2024\\Data\\${config.projectName}\\${config.samplePrefix}${batchRange} (${formattedDate})\\${sampleName}.d`;
+        
         // Add main sample
         generatedSequence.push({
             step: stepNumber++,
             sampleName: sampleName,
             position: currentPosition,
             method: 'Phenikaa_LipidMix_v1.m', // Default method for main samples
+            datafile: datafilePath,
             type: 'Sample',
             notes: `Main sample ${i + 1}`,
             rowClass: 'sample-row'
@@ -639,11 +662,13 @@ function generateSequence() {
         // Check for carryover insertion (every N samples)
         if ((i + 1) % config.carryoverInterval === 0) {
             const carryoverName = config.carryoverSampleName + carryoverCount.toString().padStart(2, '0');
+            const carryoverDatafile = `D:\\Projects\\OQ-2024\\Data\\${config.projectName}\\${config.samplePrefix}${batchRange} (${formattedDate})\\${carryoverName}.d`;
             generatedSequence.push({
                 step: stepNumber++,
                 sampleName: carryoverName,
                 position: 'P1-A1', // Fixed carryover position
                 method: config.carryoverMethod,
+                datafile: carryoverDatafile,
                 type: 'Carryover',
                 notes: `After ${config.carryoverInterval} samples`,
                 rowClass: 'carryover-row'
@@ -651,14 +676,16 @@ function generateSequence() {
             carryoverCount++;
         }
         
-        // Check for NIST insertion (every N samples, but not overlapping with carryover)
-        if ((i + 1) % config.nistInterval === 0 && (i + 1) % config.carryoverInterval !== 0) {
+        // Check for NIST insertion (every N samples)
+        if ((i + 1) % config.nistInterval === 0) {
             const nistName = config.nistName.replace('(1)', `(${nistCount})`);
+            const nistDatafile = `D:\\Projects\\OQ-2024\\Data\\${config.projectName}\\${config.samplePrefix}${batchRange} (${formattedDate})\\${nistName}.d`;
             generatedSequence.push({
                 step: stepNumber++,
                 sampleName: nistName,
                 position: 'P2-F1', // Fixed NIST position
                 method: config.nistMethod,
+                datafile: nistDatafile,
                 type: 'NIST Standard',
                 notes: `Quality control after ${config.nistInterval} samples`,
                 rowClass: 'nist-row'
@@ -698,8 +725,7 @@ function renderSequenceTable() {
             <td><code>${item.sampleName}</code></td>
             <td><span class="badge bg-secondary">${item.position}</span></td>
             <td><small class="text-info">${item.method || 'Default'}</small></td>
-            <td><span class="badge bg-${getTypeBadgeColor(item.type)}">${item.type}</span></td>
-            <td><small class="text-muted">${item.notes}</small></td>
+            <td><small class="text-muted font-monospace">${item.datafile}</small></td>
         `;
         
         tbody.appendChild(row);
@@ -734,7 +760,7 @@ function exportToExcel() {
     
     // Prepare data for Excel
     const wsData = [
-        ['Step', 'Sample Name', 'Position', 'Method', 'Type', 'Notes']
+        ['Order', 'Name', 'Pos', 'Method', 'Datafile']
     ];
     
     generatedSequence.forEach(item => {
@@ -743,8 +769,7 @@ function exportToExcel() {
             item.sampleName,
             item.position,
             item.method || 'Default',
-            item.type,
-            item.notes
+            item.datafile
         ]);
     });
     
@@ -773,7 +798,7 @@ function exportToCSV() {
         return;
     }
     
-    let csvContent = 'Step,Sample Name,Position,Method,Type,Notes\n';
+    let csvContent = 'Order,Name,Pos,Method,Datafile\n';
     
     generatedSequence.forEach(item => {
         const row = [
@@ -781,8 +806,7 @@ function exportToCSV() {
             `"${item.sampleName}"`,
             `"${item.position}"`,
             `"${item.method || 'Default'}"`,
-            `"${item.type}"`,
-            `"${item.notes}"`
+            `"${item.datafile}"`
         ].join(',');
         csvContent += row + '\n';
     });
@@ -808,10 +832,10 @@ function copyToClipboard() {
         return;
     }
     
-    let textContent = 'Step\tSample Name\tPosition\tMethod\tType\tNotes\n';
+    let textContent = 'Order\tName\tPos\tMethod\tDatafile\n';
     
     generatedSequence.forEach(item => {
-        textContent += `${item.step}\t${item.sampleName}\t${item.position}\t${item.method || 'Default'}\t${item.type}\t${item.notes}\n`;
+        textContent += `${item.step}\t${item.sampleName}\t${item.position}\t${item.method || 'Default'}\t${item.datafile}\n`;
     });
     
     navigator.clipboard.writeText(textContent).then(() => {
