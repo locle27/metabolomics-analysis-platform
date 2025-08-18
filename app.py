@@ -1374,7 +1374,10 @@ def update_password():
             try:
                 if db and User:
                     user = User.query.filter_by(email=user_email).first()
+                    print(f"🔍 Database user lookup for '{user_email}': {'Found' if user else 'NOT FOUND'}")
+                    
                     if user:
+                        print(f"🔍 User found - has password: {'Yes' if user.password_hash else 'No'}")
                         # Check current password if user has one
                         if user.password_hash and current_password:
                             if not user.check_password(current_password):
@@ -1397,8 +1400,45 @@ def update_password():
                         # Redirect to a simple success page to avoid form resubmission
                         return redirect(url_for('password_success'))
                     else:
-                        print(f"❌ User not found: {user_email}")
-                        flash('User account not found.', 'error')
+                        print(f"❌ User not found in database: {user_email}")
+                        print(f"🔍 Debugging user lookup:")
+                        try:
+                            all_users = User.query.all()
+                            print(f"   Total users in database: {len(all_users)}")
+                            for u in all_users[:3]:  # Show first 3 users
+                                print(f"   - Database user: '{u.email}' (ID: {u.id})")
+                        except Exception as db_debug_error:
+                            print(f"   Database debug failed: {db_debug_error}")
+                        
+                        # For demo/testing: create user if not found (OAuth users especially)
+                        if user_email and '@' in user_email:
+                            print(f"🔍 Creating new user for: {user_email}")
+                            try:
+                                user = User(
+                                    email=user_email,
+                                    username=user_email.split('@')[0],
+                                    full_name=user_email.split('@')[0].title(),
+                                    role=session.get('user_role', 'user'),
+                                    auth_method=session.get('auth_method', 'local'),
+                                    is_active=True,
+                                    is_verified=True,
+                                    created_at=datetime.utcnow()
+                                )
+                                user.set_password(new_password)
+                                user.last_password_change = datetime.utcnow()
+                                db.session.add(user)
+                                db.session.commit()
+                                
+                                print(f"✅ New user created and password set for {user_email}")
+                                flash('Account created and password set successfully!', 'success')
+                                return redirect(url_for('password_success'))
+                                
+                            except Exception as create_error:
+                                print(f"❌ Failed to create user: {create_error}")
+                                db.session.rollback()
+                                flash(f'Failed to create user account: {create_error}', 'error')
+                        else:
+                            flash('User account not found and cannot create account.', 'error')
                 else:
                     print("❌ Database not available")
                     flash('Database error. Please try again later.', 'error')
