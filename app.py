@@ -533,18 +533,13 @@ def oauth_login():
         flash('OAuth service is not available.', 'error')
         return redirect(url_for('auth.login'))
     
-    # Use the correct production redirect URI
-    if request.host.startswith('www.httpsphenikaa-lipidomics-analysis.xyz'):
-        redirect_uri = 'https://www.httpsphenikaa-lipidomics-analysis.xyz/auth/authorized'
-    elif request.host.startswith('httpsphenikaa-lipidomics-analysis.xyz'):
-        redirect_uri = 'https://httpsphenikaa-lipidomics-analysis.xyz/auth/authorized'
-    else:
-        # Fallback for development
-        redirect_uri = url_for('auth.oauth_authorized', _external=True)
-    
+    # Use the corrected redirect URI (fixed duplicate https in domain)
+    redirect_uri = "https://www.phenikaa-lipidomics-analysis.xyz/callback"
+    print(f"🔗 OAuth redirect URI: {redirect_uri}")
     return google.authorize_redirect(redirect_uri)
 
 @auth_bp.route('/authorized')
+@auth_bp.route('/callback')
 def oauth_authorized():
     """Handle OAuth callback from Google"""
     if not google:
@@ -1019,6 +1014,12 @@ def change_password():
 # Register authentication blueprint
 app.register_blueprint(auth_bp)
 print("✅ Working authentication blueprint registered")
+
+# === OAUTH CALLBACK ROUTE (Main App Route) ===
+@app.route('/callback')
+def callback():
+    """Handle OAuth callback from Google - Main app route"""
+    return oauth_authorized()
 
 # === USER LOADER (Working + Bulletproof) ===
 if login_manager:
