@@ -944,6 +944,16 @@ function createChart(lipidId, chartType, chartConfig) {
     const canvasId = `${chartType}-${lipidId}`;
     const ctx = document.getElementById(canvasId).getContext('2d');
     
+    // Ensure chartConfig.options exists
+    if (!chartConfig.options) {
+        chartConfig.options = {};
+    }
+    
+    // Ensure chartConfig.options.plugins exists
+    if (!chartConfig.options.plugins) {
+        chartConfig.options.plugins = {};
+    }
+    
     // Enhance chart config with JavaScript callbacks for better formatting
     if (chartConfig.options && chartConfig.options.scales && chartConfig.options.scales.y) {
         chartConfig.options.scales.y.ticks = {
@@ -970,10 +980,6 @@ function createChart(lipidId, chartType, chartConfig) {
     }
     
     // Add zoom and pan functionality - CLICK TO ACTIVATE
-    if (!chartConfig.options.plugins) {
-        chartConfig.options.plugins = {};
-    }
-    
     // Store chart active state
     if (!window.activeCharts) {
         window.activeCharts = new Set();

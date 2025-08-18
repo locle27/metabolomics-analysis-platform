@@ -1031,46 +1031,65 @@ def schedule_form():
     """Schedule consultation form"""
     if request.method == 'POST':
         try:
-            name = request.form.get('name')
-            email = request.form.get('email')
-            organization = request.form.get('organization')
-            research_area = request.form.get('research_area')
-            message = request.form.get('message')
-            preferred_date = request.form.get('preferred_date')
+            from datetime import date
+            # Get form data matching the template fields
+            full_name = request.form.get('full_name', '').strip()
+            email = request.form.get('email', '').strip()
+            phone = request.form.get('phone', '').strip()
+            organization = request.form.get('organization', '').strip()
+            request_type = request.form.get('request_type', '')
+            preferred_date = request.form.get('preferred_date', '')
+            preferred_time = request.form.get('preferred_time', '')
+            message = request.form.get('message', '').strip()
+            
+            # Validate required fields
+            if not full_name or not email or not request_type or not message:
+                flash('Please fill in all required fields.', 'error')
+                return render_template('schedule_form.html', today=date.today().isoformat())
+            
+            # Basic email validation
+            if '@' not in email or '.' not in email:
+                flash('Please provide a valid email address.', 'error')
+                return render_template('schedule_form.html', today=date.today().isoformat())
             
             # Save to database
             try:
                 schedule_request = ScheduleRequest(
-                    name=name, email=email, organization=organization,
-                    research_area=research_area, message=message, preferred_date=preferred_date
+                    name=full_name, 
+                    email=email, 
+                    phone=phone,
+                    organization=organization,
+                    research_area=request_type,
+                    message=message, 
+                    preferred_date=preferred_date,
+                    preferred_time=preferred_time
                 )
                 db.session.add(schedule_request)
                 db.session.commit()
-            except:
-                pass
-            
-            # Send notification email
-            try:
-                consultation_data = {
-                    'name': name,
-                    'email': email,
-                    'organization': organization,
-                    'research_area': research_area,
-                    'message': message,
-                    'preferred_date': preferred_date
-                }
-                send_schedule_notification(consultation_data)
-            except Exception as e:
-                print(f"⚠️ Email notification failed: {e}")
-            
-            flash('Consultation request submitted successfully! We will contact you soon.', 'success')
+                
+                # Send success message
+                flash('Your consultation request has been submitted successfully! We will contact you within 24-48 hours.', 'success')
+                
+                # Try to send email notification (don't fail if email fails)
+                try:
+                    from email_service import send_schedule_notification_email
+                    send_schedule_notification_email(schedule_request)
+                except Exception as email_error:
+                    print(f"Email notification failed: {email_error}")
+                    
+            except Exception as db_error:
+                print(f"Database error: {db_error}")
+                flash('There was an error saving your request. Please try again.', 'error')
+                return render_template('schedule_form.html', today=date.today().isoformat())
+                
             return redirect(url_for('schedule_form'))
             
         except Exception as e:
             flash(f'Error submitting request: {e}', 'error')
     
     try:
-        return render_template('schedule_form.html')
+        from datetime import date
+        return render_template('schedule_form.html', today=date.today().isoformat())
     except Exception as e:
         print(f"⚠️ Schedule form error: {e}")
         return f"<h1>Schedule System Loading...</h1><p>Error: {e}</p>"
