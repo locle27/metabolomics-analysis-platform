@@ -103,6 +103,23 @@ app = Flask(__name__,
     template_folder=BASE_DIR / "templates", 
     static_folder=BASE_DIR / "static"
 )
+
+# URGENT: Add immediate health checks for deployment
+@app.route('/health')
+def immediate_health_check():
+    """Immediate health check available before full app initialization"""
+    return "OK", 200
+
+@app.route('/ping')
+def immediate_ping():
+    """Immediate ping endpoint"""
+    return "pong", 200
+
+@app.route('/healthz')
+def immediate_healthz():
+    """Immediate Kubernetes-style health check"""
+    return "OK", 200
+
 # Enhanced SECRET_KEY configuration with debug info
 SECRET_KEY = os.getenv('SECRET_KEY', 'bulletproof-metabolomics-platform-secret-key-for-local-dev')
 app.secret_key = SECRET_KEY
@@ -1816,36 +1833,7 @@ def manager_required(f):
 # HEALTH CHECK (BULLETPROOF)
 # =====================================================
 
-@app.route('/health')
-def health_check():
-    """Enhanced health check for Railway deployment debugging"""
-    try:
-        response_data = {
-            "status": "healthy",
-            "message": "Metabolomics platform operational",
-            "timestamp": datetime.now().isoformat(),
-            "version": "3.1.0-oauth-fixed",
-            "environment": {
-                "host": request.host,
-                "user_agent": request.headers.get('User-Agent', 'Unknown'),
-                "database_url_set": bool(os.getenv('DATABASE_URL')),
-                "google_client_id_set": bool(os.getenv('GOOGLE_CLIENT_ID')),
-                "secret_key_set": bool(os.getenv('SECRET_KEY'))
-            },
-            "features": {
-                "flask": True,
-                "database": bool(db),
-                "authentication": bool(login_manager),
-                "oauth": bool(google),
-                "email": bool(mail),
-                "charts": bool(DualChartService),
-                "models": bool(MainLipid)
-            }
-        }
-        return jsonify(response_data), 200
-    except Exception as e:
-        # Ultimate fallback - plain text response
-        return f'{{"status":"healthy","message":"Platform running","error":"{str(e)}"}}', 200
+# Health check is already defined at the top of the file for immediate availability
 
 @app.route('/railway-debug')
 def railway_debug():
@@ -3053,15 +3041,7 @@ def stop_change_tracking():
 print("🎯 METABOLOMICS PLATFORM READY")
 print("💚 Health endpoints: /health, /healthz, /ping")
 
-@app.route('/ping')
-def ping():
-    """Simple ping endpoint for Railway health checks"""
-    return "pong", 200
-
-@app.route('/healthz')
-def healthz():
-    """Ultra-simple Kubernetes-style health check"""
-    return "OK", 200
+# Health check endpoints are already defined at the top of the file for immediate availability
 
 # Health endpoint is defined earlier in the file as health_check()
 
