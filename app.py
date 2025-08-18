@@ -533,7 +533,15 @@ def oauth_login():
         flash('OAuth service is not available.', 'error')
         return redirect(url_for('auth.login'))
     
-    redirect_uri = url_for('auth.oauth_authorized', _external=True)
+    # Use the correct production redirect URI
+    if request.host.startswith('www.httpsphenikaa-lipidomics-analysis.xyz'):
+        redirect_uri = 'https://www.httpsphenikaa-lipidomics-analysis.xyz/auth/authorized'
+    elif request.host.startswith('httpsphenikaa-lipidomics-analysis.xyz'):
+        redirect_uri = 'https://httpsphenikaa-lipidomics-analysis.xyz/auth/authorized'
+    else:
+        # Fallback for development
+        redirect_uri = url_for('auth.oauth_authorized', _external=True)
+    
     return google.authorize_redirect(redirect_uri)
 
 @auth_bp.route('/authorized')
