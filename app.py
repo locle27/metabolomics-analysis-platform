@@ -2844,6 +2844,7 @@ def manage_users():
                                  users=[],
                                  user_can_edit=(user_role in ['admin', 'manager']),
                                  csrf_token=csrf_token,
+                                 config=app.config,
                                  error_message="Database not available. User management requires a working database connection.")
         
         # Get all users with error handling
@@ -2856,7 +2857,8 @@ def manage_users():
                              users=users,
                              user_can_edit=user_can_edit,
                              current_user_role=user_role,
-                             csrf_token=csrf_token)
+                             csrf_token=csrf_token,
+                             config=app.config)
         
     except Exception as e:
         print(f"⚠️ User management error: {e}")
@@ -2864,6 +2866,7 @@ def manage_users():
                              users=[],
                              user_can_edit=False,
                              csrf_token=csrf_token,
+                             config=app.config,
                              error_message=f"Error loading users: {str(e)}")
 
 @app.route('/admin/add-member', methods=['GET', 'POST'])

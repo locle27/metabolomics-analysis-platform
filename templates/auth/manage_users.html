@@ -158,7 +158,7 @@
                                         {% endif %}
                                         <input type="hidden" name="user_id" value="{{ user.id }}">
                                         <select name="role" class="form-select form-select-sm role-select" 
-                                                onchange="confirmRoleChange(this)"
+                                                onchange="handleRoleChange(this)"
                                                 {% if user.id == current_user.id %}disabled title="Cannot change your own role"
                                                 {% elif user.role == 'admin' and session.get('user_email') != 'loc22100302@gmail.com' %}disabled title="Only super admin can modify admin roles"
                                                 {% endif %}>
@@ -515,8 +515,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Enhanced professional role change confirmation
-function confirmRoleChange(selectElement) {
+// NEW APPROACH: Handle role changes properly with explicit value capture
+function handleRoleChange(selectElement) {
     const form = selectElement.closest('form');
     const userRow = selectElement.closest('tr');
     const userName = userRow.querySelector('.fw-bold').textContent;
@@ -533,7 +533,16 @@ function confirmRoleChange(selectElement) {
     const message = `Change ${userName}'s access level?\n\nFrom: ${roleDescriptions[oldRole] || oldRole}\nTo: ${roleDescriptions[newRole]}\n\nThis change will take effect immediately.`;
     
     if (confirm(message)) {
-        // Show loading state with immediate visual feedback
+        // CRITICAL: Ensure the role value is properly set BEFORE submission
+        console.log('🔧 PRE-SUBMISSION DEBUG:', {
+            selectElement_value: selectElement.value,
+            selectElement_name: selectElement.name,
+            form_role_value: form.querySelector('select[name="role"]').value,
+            user_id: form.querySelector('input[name="user_id"]').value,
+            csrf_token: form.querySelector('input[name="csrf_token"]')?.value
+        });
+        
+        // Show loading state
         selectElement.classList.add('loading');
         selectElement.disabled = true;
         
@@ -543,18 +552,20 @@ function confirmRoleChange(selectElement) {
         loadingSpan.className = 'role-loading-indicator';
         selectElement.parentNode.appendChild(loadingSpan);
         
-        // Debug form data before submission
-        console.log('Form submission debug:', {
-            user_id: form.querySelector('input[name="user_id"]').value,
-            role: form.querySelector('select[name="role"]').value,
-            csrf_token: form.querySelector('input[name="csrf_token"]').value,
-            action: form.action
+        // FORCE the role value to be set explicitly
+        const roleInput = form.querySelector('select[name="role"]');
+        roleInput.value = newRole;
+        
+        // Double-check the value is set
+        console.log('🔧 FINAL CHECK before submit:', {
+            role_value_final: roleInput.value,
+            form_data_check: new FormData(form).get('role')
         });
         
-        // Small delay to ensure all form data is properly set
+        // Longer delay to ensure DOM updates complete
         setTimeout(() => {
             form.submit();
-        }, 100);
+        }, 200);
     } else {
         // Restore original value
         const originalValue = selectElement.getAttribute('data-original-value');
