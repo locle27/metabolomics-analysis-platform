@@ -907,6 +907,13 @@ async function initializeDualCharts(lipidId) {
         // Store data
         chartData[lipidId] = result.data;
         
+        // DEBUG: Log chart data to understand what we're getting
+        console.log(`📊 DEBUG - Lipid ${lipidId} API Response:`, result);
+        console.log(`📊 DEBUG - Chart1 config:`, result.data.chart1);
+        console.log(`📊 DEBUG - Chart2 config:`, result.data.chart2);
+        console.log(`📊 DEBUG - Chart1 datasets:`, result.data.chart1?.data?.datasets);
+        console.log(`📊 DEBUG - Chart2 datasets:`, result.data.chart2?.data?.datasets);
+        
         // Hide loading state
         document.getElementById(`loading-${lipidId}`).style.display = 'none';
         
@@ -947,8 +954,21 @@ async function initializeDualCharts(lipidId) {
 }
 
 function createChart(lipidId, chartType, chartConfig) {
+    console.log(`🎨 DEBUG - Creating chart ${chartType} for lipid ${lipidId}`);
+    console.log(`🎨 DEBUG - Chart config received:`, chartConfig);
+    console.log(`🎨 DEBUG - Chart datasets:`, chartConfig?.data?.datasets);
+    console.log(`🎨 DEBUG - Chart data points:`, chartConfig?.data?.datasets?.[0]?.data);
+    
     const canvasId = `${chartType}-${lipidId}`;
-    const ctx = document.getElementById(canvasId).getContext('2d');
+    const ctx = document.getElementById(canvasId);
+    
+    if (!ctx) {
+        console.error(`❌ Canvas element not found: ${canvasId}`);
+        return;
+    }
+    
+    console.log(`✅ Canvas found: ${canvasId}`);
+    const context = ctx.getContext('2d');
     
     // Ensure chartConfig.options exists
     if (!chartConfig.options) {
@@ -1118,11 +1138,16 @@ function createChart(lipidId, chartType, chartConfig) {
         chartInstances[lipidId] = {};
     }
     
-    const chart = new Chart(ctx, chartConfig);
+    const chart = new Chart(context, chartConfig);
     chartInstances[lipidId][chartType] = chart;
     
+    console.log(`✅ Chart instance created for ${canvasId}:`, chart);
+    console.log(`✅ Chart data:`, chart.data);
+    console.log(`✅ Chart datasets:`, chart.data?.datasets);
+    console.log(`✅ Chart canvas:`, chart.canvas);
+    
     // Add click-to-activate zoom functionality
-    ctx.canvas.addEventListener('click', function() {
+    chart.canvas.addEventListener('click', function() {
         try {
             // Activate zoom for this chart (only if zoom plugin is available)
             if (chart.options.plugins && chart.options.plugins.zoom) {
@@ -1133,8 +1158,8 @@ function createChart(lipidId, chartType, chartConfig) {
             }
             
             // Add visual indicator that chart is active
-            ctx.canvas.style.border = '2px solid #007bff';
-            ctx.canvas.style.borderRadius = '4px';
+            chart.canvas.style.border = '2px solid #007bff';
+            chart.canvas.style.borderRadius = '4px';
             
             // Deactivate other charts
             Object.keys(chartInstances).forEach(lid => {
@@ -1164,15 +1189,15 @@ function createChart(lipidId, chartType, chartConfig) {
     });
     
     // Add double-click to deactivate
-    ctx.canvas.addEventListener('dblclick', function() {
-        deactivateChart(chart, ctx.canvas);
+    chart.canvas.addEventListener('dblclick', function() {
+        deactivateChart(chart, chart.canvas);
     });
     
     // Store chart reference for global deactivation
     if (!window.allChartInstances) {
         window.allChartInstances = [];
     }
-    window.allChartInstances.push({chart: chart, canvas: ctx.canvas});
+    window.allChartInstances.push({chart: chart, canvas: chart.canvas});
 }
 
 function createSharedLegend(lipidId, datasets) {
