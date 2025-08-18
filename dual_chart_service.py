@@ -93,6 +93,10 @@ class DualChartService:
                 raise ValueError("No valid XIC data points found")
             
             print(f"DEBUG: Loaded {len(time_points)} XIC data points")
+            print(f"DEBUG: Sample time points: {time_points[:5] if len(time_points) >= 5 else time_points}")
+            print(f"DEBUG: Sample intensity points: {intensity_points[:5] if len(intensity_points) >= 5 else intensity_points}")
+            print(f"DEBUG: XIC data type: {type(xic_data)}")
+            print(f"DEBUG: XIC data sample: {str(xic_data)[:200]}...")
             
             # Convert annotated ions data to objects for compatibility
             annotated_ions = []
@@ -180,10 +184,16 @@ class DualChartService:
         # Filter data to chart range
         filtered_data = []
         filtered_intensities = []
+        print(f"DEBUG: Filtering data for range {x_min} - {x_max}")
+        print(f"DEBUG: Total time points to filter: {len(time_points)}")
+        
         for i, time in enumerate(time_points):
             if x_min <= time <= x_max:
                 filtered_data.append({'x': time, 'y': intensity_points[i]})
                 filtered_intensities.append(intensity_points[i])
+        
+        print(f"DEBUG: Filtered data points: {len(filtered_data)}")
+        print(f"DEBUG: Sample filtered data: {filtered_data[:3] if len(filtered_data) >= 3 else filtered_data}")
         
         # Calculate optimized Y-axis range - ALWAYS start from 0
         if filtered_intensities:
@@ -301,6 +311,9 @@ class DualChartService:
                 'order': 2  # Draw behind annotations
             }
         ]
+        
+        print(f"DEBUG: Created main dataset with {len(filtered_data)} data points")
+        print(f"DEBUG: Total datasets before annotations: {len(datasets)}")
         
         # Add annotated ion datasets (only integration areas with targeted hover info)
         # Find the main/current lipid for boundary display
