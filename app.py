@@ -102,10 +102,13 @@ app.secret_key = os.getenv('SECRET_KEY', 'bulletproof-metabolomics-platform-secr
 
 # Enhanced session configuration for OAuth
 app.config.update({
-    'SESSION_COOKIE_SECURE': False,  # Allow HTTP for localhost
+    'SESSION_COOKIE_SECURE': False,  # Allow both HTTP and HTTPS
     'SESSION_COOKIE_HTTPONLY': True,
     'SESSION_COOKIE_SAMESITE': 'Lax',
+    'SESSION_COOKIE_NAME': 'metabolomics_session',
+    'SESSION_COOKIE_PATH': '/',  # Available for all paths
     'PERMANENT_SESSION_LIFETIME': 3600,  # 1 hour
+    'SESSION_REFRESH_EACH_REQUEST': True,  # Keep session alive
     # WTF-CSRF Configuration
     'WTF_CSRF_ENABLED': True,
     'WTF_CSRF_TIME_LIMIT': 3600,  # 1 hour
@@ -362,6 +365,33 @@ Request Method: {request.method}
     </pre>
     """
 
+@app.route('/session-test')
+def session_test():
+    """Test session persistence"""
+    # Set test values if not present
+    if 'test_counter' not in session:
+        session['test_counter'] = 0
+    
+    session['test_counter'] += 1
+    session['test_time'] = datetime.now().isoformat()
+    session.permanent = True
+    
+    return f"""
+    <h2>Session Test</h2>
+    <pre>
+Session ID: {session.get('_id', 'No ID')}
+Test Counter: {session.get('test_counter', 0)}
+Test Time: {session.get('test_time', 'Not set')}
+User Authenticated: {session.get('user_authenticated', False)}
+User Email: {session.get('user_email', 'Not set')}
+All Keys: {list(session.keys())}
+Session Permanent: {session.permanent}
+Cookies: {list(request.cookies.keys())}
+    </pre>
+    <p><a href="/session-test">Refresh to test persistence</a></p>
+    <p><a href="/auth/login">Login</a> | <a href="/auth/update-password">Password Update</a></p>
+    """
+
 @app.route('/password-help')
 def password_help():
     """Show password requirements and examples"""
@@ -517,6 +547,36 @@ Authenticated: {session.get('user_authenticated', False)}
 if PROXY_FIX_AVAILABLE:
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1, x_for=1)
     print("✅ Railway proxy configured")
+
+# Session persistence fix for production
+@app.before_request
+def fix_session_persistence():
+    """Fix session persistence issues in production"""
+    # Make sessions permanent to prevent loss
+    if request.endpoint and session:
+        session.permanent = True
+    
+    # Debug empty sessions
+    if request.endpoint and 'auth' in str(request.endpoint) and not session:
+        print(f"⚠️ Empty session on auth route: {request.endpoint}")
+        print(f"⚠️ Request cookies: {list(request.cookies.keys())}")
+        print(f"⚠️ Request headers: {dict(request.headers)}")
+
+@app.after_request
+def after_request(response):
+    """Ensure session cookies are set properly"""
+    # Force session cookie to be set
+    if session and session.get('user_authenticated'):
+        # Ensure session cookie is set with proper domain
+        response.headers['X-Session-Status'] = 'authenticated'
+    
+    # Add cache control for auth pages
+    if request.endpoint and 'auth' in str(request.endpoint):
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    
+    return response
 
 # === AUTHENTICATION SETUP (Working + Bulletproof) ===
 login_manager = None
@@ -1293,6 +1353,14 @@ def update_password():
     print(f"🔍 Session keys: {list(session.keys())}")
     print(f"🔍 User authenticated: {session.get('user_authenticated', False)}")
     print(f"🔍 User email: {session.get('user_email', 'Not set')}")
+    
+    # Debug session ID and cookies
+    print(f"🔍 Session ID: {session.get('_id', 'No session ID')}")
+    print(f"🔍 Request cookies: {list(request.cookies.keys())}")
+    print(f"🔍 Session permanent: {session.permanent}")
+    
+    # Make session permanent to prevent loss
+    session.permanent = True
     
     # Test CSRF token generation
     if CSRF_AVAILABLE:
