@@ -29,7 +29,7 @@ print("=" * 60)
 # === BULLETPROOF IMPORTS ===
 # Core Flask (REQUIRED)
 try:
-    from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response, send_file, session, get_flashed_messages
+    from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response, send_file, session, get_flashed_messages, make_response
     print("✅ Flask core loaded")
 except ImportError as e:
     print(f"❌ CRITICAL: Flask failed: {e}")
@@ -373,21 +373,31 @@ Request Method: {request.method}
 @app.route('/session-test')
 def session_test():
     """Test session persistence - simplified"""
-    session['test_counter'] = session.get('test_counter', 0) + 1
+    old_counter = session.get('test_counter', 0)
+    session['test_counter'] = old_counter + 1
     session['test_time'] = datetime.now().isoformat()
     session.permanent = True
     
     # Debug session details
     secret_key_hash = hash(app.secret_key) if app.secret_key else None
     
+    # Check which cookie is being used by Flask
+    active_cookie = request.cookies.get('session', 'NOT_FOUND')
+    metabolomics_cookie = request.cookies.get('metabolomics_session', 'NOT_FOUND')
+    
     return f"""
     <h2>🔬 Session Debug</h2>
     <pre>
 <strong>Session Data:</strong>
-Counter: {session.get('test_counter', 0)}
+Old Counter: {old_counter}
+New Counter: {session.get('test_counter', 0)}
 Time: {session.get('test_time', 'Not set')}
 All Keys: {list(session.keys())}
 Permanent: {session.permanent}
+
+<strong>Cookie Analysis:</strong>
+Flask 'session' cookie: {active_cookie[:50] if active_cookie != 'NOT_FOUND' else 'NOT_FOUND'}...
+'metabolomics_session' cookie: {metabolomics_cookie[:50] if metabolomics_cookie != 'NOT_FOUND' else 'NOT_FOUND'}...
 
 <strong>Configuration:</strong>
 SECRET_KEY length: {len(app.secret_key) if app.secret_key else 0}
@@ -403,7 +413,10 @@ Host: {request.host}
     <p><a href="/clear-cookies" style="padding: 10px 20px; background: #dc3545; color: white; text-decoration: none;">🗑️ Clear Cookies</a></p>
     <p><a href="/auth/login" style="padding: 10px 20px; background: #28a745; color: white; text-decoration: none;">🔐 Test Login</a></p>
     <hr>
-    <p><em>If counter increases on refresh, sessions work. If it stays at 1, there's a persistence issue.</em></p>
+    <p><strong>🔍 Diagnosis:</strong></p>
+    <p><em>Old Counter: {old_counter}, New Counter: {session.get('test_counter', 0)}</em></p>
+    <p><em>If Old = New = 0, Flask is reading wrong cookie or secret key issue.</em></p>
+    <p><em>If Old != New, sessions work but not persisting between requests.</em></p>
     """
 
 @app.route('/clear-cookies')
