@@ -7,8 +7,8 @@
 {% block hero %}
 <div class="hero-section">
     <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-6">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
                 <h1 class="hero-title">👥 Center Members</h1>
                 <p class="hero-subtitle">
                     {% if user_can_edit %}
@@ -17,22 +17,6 @@
                         Directory of research center members
                     {% endif %}
                 </p>
-            </div>
-            <div class="col-lg-6 text-lg-end">
-                <div class="hero-stats">
-                    <div class="stat-item">
-                        <span class="stat-number">{{ users|length }}</span>
-                        <span class="stat-label">Members</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">{{ users|selectattr('role', 'equalto', 'admin')|list|length }}</span>
-                        <span class="stat-label">Admins</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-number">{{ users|selectattr('role', 'equalto', 'manager')|list|length }}</span>
-                        <span class="stat-label">Managers</span>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -61,7 +45,7 @@
                     <div class="col-md-4 text-md-end">
                         {% if user_can_edit %}
                         <div class="btn-group" role="group">
-                            <a href="{{ url_for('auth.register') }}" class="btn btn-success btn-sm">
+                            <a href="{{ url_for('admin_add_member') }}" class="btn btn-success btn-sm">
                                 <i class="fas fa-user-plus me-1"></i>Add Member
                             </a>
                             <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkActionsModal">
@@ -144,10 +128,11 @@
                         <thead class="table-header">
                             <tr>
                                 <th width="5%">ID</th>
-                                <th width="30%">Member</th>
-                                <th width="25%">Email</th>
+                                <th width="25%">Member</th>
+                                <th width="20%">Email</th>
                                 <th width="20%">Access Level</th>
                                 <th width="10%">Status</th>
+                                <th width="10%">Notifications</th>
                                 <th width="10%">Joined</th>
                             </tr>
                         </thead>
@@ -234,6 +219,28 @@
                                         </span>
                                     {% endif %}
                                 </td>
+                                <td class="user-notifications">
+                                    {% if user_can_edit %}
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input notification-toggle" 
+                                               type="checkbox" 
+                                               id="notifications_{{ user.id }}" 
+                                               data-user-id="{{ user.id }}"
+                                               {% if user.email in config.NOTIFICATION_EMAILS %}checked{% endif %}>
+                                        <label class="form-check-label" for="notifications_{{ user.id }}">
+                                            <small>Email</small>
+                                        </label>
+                                    </div>
+                                    {% else %}
+                                    <div class="text-center">
+                                        {% if user.email in config.NOTIFICATION_EMAILS %}
+                                            <span class="badge bg-success"><i class="fas fa-bell"></i></span>
+                                        {% else %}
+                                            <span class="badge bg-secondary"><i class="fas fa-bell-slash"></i></span>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                </td>
                                 <td class="user-created">
                                     {% if user.created_at %}
                                         <span class="text-muted" title="{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}">
@@ -250,6 +257,106 @@
                 </div>
             </div>
 
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Actions Modal -->
+<div class="modal fade" id="bulkActionsModal" tabindex="-1" aria-labelledby="bulkActionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bulkActionsModalLabel">
+                    <i class="fas fa-cogs me-2"></i>Bulk Actions
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Bulk Operations:</strong> Select multiple users and apply actions to all selected members.
+                </div>
+                
+                <!-- User Selection -->
+                <div class="mb-4">
+                    <h6>Select Users:</h6>
+                    <div class="d-flex gap-2 mb-3">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectAllUsers()">
+                            <i class="fas fa-check-square me-1"></i>Select All
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearAllUsers()">
+                            <i class="fas fa-square me-1"></i>Clear All
+                        </button>
+                        <button type="button" class="btn btn-outline-info btn-sm" onclick="selectByRole('user')">
+                            <i class="fas fa-microscope me-1"></i>All Researchers
+                        </button>
+                        <button type="button" class="btn btn-outline-warning btn-sm" onclick="selectByRole('manager')">
+                            <i class="fas fa-user-tie me-1"></i>All Managers
+                        </button>
+                    </div>
+                    
+                    <div class="bulk-user-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px; padding: 10px;">
+                        {% for user in users %}
+                        <div class="form-check">
+                            <input class="form-check-input bulk-user-checkbox" type="checkbox" value="{{ user.id }}" id="bulk_user_{{ user.id }}">
+                            <label class="form-check-label" for="bulk_user_{{ user.id }}">
+                                <strong>{{ user.full_name or user.username }}</strong> 
+                                <span class="text-muted">({{ user.email }})</span> 
+                                <span class="badge bg-{{ 'danger' if user.role == 'admin' else 'warning' if user.role == 'manager' else 'info' }}">{{ user.role.title() }}</span>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="mt-2">
+                        <small class="text-muted">Selected: <span id="selectedCount">0</span> users</small>
+                    </div>
+                </div>
+                
+                <!-- Bulk Actions -->
+                <div class="mb-4">
+                    <h6>Available Actions:</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title"><i class="fas fa-user-cog me-2"></i>Change Role</h6>
+                                    <select class="form-select mb-2" id="bulkRoleSelect">
+                                        <option value="">Select new role...</option>
+                                        <option value="user">🔬 Researcher</option>
+                                        <option value="manager">👔 Manager</option>
+                                        <option value="admin">🛡️ Administrator</option>
+                                    </select>
+                                    <button type="button" class="btn btn-primary btn-sm w-100" onclick="performBulkAction('change_role')">
+                                        Apply Role Change
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title"><i class="fas fa-bell me-2"></i>Notification Settings</h6>
+                                    <div class="d-grid gap-2">
+                                        <button type="button" class="btn btn-success btn-sm" onclick="performBulkAction('enable_notifications')">
+                                            <i class="fas fa-bell me-1"></i>Enable Email Notifications
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="performBulkAction('disable_notifications')">
+                                            <i class="fas fa-bell-slash me-1"></i>Disable Email Notifications
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <div class="text-muted">
+                    <small><i class="fas fa-exclamation-triangle me-1"></i>Changes will be applied immediately</small>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -379,39 +486,6 @@
     margin-bottom: 0;
 }
 
-.hero-stats {
-    display: flex;
-    gap: 30px;
-    align-items: center;
-    justify-content: flex-end;
-}
-
-.stat-item {
-    text-align: center;
-}
-
-.stat-number {
-    display: block;
-    font-size: 2rem;
-    font-weight: 700;
-    color: white;
-}
-
-.stat-label {
-    display: block;
-    font-size: 0.85rem;
-    opacity: 0.8;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-@media (max-width: 992px) {
-    .hero-stats {
-        justify-content: center;
-        margin-top: 20px;
-        gap: 20px;
-    }
-}
 
 .btn-success {
     background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
@@ -508,7 +582,190 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 5000);
     });
+    
+    // Notification toggle handlers
+    const notificationToggles = document.querySelectorAll('.notification-toggle');
+    notificationToggles.forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            const userId = this.getAttribute('data-user-id');
+            const isEnabled = this.checked;
+            
+            // Show loading state
+            this.disabled = true;
+            const label = this.nextElementSibling;
+            label.innerHTML = '<small>Updating...</small>';
+            
+            // Send AJAX request to update notification settings
+            fetch('/update-user-notifications', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `user_id=${userId}&notifications_enabled=${isEnabled}&csrf_token=${encodeURIComponent('{{ csrf_token }}')}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    label.innerHTML = '<small>Email</small>';
+                    // Show success feedback briefly
+                    label.innerHTML = '<small class="text-success">✓ Updated</small>';
+                    setTimeout(() => {
+                        label.innerHTML = '<small>Email</small>';
+                    }, 2000);
+                } else {
+                    // Revert the toggle
+                    this.checked = !isEnabled;
+                    label.innerHTML = '<small class="text-danger">Error</small>';
+                    alert('Error updating notification settings: ' + (data.message || 'Unknown error'));
+                    setTimeout(() => {
+                        label.innerHTML = '<small>Email</small>';
+                    }, 3000);
+                }
+            })
+            .catch(error => {
+                // Revert the toggle
+                this.checked = !isEnabled;
+                label.innerHTML = '<small class="text-danger">Error</small>';
+                console.error('Error:', error);
+                alert('Error updating notification settings. Please try again.');
+                setTimeout(() => {
+                    label.innerHTML = '<small>Email</small>';
+                }, 3000);
+            })
+            .finally(() => {
+                this.disabled = false;
+            });
+        });
+    });
+    
+    // Bulk actions functionality
+    updateSelectedCount();
+    
+    // Update selected count when checkboxes change
+    document.querySelectorAll('.bulk-user-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCount);
+    });
 });
+
+// Bulk actions functions
+function selectAllUsers() {
+    document.querySelectorAll('.bulk-user-checkbox').forEach(checkbox => {
+        checkbox.checked = true;
+    });
+    updateSelectedCount();
+}
+
+function clearAllUsers() {
+    document.querySelectorAll('.bulk-user-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    updateSelectedCount();
+}
+
+function selectByRole(role) {
+    // Clear all first
+    clearAllUsers();
+    // Then select users with specific role
+    document.querySelectorAll('.bulk-user-checkbox').forEach(checkbox => {
+        const label = checkbox.nextElementSibling;
+        const badgeText = label.querySelector('.badge').textContent.toLowerCase();
+        if (badgeText.includes(role.toLowerCase()) || 
+            (role === 'user' && badgeText.includes('researcher'))) {
+            checkbox.checked = true;
+        }
+    });
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const selectedCheckboxes = document.querySelectorAll('.bulk-user-checkbox:checked');
+    const countElement = document.getElementById('selectedCount');
+    if (countElement) {
+        countElement.textContent = selectedCheckboxes.length;
+    }
+}
+
+function performBulkAction(action) {
+    const selectedCheckboxes = document.querySelectorAll('.bulk-user-checkbox:checked');
+    const selectedUserIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+    
+    if (selectedUserIds.length === 0) {
+        alert('Please select at least one user to perform bulk actions.');
+        return;
+    }
+    
+    let actionData = {
+        action: action,
+        user_ids: selectedUserIds,
+        csrf_token: '{{ csrf_token }}'
+    };
+    
+    // Handle specific action types
+    if (action === 'change_role') {
+        const newRole = document.getElementById('bulkRoleSelect').value;
+        if (!newRole) {
+            alert('Please select a role to apply.');
+            return;
+        }
+        actionData.new_role = newRole;
+        
+        if (!confirm(`Are you sure you want to change the role of ${selectedUserIds.length} users to ${newRole}?`)) {
+            return;
+        }
+    } else if (action === 'enable_notifications' || action === 'disable_notifications') {
+        const actionText = action === 'enable_notifications' ? 'enable' : 'disable';
+        if (!confirm(`Are you sure you want to ${actionText} email notifications for ${selectedUserIds.length} users?`)) {
+            return;
+        }
+    }
+    
+    // Show loading state
+    const allButtons = document.querySelectorAll('#bulkActionsModal button[onclick^="performBulkAction"]');
+    allButtons.forEach(btn => {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+    });
+    
+    // Send AJAX request
+    fetch('/bulk-user-actions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(actionData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Bulk action completed successfully! ${data.affected_users || selectedUserIds.length} users updated.`);
+            // Close modal and reload page
+            const modal = document.getElementById('bulkActionsModal');
+            const modalInstance = bootstrap.Modal.getInstance(modal);
+            modalInstance.hide();
+            location.reload();
+        } else {
+            alert('Error performing bulk action: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error performing bulk action. Please try again.');
+    })
+    .finally(() => {
+        // Restore buttons
+        allButtons.forEach(btn => {
+            btn.disabled = false;
+            // Restore original content based on action
+            if (btn.onclick.toString().includes('change_role')) {
+                btn.innerHTML = 'Apply Role Change';
+            } else if (btn.onclick.toString().includes('enable_notifications')) {
+                btn.innerHTML = '<i class="fas fa-bell me-1"></i>Enable Email Notifications';
+            } else if (btn.onclick.toString().includes('disable_notifications')) {
+                btn.innerHTML = '<i class="fas fa-bell-slash me-1"></i>Disable Email Notifications';
+            }
+        });
+    });
+}
 </script>
 
 {% block extra_css %}

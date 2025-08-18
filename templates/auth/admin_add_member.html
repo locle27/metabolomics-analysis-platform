@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Add Member - Metabolomics Platform{% endblock %}
+
+{% block body_class %}admin-page{% endblock %}
+
+{% block hero %}
+<div class="hero-section">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+                <h1 class="hero-title">➕ Add New Member</h1>
+                <p class="hero-subtitle">Create a new research center member account</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <!-- Back to Members ---->
+            <div class="mb-4">
+                <a href="{{ url_for('manage_users') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Members
+                </a>
+            </div>
+
+            <!-- Member Creation Form ---->
+            <div class="member-form-card">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0">
+                            <i class="fas fa-user-plus me-2"></i>
+                            Member Information
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info mb-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Admin User Creation</strong><br>
+                            New members will be created with a temporary password and email verification automatically completed.
+                        </div>
+
+                        <form method="POST" action="{{ url_for('admin_add_member') }}">
+                            {% if csrf_token %}
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            {% endif %}
+                            
+                            <div class="mb-3">
+                                <label for="full_name" class="form-label">
+                                    <strong>Full Name</strong> <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="full_name" name="full_name" 
+                                       placeholder="Enter member's full name" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="username" class="form-label">
+                                    <strong>Username</strong> <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="username" name="username" 
+                                       placeholder="Enter unique username" required>
+                                <small class="form-text text-muted">
+                                    Username will be used for login and must be unique.
+                                </small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="email" class="form-label">
+                                    <strong>Email Address</strong> <span class="text-danger">*</span>
+                                </label>
+                                <input type="email" class="form-control" id="email" name="email" 
+                                       placeholder="Enter member's email address" required>
+                                <small class="form-text text-muted">
+                                    Email will be verified automatically for admin-created accounts.
+                                </small>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="role" class="form-label">
+                                    <strong>Access Level</strong> <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="role" name="role" required>
+                                    <option value="user" selected>🔬 Researcher - Analysis Access</option>
+                                    <option value="manager">👔 Manager - Management Access</option>
+                                    <option value="admin">🛡️ Administrator - Full Access</option>
+                                </select>
+                                <small class="form-text text-muted">
+                                    You can change the access level later from the member management page.
+                                </small>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-user-plus me-2"></i>Create Member Account
+                                </button>
+                                <a href="{{ url_for('manage_users') }}" class="btn btn-outline-secondary">
+                                    Cancel
+                                </a>
+                            </div>
+                        </form>
+
+                        <!-- Important Notes ---->
+                        <div class="mt-4 pt-4 border-top">
+                            <h5>Important Notes</h5>
+                            <ul class="mb-0">
+                                <li><strong>Temporary Password:</strong> temp123! (member should change on first login)</li>
+                                <li><strong>Email Verification:</strong> Automatically completed for admin-created accounts</li>
+                                <li><strong>Account Status:</strong> Account will be active immediately</li>
+                                <li><strong>Login:</strong> Member can log in with username and temporary password</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.member-form-card .card {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.member-form-card .card-header {
+    background: linear-gradient(135deg, #2E4C92, #213671);
+    padding: 20px;
+}
+
+.form-label {
+    color: #2E4C92;
+    font-weight: 500;
+}
+
+.form-control, .form-select {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #2E4C92;
+    box-shadow: 0 0 0 0.2rem rgba(46, 76, 146, 0.25);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 12px;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #218838, #1a9b7a);
+    transform: translateY(-1px);
+}
+
+.alert-info {
+    background: linear-gradient(135deg, #e8f4ff, #d6ecff);
+    border: 1px solid #b8dfff;
+    color: #004085;
+}
+
+.hero-section {
+    background: linear-gradient(135deg, #2E4C92, #213671);
+    color: white;
+    padding: 60px 0;
+    margin-bottom: 0;
+}
+
+.hero-title {
+    font-size: 2.2rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.hero-subtitle {
+    font-size: 1rem;
+    opacity: 0.85;
+    margin-bottom: 0;
+}
+</style>
+{% endblock %}

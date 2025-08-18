@@ -1089,7 +1089,7 @@ def login():
             flash('Demo login successful!', 'success')
             return redirect(url_for('homepage'))
         else:
-            flash('Invalid credentials. Try admin: admin / admin or demo: admin@demo.com / admin123', 'error')
+            flash('Invalid credentials. Please check your username and password.', 'error')
     
     # GET request - show login form
     return render_template('auth/login.html', csrf_token=csrf_token)
@@ -2822,12 +2822,23 @@ def manage_users():
         flash('Please log in to view center members.', 'warning')
         return redirect(url_for('auth.login'))
     
+    # Generate CSRF token for forms
+    csrf_token = ''
+    if CSRF_AVAILABLE:
+        try:
+            from flask_wtf.csrf import generate_csrf
+            csrf_token = generate_csrf()
+            print("✅ User management CSRF token generated")
+        except Exception as e:
+            print(f"⚠️ CSRF token generation failed: {e}")
+    
     try:
         if not (db and User):
             # Fallback for when database is not available
             return render_template('auth/manage_users.html', 
                                  users=[],
                                  user_can_edit=(user_role in ['admin', 'manager']),
+                                 csrf_token=csrf_token,
                                  error_message="Database not available. User management requires a working database connection.")
         
         # Get all users with error handling
@@ -2839,14 +2850,132 @@ def manage_users():
         return render_template('auth/manage_users.html', 
                              users=users,
                              user_can_edit=user_can_edit,
-                             current_user_role=user_role)
+                             current_user_role=user_role,
+                             csrf_token=csrf_token)
         
     except Exception as e:
         print(f"⚠️ User management error: {e}")
         return render_template('auth/manage_users.html', 
                              users=[],
                              user_can_edit=False,
+                             csrf_token=csrf_token,
                              error_message=f"Error loading users: {str(e)}")
+
+@app.route('/admin/add-member', methods=['GET', 'POST'])
+@admin_required
+def admin_add_member():
+    """Admin-only user creation"""
+    # Generate CSRF token
+    csrf_token = ''
+    if CSRF_AVAILABLE:
+        try:
+            from flask_wtf.csrf import generate_csrf
+            csrf_token = generate_csrf()
+        except Exception as e:
+            print(f"⚠️ CSRF token generation failed: {e}")
+    
+    if request.method == 'POST':
+        try:
+            # Get form data
+            username = request.form.get('username', '').strip()
+            email = request.form.get('email', '').strip()
+            full_name = request.form.get('full_name', '').strip()
+            role = request.form.get('role', 'user')
+            
+            if not username or not email or not full_name:
+                flash('All fields are required', 'error')
+                return render_template('auth/admin_add_member.html', csrf_token=csrf_token)
+            
+            # Check if user already exists
+            if User.query.filter_by(username=username.lower()).first():
+                flash('Username already exists', 'error')
+                return render_template('auth/admin_add_member.html', csrf_token=csrf_token)
+            
+            if User.query.filter_by(email=email.lower()).first():
+                flash('Email already exists', 'error')
+                return render_template('auth/admin_add_member.html', csrf_token=csrf_token)
+            
+            # Create new user
+            user = User(
+                username=username.lower(),
+                email=email.lower(),
+                full_name=full_name,
+                role=role,
+                is_active=True,
+                is_verified=True,  # Admin-created users are auto-verified
+                auth_method='admin_created'
+            )
+            
+            # Set a temporary password (user should change on first login)
+            temp_password = 'temp123!'
+            user.set_password(temp_password)
+            
+            db.session.add(user)
+            db.session.commit()
+            
+            flash(f'User {full_name} created successfully! Temporary password: {temp_password}', 'success')
+            return redirect(url_for('manage_users'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating user: {str(e)}', 'error')
+    
+    return render_template('auth/admin_add_member.html', csrf_token=csrf_token)
+
+@app.route('/update-user-notifications', methods=['POST'])
+@admin_required
+def update_user_notifications():
+    """Update user notification settings via AJAX"""
+    try:
+        user_id = request.form.get('user_id')
+        notifications_enabled = request.form.get('notifications_enabled') == 'true'
+        
+        if not user_id:
+            return jsonify({'success': False, 'message': 'User ID required'})
+        
+        # Get the user
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'})
+        
+        # Load current notification settings
+        notification_emails = current_app.config.get('NOTIFICATION_EMAILS', [])
+        
+        # Update notification list
+        if notifications_enabled:
+            # Add user email if not already in list
+            if user.email not in notification_emails:
+                notification_emails.append(user.email)
+        else:
+            # Remove user email from list
+            if user.email in notification_emails:
+                notification_emails.remove(user.email)
+        
+        # Save updated notification settings
+        notification_settings_file = os.path.join(os.path.dirname(__file__), 'notification_settings.json')
+        try:
+            with open(notification_settings_file, 'w') as f:
+                json.dump({
+                    'notification_emails': notification_emails,
+                    'updated_at': datetime.now().isoformat()
+                }, f, indent=2)
+            
+            # Update app config
+            current_app.config['NOTIFICATION_EMAILS'] = notification_emails
+            
+            return jsonify({
+                'success': True, 
+                'message': f'Notification settings updated for {user.full_name or user.email}',
+                'enabled': notifications_enabled
+            })
+            
+        except Exception as e:
+            print(f"Error saving notification settings: {e}")
+            return jsonify({'success': False, 'message': 'Error saving settings'})
+    
+    except Exception as e:
+        print(f"Error updating user notifications: {e}")
+        return jsonify({'success': False, 'message': str(e)})
 
 @app.route('/notification-settings')
 @admin_required
@@ -3145,18 +3274,6 @@ def signup():
         print(f"⚠️ Signup redirect failed: {e}")
         return '<h2>Registration currently unavailable</h2><a href="/login">Login instead</a>'
 
-@app.route('/demo-login')
-def demo_login():
-    """Demo login for deployment testing - bypasses OAuth"""
-    try:
-        session['user_authenticated'] = True
-        session['user_email'] = 'demo@metabolomics.com'
-        session['user_role'] = 'admin'
-        flash('Demo login successful!', 'success')
-        return redirect(url_for('homepage'))
-    except Exception as e:
-        flash(f'Demo login failed: {e}', 'error')
-        return redirect(url_for('auth.login'))
 
 @app.route('/logout')
 def logout():

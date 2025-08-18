@@ -655,9 +655,6 @@
                                                 <div class="sub-links">
                                                     <ul>
                                                         <li><a href="{{ url_for('auth.profile') }}"><i class="fas fa-user-circle"></i> Profile</a></li>
-                                                        {% if current_user.is_admin() or session.get('user_role') == 'admin' %}
-                                                        <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-shield-alt"></i> Admin Dashboard</a></li>
-                                                        {% endif %}
                                                         {% if session.get('user_email') == 'loc22100302@gmail.com' %}
                                                         <li><a href="{{ url_for('backup_management') }}"><i class="fas fa-database"></i> System Backup</a></li>
                                                         <li><a href="{{ url_for('change_tracker_dashboard') }}"><i class="fas fa-history"></i> Change History</a></li>
