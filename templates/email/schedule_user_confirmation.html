@@ -141,36 +141,19 @@
                     <td>{{ request.preferred_time or 'Flexible' }}</td>
                 </tr>
                 <tr>
-                    <td><strong>Meeting Type:</strong></td>
-                    <td>{{ request.meeting_type.replace('_', ' ').title() }}</td>
-                </tr>
-                <tr>
                     <td><strong>Submitted:</strong></td>
                     <td>{{ request.created_at.strftime('%B %d, %Y at %I:%M %p UTC') }}</td>
                 </tr>
             </table>
             
-            {% if request.research_description %}
             <table class="info-table">
                 <tr>
-                    <th>🔬 Your Research Description</th>
+                    <th>💬 Your Message</th>
                 </tr>
                 <tr>
-                    <td>{{ request.research_description }}</td>
+                    <td>{{ request.message }}</td>
                 </tr>
             </table>
-            {% endif %}
-            
-            {% if request.specific_goals %}
-            <table class="info-table">
-                <tr>
-                    <th>🎯 Your Specific Goals</th>
-                </tr>
-                <tr>
-                    <td>{{ request.specific_goals }}</td>
-                </tr>
-            </table>
-            {% endif %}
             
             <div class="next-steps">
                 <strong>📅 What Happens Next:</strong>
