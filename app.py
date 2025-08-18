@@ -106,6 +106,11 @@ app.config.update({
     'SESSION_COOKIE_HTTPONLY': True,
     'SESSION_COOKIE_SAMESITE': 'Lax',
     'PERMANENT_SESSION_LIFETIME': 3600,  # 1 hour
+    # WTF-CSRF Configuration
+    'WTF_CSRF_ENABLED': True,
+    'WTF_CSRF_TIME_LIMIT': 3600,  # 1 hour
+    'WTF_CSRF_SSL_STRICT': False,  # Allow HTTP for development
+    'WTF_CSRF_CHECK_DEFAULT': True,
 })
 
 # Enable CSRF protection properly
@@ -168,6 +173,124 @@ def test_csrf():
             return "CSRF not available"
     except Exception as e:
         return f"CSRF test error: {e}"
+
+@app.route('/debug-csrf')
+def debug_csrf():
+    """Comprehensive CSRF debugging"""
+    debug_info = {
+        "CSRF_AVAILABLE": CSRF_AVAILABLE,
+        "SECRET_KEY_SET": bool(app.secret_key),
+        "SECRET_KEY_LENGTH": len(app.secret_key) if app.secret_key else 0,
+        "SESSION_COOKIE_SECURE": app.config.get('SESSION_COOKIE_SECURE'),
+        "SESSION_COOKIE_HTTPONLY": app.config.get('SESSION_COOKIE_HTTPONLY'),
+        "SESSION_COOKIE_SAMESITE": app.config.get('SESSION_COOKIE_SAMESITE'),
+    }
+    
+    try:
+        if CSRF_AVAILABLE:
+            from flask_wtf.csrf import generate_csrf
+            token = generate_csrf()
+            debug_info["CSRF_TOKEN_GENERATED"] = True
+            debug_info["CSRF_TOKEN_LENGTH"] = len(token)
+            debug_info["CSRF_TOKEN_PREVIEW"] = token[:10] + "..."
+        else:
+            debug_info["CSRF_TOKEN_GENERATED"] = False
+    except Exception as e:
+        debug_info["CSRF_TOKEN_ERROR"] = str(e)
+    
+    # Test forms import
+    try:
+        from forms import PasswordUpdateForm
+        debug_info["FORMS_IMPORT"] = "SUCCESS"
+        form = PasswordUpdateForm()
+        debug_info["FORMS_INSTANTIATION"] = "SUCCESS"
+    except Exception as e:
+        debug_info["FORMS_IMPORT_ERROR"] = str(e)
+    
+    return f"<pre>{json.dumps(debug_info, indent=2)}</pre>"
+
+@app.route('/test-wtform', methods=['GET', 'POST'])
+def test_wtform():
+    """Test WTForm with CSRF"""
+    try:
+        from forms import PasswordUpdateForm
+    except ImportError as e:
+        return f"Forms import error: {e}"
+    
+    form = PasswordUpdateForm()
+    
+    if request.method == 'POST':
+        print(f"🔍 POST request received")
+        print(f"🔍 Form data: {dict(request.form)}")
+        print(f"🔍 Form errors before validation: {form.errors}")
+        
+        if form.validate_on_submit():
+            return "✅ Form validation successful!"
+        else:
+            print(f"❌ Form validation failed: {form.errors}")
+            return f"❌ Form validation failed: {form.errors}"
+    
+    # GET request - show form
+    return f"""
+    <h2>Test WTForm with CSRF</h2>
+    <form method="POST">
+        {form.hidden_tag()}
+        <p>
+            {form.new_password.label}<br>
+            {form.new_password}
+        </p>
+        <p>
+            {form.confirm_password.label}<br>
+            {form.confirm_password}
+        </p>
+        <p>
+            {form.submit()}
+        </p>
+    </form>
+    """
+
+@app.route('/test-basic-csrf', methods=['GET', 'POST'])
+def test_basic_csrf():
+    """Test basic CSRF without WTForms"""
+    if request.method == 'POST':
+        print(f"🔍 Basic CSRF test - POST received")
+        print(f"🔍 Form data: {dict(request.form)}")
+        
+        # Try manual CSRF validation
+        if CSRF_AVAILABLE:
+            try:
+                from flask_wtf.csrf import validate_csrf
+                csrf_token = request.form.get('csrf_token', '')
+                validate_csrf(csrf_token)
+                return "✅ Basic CSRF validation successful!"
+            except Exception as e:
+                return f"❌ Basic CSRF validation failed: {e}"
+        else:
+            return "❌ CSRF not available"
+    
+    # GET - generate form with manual CSRF token
+    csrf_token = ""
+    if CSRF_AVAILABLE:
+        try:
+            from flask_wtf.csrf import generate_csrf
+            csrf_token = generate_csrf()
+        except Exception as e:
+            return f"CSRF generation error: {e}"
+    
+    return f"""
+    <h2>Basic CSRF Test (No WTForms)</h2>
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{csrf_token}">
+        <p>
+            <label>Test Input:</label><br>
+            <input type="text" name="test_field" required>
+        </p>
+        <p>
+            <input type="submit" value="Submit Test">
+        </p>
+    </form>
+    <p>CSRF Token: <code>{csrf_token[:20]}...</code></p>
+    """
 
 # Apply proxy fix if available
 if PROXY_FIX_AVAILABLE:
@@ -939,11 +1062,32 @@ def password_settings():
 @auth_bp.route('/update-password', methods=['GET', 'POST'])
 def update_password():
     """Update user password using proper WTForms with CSRF protection"""
+    print(f"\n🔍 PASSWORD UPDATE ROUTE - {request.method}")
+    print(f"🔍 Request path: {request.path}")
+    print(f"🔍 Request endpoint: {request.endpoint}")
+    print(f"🔍 Request referrer: {request.referrer}")
+    print(f"🔍 Content type: {request.content_type}")
+    
+    # Debug session
+    print(f"🔍 Session keys: {list(session.keys())}")
+    print(f"🔍 User authenticated: {session.get('user_authenticated', False)}")
+    print(f"🔍 User email: {session.get('user_email', 'Not set')}")
+    
+    # Test CSRF token generation
+    if CSRF_AVAILABLE:
+        try:
+            from flask_wtf.csrf import generate_csrf
+            token = generate_csrf()
+            print(f"🔍 CSRF token can be generated: {token[:10]}... (length: {len(token)})")
+        except Exception as e:
+            print(f"❌ CSRF token generation failed: {e}")
+    
     # Import the form class
     try:
         from forms import PasswordUpdateForm
-    except ImportError:
-        print("❌ Forms module not available")
+        print("✅ Forms module imported successfully")
+    except ImportError as e:
+        print(f"❌ Forms module not available: {e}")
         flash('System error: Forms not available', 'error')
         return redirect(url_for('auth.password_settings'))
     
@@ -957,61 +1101,100 @@ def update_password():
     print(f"🔍 Processing password update for: {user_email}")
     
     # Create form instance
-    form = PasswordUpdateForm()
+    try:
+        form = PasswordUpdateForm()
+        print("✅ Form instance created successfully")
+    except Exception as e:
+        print(f"❌ Form instantiation failed: {e}")
+        flash(f'Form error: {e}', 'error')
+        return redirect(url_for('auth.password_settings'))
     
     # Handle GET request - show form
     if request.method == 'GET':
+        print("✅ GET request - rendering form")
         return render_template('auth/password_form.html', form=form)
     
-    # Handle POST request - process form
-    if form.validate_on_submit():
-        print("✅ Form validation successful with CSRF")
+    # Handle POST request - detailed debugging
+    if request.method == 'POST':
+        print(f"🔍 POST request received")
+        print(f"🔍 Form data keys: {list(request.form.keys())}")
+        print(f"🔍 Has csrf_token in form: {'csrf_token' in request.form}")
         
-        current_password = form.current_password.data
-        new_password = form.new_password.data
+        if 'csrf_token' in request.form:
+            token_value = request.form.get('csrf_token', '')
+            print(f"🔍 CSRF token from form: {token_value[:10]}... (length: {len(token_value)})")
+        else:
+            print("❌ NO CSRF TOKEN IN FORM DATA")
         
-        try:
-            if db and User:
-                user = User.query.filter_by(email=user_email).first()
-                if user:
-                    # Check current password if user has one
-                    if user.password_hash and current_password:
-                        if not user.check_password(current_password):
-                            flash('Current password is incorrect.', 'error')
-                            return render_template('auth/password_form.html', form=form)
-                    elif user.password_hash and not current_password:
-                        flash('Current password is required to change password.', 'error')
-                        return render_template('auth/password_form.html', form=form)
-                    
-                    # Set new password
-                    user.set_password(new_password)
-                    user.last_password_change = datetime.utcnow()
-                    db.session.commit()
-                    
-                    print(f"✅ Password updated successfully for {user_email}")
-                    flash('Password updated successfully!', 'success')
-                    return redirect(url_for('auth.password_settings'))
+        print(f"🔍 Form data (without sensitive info): {dict(request.form)}")
+        
+        # Try manual CSRF validation
+        if CSRF_AVAILABLE:
+            try:
+                from flask_wtf.csrf import validate_csrf
+                csrf_token_value = request.form.get('csrf_token', '')
+                if csrf_token_value:
+                    validate_csrf(csrf_token_value)
+                    print("✅ Manual CSRF validation successful")
                 else:
-                    print(f"❌ User not found: {user_email}")
-                    flash('User account not found.', 'error')
-            else:
-                print("❌ Database not available")
-                flash('Database error. Please try again later.', 'error')
-                
-        except Exception as e:
-            print(f"❌ Password update error: {e}")
-            flash(f'Password update failed: {e}', 'error')
-            if db:
-                db.session.rollback()
+                    print("❌ No CSRF token for manual validation")
+            except Exception as csrf_error:
+                print(f"❌ Manual CSRF validation failed: {csrf_error}")
+        
+        # Check form validation
+        print(f"🔍 Form errors before validation: {form.errors}")
+        
+        if form.validate_on_submit():
+            print("✅ Form validation successful with CSRF")
+            
+            current_password = form.current_password.data
+            new_password = form.new_password.data
+            
+            try:
+                if db and User:
+                    user = User.query.filter_by(email=user_email).first()
+                    if user:
+                        # Check current password if user has one
+                        if user.password_hash and current_password:
+                            if not user.check_password(current_password):
+                                flash('Current password is incorrect.', 'error')
+                                return render_template('auth/password_form.html', form=form)
+                        elif user.password_hash and not current_password:
+                            flash('Current password is required to change password.', 'error')
+                            return render_template('auth/password_form.html', form=form)
+                        
+                        # Set new password
+                        user.set_password(new_password)
+                        user.last_password_change = datetime.utcnow()
+                        db.session.commit()
+                        
+                        print(f"✅ Password updated successfully for {user_email}")
+                        flash('Password updated successfully!', 'success')
+                        return redirect(url_for('auth.password_settings'))
+                    else:
+                        print(f"❌ User not found: {user_email}")
+                        flash('User account not found.', 'error')
+                else:
+                    print("❌ Database not available")
+                    flash('Database error. Please try again later.', 'error')
+                    
+            except Exception as e:
+                print(f"❌ Password update error: {e}")
+                flash(f'Password update failed: {e}', 'error')
+                if db:
+                    db.session.rollback()
+        
+        else:
+            # Form validation failed
+            print(f"❌ Form validation failed")
+            print(f"🔍 Form errors after validation: {form.errors}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    print(f"   - {field}: {error}")
+                    flash(f'{field}: {error}', 'error')
     
-    else:
-        # Form validation failed
-        print("❌ Form validation failed")
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f'{field}: {error}', 'error')
-                
     # Return to password form with errors
+    print("🔄 Returning to password form")
     return render_template('auth/password_form.html', form=form)
 
 # Legacy route redirect
