@@ -2167,14 +2167,35 @@ def inject_user():
     user_authenticated = session.get('user_authenticated', False)
     user_email = session.get('user_email', '')
     user_role = session.get('user_role', 'user')
+    auth_method = session.get('auth_method', 'local')
+    
+    # Debug print to understand what's happening
+    print(f"🔍 Context processor: authenticated={user_authenticated}, email={user_email}, role={user_role}")
     
     # Create a mock current_user for templates
     class MockUser:
         def __init__(self):
             self.is_authenticated = user_authenticated
             self.email = user_email
-            self.full_name = user_email.split('@')[0] if user_email else 'Guest'
+            self.full_name = self.get_full_name()
             self.role = user_role
+            self.auth_method = auth_method
+            self.username = user_email.split('@')[0] if user_email else 'guest'
+        
+        def get_full_name(self):
+            if user_email:
+                # Try to get full name from database
+                if db and User:
+                    try:
+                        user = User.query.filter_by(email=user_email).first()
+                        if user and hasattr(user, 'full_name') and user.full_name:
+                            return user.full_name
+                    except:
+                        pass
+                
+                # Fallback to email username
+                return user_email.split('@')[0].replace('.', ' ').replace('_', ' ').title()
+            return 'Guest'
         
         def is_admin(self):
             return self.role == 'admin'
@@ -2445,6 +2466,17 @@ def browse_lipids():
 @app.route('/schedule-form', methods=['GET', 'POST'])
 def schedule_form():
     """Schedule consultation form"""
+    
+    # Generate CSRF token for template
+    csrf_token = ''
+    if CSRF_AVAILABLE:
+        try:
+            from flask_wtf.csrf import generate_csrf
+            csrf_token = generate_csrf()
+            print(f"✅ Schedule CSRF token generated: {csrf_token[:10]}...")
+        except Exception as e:
+            print(f"⚠️ CSRF token generation failed in schedule_form: {e}")
+    
     if request.method == 'POST':
         try:
             from datetime import date
@@ -2461,12 +2493,12 @@ def schedule_form():
             # Validate required fields
             if not full_name or not email or not request_type or not message:
                 flash('Please fill in all required fields.', 'error')
-                return render_template('schedule_form.html', today=date.today().isoformat())
+                return render_template('schedule_form.html', today=date.today().isoformat(), csrf_token=csrf_token)
             
             # Basic email validation
             if '@' not in email or '.' not in email:
                 flash('Please provide a valid email address.', 'error')
-                return render_template('schedule_form.html', today=date.today().isoformat())
+                return render_template('schedule_form.html', today=date.today().isoformat(), csrf_token=csrf_token)
             
             # Save to database
             try:
@@ -2520,7 +2552,7 @@ def schedule_form():
             except Exception as db_error:
                 print(f"Database error: {db_error}")
                 flash('There was an error saving your request. Please try again.', 'error')
-                return render_template('schedule_form.html', today=date.today().isoformat())
+                return render_template('schedule_form.html', today=date.today().isoformat(), csrf_token=csrf_token)
                 
             return redirect(url_for('schedule_form'))
             
@@ -2529,7 +2561,7 @@ def schedule_form():
     
     try:
         from datetime import date
-        return render_template('schedule_form.html', today=date.today().isoformat())
+        return render_template('schedule_form.html', today=date.today().isoformat(), csrf_token=csrf_token)
     except Exception as e:
         print(f"⚠️ Schedule form error: {e}")
         return f"<h1>Schedule System Loading...</h1><p>Error: {e}</p>"

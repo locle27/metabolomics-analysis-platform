@@ -293,6 +293,9 @@
             
             <!-- Schedule Form -->
             <form method="POST" action="{{ url_for('submit_schedule_request') }}" novalidate>
+                {% if csrf_token %}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                {% endif %}
                 <!-- Personal Information -->
                 <div class="form-section">
                     <h5 class="section-title">
