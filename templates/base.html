@@ -649,11 +649,9 @@
                                                 <div class="sub-links">
                                                     <ul>
                                                         <li><a href="{{ url_for('auth.profile') }}"><i class="fas fa-user-circle"></i> Profile</a></li>
-                                                        <li><a href="{{ url_for('auth.change_password') }}"><i class="fas fa-key"></i> Change Password</a></li>
                                                         {% if current_user.is_admin() %}
                                                         <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-shield-alt"></i> Admin Dashboard</a></li>
                                                         {% endif %}
-                                                        <li><a href="{{ url_for('user_debug') }}"><i class="fas fa-info-circle"></i> Account Info</a></li>
                                                         <li><hr class="dropdown-divider"></li>
                                                         <li><a href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                                                     </ul>

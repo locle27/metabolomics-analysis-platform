@@ -83,6 +83,16 @@ except:
     MAIL_AVAILABLE = False
     print("⚠️ Flask-Mail unavailable")
 
+try:
+    from flask_wtf.csrf import CSRFProtect
+    csrf = CSRFProtect()
+    CSRF_AVAILABLE = True
+    print("✅ CSRF protection available")
+except:
+    csrf = None
+    CSRF_AVAILABLE = False
+    print("⚠️ CSRF protection unavailable")
+
 # === FLASK APP CONFIGURATION ===
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -91,6 +101,11 @@ app = Flask(__name__,
     static_folder=BASE_DIR / "static"
 )
 app.secret_key = os.getenv('SECRET_KEY', 'bulletproof-metabolomics-platform-secret-key')
+
+# Initialize CSRF protection
+if CSRF_AVAILABLE:
+    csrf.init_app(app)
+    print("✅ CSRF protection initialized")
 
 # Enhanced session configuration for OAuth
 app.config.update({
@@ -867,7 +882,16 @@ def profile():
         
         current_user = UserData(user_email, user_role, user_name, auth_method)
         
-        return render_template('auth/profile.html', current_user=current_user, user=current_user)
+        # Generate CSRF token for forms
+        csrf_token = None
+        if CSRF_AVAILABLE:
+            from flask_wtf.csrf import generate_csrf
+            csrf_token = generate_csrf()
+        
+        return render_template('auth/profile.html', 
+                             current_user=current_user, 
+                             user=current_user,
+                             csrf_token=csrf_token)
     except Exception as e:
         print(f"⚠️ Profile route error: {e}")
         flash(f'Error loading profile: {e}', 'error')

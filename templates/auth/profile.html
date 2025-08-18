@@ -260,6 +260,34 @@
                                 {% endif %}
                             </div>
                         </div>
+                        
+                        <!-- System Information Section -->
+                        <div class="action-card mb-3">
+                            <h5>
+                                <i class="fas fa-info-circle text-info me-2"></i>
+                                System Information
+                            </h5>
+                            <div class="system-info">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <ul class="list-unstyled mb-0">
+                                            <li><strong>Session Status:</strong> <span class="text-success">Active</span></li>
+                                            <li><strong>Platform Version:</strong> v2.0.0</li>
+                                            <li><strong>Database:</strong> PostgreSQL</li>
+                                            <li><strong>Auth Provider:</strong> {{ current_user.auth_method.title() }}</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <ul class="list-unstyled mb-0">
+                                            <li><strong>Security Level:</strong> <span class="text-success">High</span></li>
+                                            <li><strong>2FA Enabled:</strong> <span class="text-warning">OAuth Only</span></li>
+                                            <li><strong>Session Timeout:</strong> 1 hour</li>
+                                            <li><strong>Data Encryption:</strong> <span class="text-success">Enabled</span></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                     </div>
                 </div>
