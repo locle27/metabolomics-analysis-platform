@@ -654,7 +654,7 @@
                                                         {% endif %}
                                                         {% if session.get('user_email') == 'loc22100302@gmail.com' %}
                                                         <li><a href="{{ url_for('backup_management') }}"><i class="fas fa-database"></i> System Backup</a></li>
-                                                        <li><a href="{{ url_for('change_tracker') }}"><i class="fas fa-history"></i> Change History</a></li>
+                                                        <li><a href="{{ url_for('change_tracker_dashboard') }}"><i class="fas fa-history"></i> Change History</a></li>
                                                         {% endif %}
                                                         <li><hr class="dropdown-divider"></li>
                                                         <li><a href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
