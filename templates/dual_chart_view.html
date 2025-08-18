@@ -626,8 +626,8 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1/dist/chartjs-plugin-zoom.min.js"></script>
 
 <script>
 // Chart instances storage
@@ -1027,12 +1027,24 @@ function createChart(lipidId, chartType, chartConfig) {
         
         // Add custom onHover event for 2D area detection
         chartConfig.options.onHover = function(event, elements, chart) {
-            // Get mouse position relative to chart canvas
-            const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
-            
-            // Convert canvas position to data coordinates
-            const mouseX = chart.scales.x.getValueForPixel(canvasPosition.x);
-            const mouseY = chart.scales.y.getValueForPixel(canvasPosition.y);
+            try {
+                // Check if chart and scales are properly initialized
+                if (!chart || !chart.scales || !chart.scales.x || !chart.scales.y) {
+                    console.warn('Chart scales not ready for hover detection');
+                    return;
+                }
+                
+                // Get mouse position relative to chart canvas
+                const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
+                
+                // Convert canvas position to data coordinates
+                const mouseX = chart.scales.x.getValueForPixel(canvasPosition.x);
+                const mouseY = chart.scales.y.getValueForPixel(canvasPosition.y);
+                
+                // Check if coordinates are valid
+                if (mouseX === undefined || mouseY === undefined || isNaN(mouseX) || isNaN(mouseY)) {
+                    return;
+                }
             
             console.log('=== 2D AREA HOVER DEBUG ===');
             console.log(`Mouse position: X=${mouseX?.toFixed(2)}, Y=${mouseY?.toFixed(0)}`);
@@ -1088,6 +1100,10 @@ function createChart(lipidId, chartType, chartConfig) {
             });
             
             console.log(`Final selection: ${hoveredLipid ? hoveredLipid.dataset.lipid_info.annotation : 'None'}`);
+            
+            } catch (error) {
+                console.warn('Error in chart hover detection:', error);
+            }
         };
     }
     
