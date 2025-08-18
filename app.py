@@ -720,6 +720,12 @@ except Exception as e:
 # === EMAIL SERVICE FUNCTIONS ===
 def send_email(to_email, subject, template_name, **template_vars):
     """Send email using Flask-Mail with fallback to email_service"""
+    print(f"🔍 Email send attempt to: {to_email}")
+    print(f"🔍 MAIL_AVAILABLE: {MAIL_AVAILABLE}")
+    print(f"🔍 mail object exists: {mail is not None}")
+    print(f"🔍 MAIL_USERNAME configured: {bool(app.config.get('MAIL_USERNAME'))}")
+    print(f"🔍 MAIL_PASSWORD configured: {bool(app.config.get('MAIL_PASSWORD'))}")
+    
     # Try Flask-Mail first if available
     if mail and MAIL_AVAILABLE:
         try:
@@ -732,20 +738,28 @@ def send_email(to_email, subject, template_name, **template_vars):
                 sender=app.config.get('MAIL_DEFAULT_SENDER')
             )
             
+            print(f"🔍 Email message created, sender: {app.config.get('MAIL_DEFAULT_SENDER')}")
+            
             # Render template for email body
             try:
                 msg.html = render_template(f'email/{template_name}', **template_vars)
+                print(f"✅ Email template rendered successfully: {template_name}")
             except Exception as e:
+                print(f"⚠️ Email template render failed: {e}")
                 # Fallback to simple text email
                 msg.body = f"Subject: {subject}\n\n" + str(template_vars.get('message', 'Email content'))
+                print(f"🔍 Using fallback text email body")
             
             # Send email
+            print(f"🔍 Attempting to send email via Flask-Mail...")
             mail.send(msg)
             print(f"✅ Email sent successfully to {to_email} via Flask-Mail")
             return True
             
         except Exception as e:
-            print(f"⚠️ Flask-Mail send failed: {e}, trying email_service...")
+            print(f"❌ Flask-Mail send failed: {e}")
+            print(f"🔍 Error type: {type(e).__name__}")
+            # Continue to fallback
     
     # Fallback to external email_service
     try:
@@ -1217,7 +1231,33 @@ def forgot_password():
                         session[f'reset_token_{email}'] = reset_token
                         session[f'reset_token_expiry_{email}'] = (datetime.utcnow() + timedelta(hours=1)).isoformat()
                         
-                        flash(f'Password reset instructions have been sent to {email}. Check your email and click the reset link.', 'success')
+                        # Generate reset link
+                        reset_link = url_for('auth.reset_password_confirm', token=reset_token, _external=True)
+                        
+                        # Send password reset email
+                        try:
+                            email_sent = send_email(
+                                to_email=email,
+                                subject='Password Reset - Metabolomics Platform',
+                                template_name='password_reset.html',
+                                reset_link=reset_link,
+                                email=email,
+                                expires_in='1 hour'
+                            )
+                            
+                            if email_sent:
+                                flash(f'Password reset instructions have been sent to {email}. Check your email and click the reset link.', 'success')
+                                print(f"✅ Password reset email sent successfully to: {email}")
+                            else:
+                                # Show the reset link directly since email failed
+                                flash(f'Email sending failed, but you can use this direct reset link:', 'warning')
+                                flash(f'Reset Link: {reset_link}', 'info')
+                                print(f"⚠️ Password reset email failed, showing direct link: {reset_link}")
+                                
+                        except Exception as email_error:
+                            print(f"❌ Password reset email error: {email_error}")
+                            flash(f'Password reset link generated, but email sending failed. Please contact support.', 'error')
+                        
                         print(f"✅ Password reset token generated for OAuth user with local password: {email}")
                         return redirect(url_for('auth.login'))
                     else:
