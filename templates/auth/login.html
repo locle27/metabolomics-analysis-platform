@@ -476,6 +476,9 @@
 
             <!-- Login Form -->
             <form action="/auth/login" method="POST">
+                {% if csrf_token %}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                {% endif %}
                 <div class="form-group">
                     <i class="fas fa-user input-icon"></i>
                     <input type="text" 

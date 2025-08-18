@@ -1031,14 +1031,25 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """Simple working login page"""
+    """Simple working login page with CSRF protection"""
+    
+    # Generate CSRF token for template
+    csrf_token = ''
+    if CSRF_AVAILABLE:
+        try:
+            from flask_wtf.csrf import generate_csrf
+            csrf_token = generate_csrf()
+            print(f"✅ Login CSRF token generated: {csrf_token[:10]}...")
+        except Exception as e:
+            print(f"⚠️ Login CSRF token generation failed: {e}")
+    
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
         
         if not username or not password:
             flash('Please enter both username and password.', 'error')
-            return render_template('auth/login.html')
+            return render_template('auth/login.html', csrf_token=csrf_token)
         
         # Try database user login first
         if db and User:
@@ -1074,7 +1085,7 @@ def login():
             flash('Invalid credentials. Try demo: admin@demo.com / admin123 or check if your account exists.', 'error')
     
     # GET request - show login form
-    return render_template('auth/login.html')
+    return render_template('auth/login.html', csrf_token=csrf_token)
 
 @auth_bp.route('/logout')
 def logout():
@@ -1240,9 +1251,10 @@ def forgot_password():
                                 to_email=email,
                                 subject='Password Reset - Metabolomics Platform',
                                 template_name='password_reset.html',
-                                reset_link=reset_link,
-                                email=email,
-                                expires_in='1 hour'
+                                user={'username': email.split('@')[0], 'email': email},
+                                reset_url=reset_link,
+                                platform_name='Metabolomics Platform',
+                                expires_hours=1
                             )
                             
                             if email_sent:
