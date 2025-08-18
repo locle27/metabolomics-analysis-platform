@@ -3205,13 +3205,49 @@ def update_user_role():
         user.role = new_role
         db.session.commit()
         
-        flash(f"Successfully updated {user.full_name or user.email}'s role from {old_role} to {new_role}", "success")
+        print(f"✅ Role successfully updated: {user.email} from {old_role} to {new_role}")
+        flash(f"✅ Successfully updated {user.full_name or user.email}'s role from {old_role} to {new_role}", "success")
         
     except Exception as e:
         print(f"⚠️ Role update error: {e}")
         flash(f"Error updating role: {str(e)}", "error")
         
     return redirect(url_for('manage_users'))
+
+@app.route('/quick-admin/<email>')
+def quick_admin_assignment(email):
+    """Quick admin role assignment - Emergency use only"""
+    try:
+        # Security: Only allow if logged in as super admin
+        current_user_email = session.get('user_email')
+        if current_user_email != 'loc22100302@gmail.com':
+            flash("Unauthorized: Only super admin can use quick admin assignment", "error")
+            return redirect(url_for('homepage'))
+            
+        if not (db and User):
+            flash("Database not available", "error")
+            return redirect(url_for('homepage'))
+            
+        # Find user by email
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            flash(f"User not found: {email}", "error")
+            return redirect(url_for('manage_users'))
+            
+        # Update role
+        old_role = user.role
+        user.role = 'admin'
+        db.session.commit()
+        
+        print(f"🛡️ QUICK ADMIN: {email} promoted from {old_role} to admin by {current_user_email}")
+        flash(f"✅ {user.full_name or email} promoted to Administrator", "success")
+        
+        return redirect(url_for('manage_users'))
+        
+    except Exception as e:
+        print(f"⚠️ Quick admin assignment error: {e}")
+        flash(f"Error promoting user: {str(e)}", "error")
+        return redirect(url_for('manage_users'))
 
 @app.route('/manage-lipids')
 def manage_lipids():
