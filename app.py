@@ -137,14 +137,37 @@ if CSRF_AVAILABLE:
         except Exception as e:
             print(f"⚠️ OAuth CSRF exemption error: {e}")
     
-    # Make CSRF token available in all templates
-    @app.context_processor
-    def inject_csrf_token():
-        return dict(csrf_token=csrf.generate_csrf)
-    
     print("✅ CSRF protection enabled with proper token handling")
 else:
     print("⚠️ CSRF protection not available")
+
+# Global CSRF token context processor (works even if CSRF is disabled)
+@app.context_processor
+def global_csrf_token():
+    """Provide CSRF token to all templates with fallback"""
+    try:
+        if CSRF_AVAILABLE:
+            from flask_wtf.csrf import generate_csrf
+            return dict(csrf_token=generate_csrf)
+        else:
+            return dict(csrf_token=lambda: "")
+    except Exception as e:
+        print(f"⚠️ Global CSRF token error: {e}")
+        return dict(csrf_token=lambda: "")
+
+# Test route for CSRF token
+@app.route('/test-csrf')
+def test_csrf():
+    """Test CSRF token generation"""
+    try:
+        if CSRF_AVAILABLE:
+            from flask_wtf.csrf import generate_csrf
+            token = generate_csrf()
+            return f"CSRF token generated: {token[:10]}..."
+        else:
+            return "CSRF not available"
+    except Exception as e:
+        return f"CSRF test error: {e}"
 
 # Apply proxy fix if available
 if PROXY_FIX_AVAILABLE:
