@@ -1240,7 +1240,7 @@ def forgot_password():
                         
                         # Store token temporarily
                         session[f'reset_token_{email}'] = reset_token
-                        session[f'reset_token_expiry_{email}'] = (datetime.utcnow() + timedelta(hours=1)).isoformat()
+                        session[f'reset_token_expiry_{email}'] = time.time() + 3600  # 1 hour (consistent with other usage)
                         
                         # Generate reset link
                         reset_link = url_for('auth.reset_password_confirm', token=reset_token, _external=True)
@@ -1351,7 +1351,23 @@ def reset_password_submit():
             expiry_key = f'reset_token_expiry_{user_email}'
             
             # Check if token is expired
-            if session.get(expiry_key, 0) < time.time():
+            expiry_time = session.get(expiry_key, 0)
+            current_time = time.time()
+            
+            try:
+                if isinstance(expiry_time, str):
+                    # Handle ISO format from datetime.isoformat()
+                    from datetime import datetime
+                    expiry_datetime = datetime.fromisoformat(expiry_time)
+                    expiry_time = expiry_datetime.timestamp()
+                else:
+                    # Handle numeric timestamp
+                    expiry_time = float(expiry_time) if expiry_time else 0
+            except (ValueError, TypeError) as e:
+                print(f"⚠️ Error parsing expiry time '{expiry_time}': {e}")
+                expiry_time = 0
+            
+            if expiry_time < current_time:
                 flash('Reset token has expired. Please request a new one.', 'error')
                 return redirect(url_for('auth.forgot_password'))
             
