@@ -234,16 +234,22 @@
     </div>
 
     <div class="row">
-        <!-- User Management (Future) -->
+        <!-- Notification Settings -->
         <div class="col-md-6">
             <div class="admin-section">
-                <h3 class="section-title">👥 User Management</h3>
+                <h3 class="section-title">📧 Notification Settings</h3>
                 <div class="admin-card">
-                    <div class="placeholder-content">
-                        <i class="fas fa-users fa-3x mb-3 text-muted"></i>
-                        <h5>User Management</h5>
-                        <p>User authentication and role management will be implemented here.</p>
-                        <small class="text-muted">Coming soon...</small>
+                    <h5>Email Notifications</h5>
+                    <p class="mb-3">Configure who receives notifications when guests submit scheduling requests.</p>
+                    
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <i class="fas fa-envelope text-primary me-2"></i>
+                            <span>Recipients configured: <strong class="text-primary">{{ config.NOTIFICATION_EMAILS|length if config.NOTIFICATION_EMAILS else 0 }}</strong></span>
+                        </div>
+                        <a href="{{ url_for('notification_settings') }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-cog me-1"></i>Configure
+                        </a>
                     </div>
                 </div>
             </div>

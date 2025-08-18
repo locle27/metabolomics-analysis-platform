@@ -145,20 +145,35 @@ def send_schedule_notification(schedule_request):
             server.login(mail_username, mail_password)
             logging.info("✅ Single SMTP connection established")
             
-            # 1. Send admin notification (priority email)
-            try:
-                admin_html = render_template('email/schedule_admin_notification.html', request=schedule_request)
-                admin_msg = MIMEMultipart('alternative')
-                admin_msg['Subject'] = f"🔔 New Consultation Request - {schedule_request.full_name}"
-                admin_msg['From'] = f"Metabolomics Platform <{mail_sender}>"
-                admin_msg['To'] = mail_username
-                admin_msg.attach(MIMEText(admin_html, 'html', 'utf-8'))
+            # 1. Send notifications to all configured recipients
+            notification_recipients = current_app.config.get('NOTIFICATION_EMAILS', [])
+            
+            # If no recipients configured, fallback to default admin email
+            if not notification_recipients:
+                notification_recipients = [mail_username] if mail_username else []
                 
-                server.send_message(admin_msg)
-                results['admin_sent'] = True
-                logging.info("✅ Admin notification sent")
-            except Exception as e:
-                logging.error(f"❌ Admin email failed: {e}")
+            if notification_recipients:
+                try:
+                    admin_html = render_template('email/schedule_admin_notification.html', request=schedule_request)
+                    
+                    # Send to each recipient
+                    for recipient_email in notification_recipients:
+                        try:
+                            admin_msg = MIMEMultipart('alternative')
+                            admin_msg['Subject'] = f"🔔 New Consultation Request - {schedule_request.full_name}"
+                            admin_msg['From'] = f"Metabolomics Platform <{mail_sender}>"
+                            admin_msg['To'] = recipient_email
+                            admin_msg.attach(MIMEText(admin_html, 'html', 'utf-8'))
+                            
+                            server.send_message(admin_msg)
+                            logging.info(f"✅ Notification sent to {recipient_email}")
+                        except Exception as e:
+                            logging.error(f"❌ Failed to send to {recipient_email}: {e}")
+                    
+                    results['admin_sent'] = True
+                    logging.info(f"✅ Admin notifications sent to {len(notification_recipients)} recipients")
+                except Exception as e:
+                    logging.error(f"❌ Admin email failed: {e}")
             
             # 2. Send user confirmation
             try:

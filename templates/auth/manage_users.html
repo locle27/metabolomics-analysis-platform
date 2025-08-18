@@ -9,8 +9,14 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-lg-8 text-center">
-                <h1 class="hero-title">🏥 Center Member Management</h1>
-                <p class="hero-subtitle">Manage research center members and their access permissions</p>
+                <h1 class="hero-title">🏥 Research Center Members</h1>
+                <p class="hero-subtitle">
+                    {% if user_can_edit %}
+                        Manage research center members and their access permissions
+                    {% else %}
+                        View research center members and their roles
+                    {% endif %}
+                </p>
             </div>
         </div>
     </div>
@@ -37,6 +43,7 @@
                         </p>
                     </div>
                     <div class="col-md-4 text-md-end">
+                        {% if user_can_edit %}
                         <div class="btn-group" role="group">
                             <a href="{{ url_for('auth.register') }}" class="btn btn-success btn-sm">
                                 <i class="fas fa-user-plus me-1"></i>Add Member
@@ -45,9 +52,28 @@
                                 <i class="fas fa-cogs me-1"></i>Bulk Actions
                             </button>
                         </div>
+                        {% else %}
+                        <span class="badge bg-info">
+                            <i class="fas fa-eye me-1"></i>View Only Access
+                        </span>
+                        {% endif %}
                     </div>
                 </div>
             </div>
+
+            <!-- Permissions Notice for Non-Admin Users -->
+            {% if not user_can_edit %}
+            <div class="alert alert-info alert-dismissible fade show mb-4" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-info-circle me-3 fs-4"></i>
+                    <div>
+                        <strong>View-Only Access</strong><br>
+                        <small>You can view center members and their roles. Contact an administrator to make changes.</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endif %}
 
             <!-- Role Management Quick Stats -->
             <div class="row mb-4">
@@ -140,6 +166,7 @@
                                     {% endif %}
                                 </td>
                                 <td class="user-role">
+                                    {% if user_can_edit %}
                                     <form method="POST" action="{{ url_for('update_user_role') }}" class="role-form d-inline">
                                         {% if csrf_token %}
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -147,7 +174,7 @@
                                         <input type="hidden" name="user_id" value="{{ user.id }}">
                                         <select name="role" class="form-select form-select-sm role-select" 
                                                 onchange="confirmRoleChange(this)"
-                                                {% if user.id == current_user.id %}disabled{% endif %}>
+                                                {% if user.id == current_user.id %}disabled title="Cannot change your own role"{% endif %}>
                                             <option value="user" {% if user.role == 'user' %}selected{% endif %}>
                                                 🔬 Researcher - Analysis Access
                                             </option>
@@ -159,6 +186,23 @@
                                             </option>
                                         </select>
                                     </form>
+                                    {% else %}
+                                    <div class="role-display">
+                                        {% if user.role == 'admin' %}
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-shield-alt me-1"></i>Administrator
+                                            </span>
+                                        {% elif user.role == 'manager' %}
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-user-tie me-1"></i>Manager
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-info">
+                                                <i class="fas fa-microscope me-1"></i>Researcher
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
                                 </td>
                                 <td class="auth-method">
                                     <span class="badge bg-{{ 'info' if user.auth_method == 'oauth' else 'warning' if user.auth_method == 'dual' else 'success' }}">
@@ -588,6 +632,24 @@ document.addEventListener('DOMContentLoaded', function() {
 .text-success { color: #28a745 !important; }
 .text-warning { color: #ffc107 !important; }
 .text-info { color: #17a2b8 !important; }
+
+/* Role display badges for view-only mode */
+.role-display .badge {
+    font-size: 12px;
+    padding: 6px 10px;
+    font-weight: 500;
+}
+
+/* Permissions notice styling */
+.alert-info {
+    background: linear-gradient(135deg, #e8f4ff, #d6ecff);
+    border: 1px solid #b8dfff;
+    color: #004085;
+}
+
+.alert-info .fs-4 {
+    color: #0066cc;
+}
 </style>
 {% endblock %}
 

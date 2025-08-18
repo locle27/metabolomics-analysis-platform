@@ -2160,6 +2160,22 @@ if login_manager:
         return None
     print("✅ User loader configured")
 
+# === LOAD NOTIFICATION SETTINGS ===
+try:
+    import json
+    settings_file = os.path.join(BASE_DIR, 'notification_settings.json')
+    if os.path.exists(settings_file):
+        with open(settings_file, 'r') as f:
+            settings = json.load(f)
+            app.config['NOTIFICATION_EMAILS'] = settings.get('notification_emails', [])
+            print(f"✅ Loaded {len(app.config['NOTIFICATION_EMAILS'])} notification email recipients")
+    else:
+        app.config['NOTIFICATION_EMAILS'] = []
+        print("ℹ️ No notification settings found, using defaults")
+except Exception as e:
+    print(f"⚠️ Error loading notification settings: {e}")
+    app.config['NOTIFICATION_EMAILS'] = []
+
 # === CONTEXT PROCESSOR FOR TEMPLATES ===
 @app.context_processor
 def inject_user():
@@ -2789,26 +2805,96 @@ def equipment_management():
         return f"<h1>Equipment Management</h1><p>Error loading system: {e}</p>"
 
 @app.route('/manage-users')
-@admin_required
 def manage_users():
-    """User Management - View and manage user accounts and roles"""
+    """User Management - View center members (all users can view, only admins can modify)"""
+    # Check if user is authenticated (any logged-in user can view)
+    user_authenticated = session.get('user_authenticated', False)
+    user_role = session.get('user_role', 'user')
+    
+    if not user_authenticated:
+        flash('Please log in to view center members.', 'warning')
+        return redirect(url_for('auth.login'))
+    
     try:
         if not (db and User):
             # Fallback for when database is not available
             return render_template('auth/manage_users.html', 
                                  users=[],
+                                 user_can_edit=(user_role in ['admin', 'manager']),
                                  error_message="Database not available. User management requires a working database connection.")
         
         # Get all users with error handling
         users = User.query.order_by(User.created_at.desc()).all()
         
-        return render_template('auth/manage_users.html', users=users)
+        # Pass user's edit permissions to template
+        user_can_edit = (user_role in ['admin', 'manager'])
+        
+        return render_template('auth/manage_users.html', 
+                             users=users,
+                             user_can_edit=user_can_edit,
+                             current_user_role=user_role)
         
     except Exception as e:
         print(f"⚠️ User management error: {e}")
         return render_template('auth/manage_users.html', 
                              users=[],
+                             user_can_edit=False,
                              error_message=f"Error loading users: {str(e)}")
+
+@app.route('/notification-settings')
+@admin_required
+def notification_settings():
+    """Manage notification email recipients for scheduling system"""
+    # Get current notification emails from config or database
+    notification_emails = app.config.get('NOTIFICATION_EMAILS', [])
+    if isinstance(notification_emails, str):
+        notification_emails = [email.strip() for email in notification_emails.split(',') if email.strip()]
+    
+    return render_template('notification_settings.html', 
+                         notification_emails=notification_emails)
+
+@app.route('/update-notification-emails', methods=['POST'])
+@admin_required
+def update_notification_emails():
+    """Update notification email recipients"""
+    try:
+        # Get emails from form (comma-separated)
+        emails_input = request.form.get('notification_emails', '')
+        
+        # Parse and validate emails
+        email_list = []
+        invalid_emails = []
+        
+        for email in emails_input.split(','):
+            email = email.strip()
+            if email:
+                # Basic email validation
+                if '@' in email and '.' in email:
+                    email_list.append(email)
+                else:
+                    invalid_emails.append(email)
+        
+        if invalid_emails:
+            flash(f"Invalid email addresses: {', '.join(invalid_emails)}", 'error')
+            return redirect(url_for('notification_settings'))
+        
+        # Store emails (in production, this would be saved to database)
+        # For now, store in app config
+        app.config['NOTIFICATION_EMAILS'] = email_list
+        
+        # Also save to a file for persistence
+        import json
+        settings_file = os.path.join(BASE_DIR, 'notification_settings.json')
+        with open(settings_file, 'w') as f:
+            json.dump({'notification_emails': email_list}, f, indent=2)
+        
+        flash(f"Notification recipients updated successfully! {len(email_list)} emails configured.", 'success')
+        
+    except Exception as e:
+        print(f"⚠️ Error updating notification emails: {e}")
+        flash(f"Error updating settings: {str(e)}", 'error')
+    
+    return redirect(url_for('notification_settings'))
 
 @app.route('/update-user-role', methods=['POST'])
 @admin_required  
