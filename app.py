@@ -108,43 +108,43 @@ app.config.update({
     'PERMANENT_SESSION_LIFETIME': 3600,  # 1 hour
 })
 
-# NUCLEAR OPTION: Completely disable CSRF protection
-if False and CSRF_AVAILABLE:  # Disabled for debugging
+# Enable CSRF protection properly
+if CSRF_AVAILABLE:
     csrf.init_app(app)
     
-    # Define routes that should never have CSRF protection
-    CSRF_EXEMPT_ROUTES = [
-        'login_authorized', 'auth.oauth_authorized', 'oauth_login', 
-        'auth.update_password', 'auth.password_settings', 'auth.remove_password',
-        'auth.set_oauth_password'
+    # Only exempt OAuth callback routes from CSRF protection
+    OAUTH_EXEMPT_ROUTES = [
+        'login_authorized', 'auth.oauth_authorized', 'oauth_login'
     ]
     
-    CSRF_EXEMPT_PATHS = [
-        '/auth/update-password', '/auth/password-settings', '/update-password',
-        '/auth/remove-password', '/auth/set-oauth-password', '/callback', '/authorized'
-    ]
+    OAUTH_EXEMPT_PATHS = ['/callback', '/authorized']
     
     @app.before_request
-    def disable_csrf_for_exempted_routes():
-        """Completely disable CSRF for specific routes"""
+    def disable_csrf_for_oauth_routes():
+        """Disable CSRF only for OAuth callback routes"""
         try:
             # Check endpoint
-            if request.endpoint in CSRF_EXEMPT_ROUTES:
-                print(f"🔓 CSRF disabled for endpoint: {request.endpoint}")
+            if request.endpoint in OAUTH_EXEMPT_ROUTES:
+                print(f"🔓 CSRF disabled for OAuth endpoint: {request.endpoint}")
                 return None
             
             # Check path
-            for path in CSRF_EXEMPT_PATHS:
+            for path in OAUTH_EXEMPT_PATHS:
                 if path in request.path:
-                    print(f"🔓 CSRF disabled for path: {request.path}")
+                    print(f"🔓 CSRF disabled for OAuth path: {request.path}")
                     return None
                     
         except Exception as e:
-            print(f"⚠️ CSRF exemption error: {e}")
+            print(f"⚠️ OAuth CSRF exemption error: {e}")
     
-    print("✅ CSRF protection with complete password route exemption")
+    # Make CSRF token available in all templates
+    @app.context_processor
+    def inject_csrf_token():
+        return dict(csrf_token=csrf.generate_csrf)
+    
+    print("✅ CSRF protection enabled with proper token handling")
 else:
-    print("🚫 CSRF protection COMPLETELY DISABLED for debugging")
+    print("⚠️ CSRF protection not available")
 
 # Apply proxy fix if available
 if PROXY_FIX_AVAILABLE:
@@ -915,11 +915,12 @@ def password_settings():
 
 @auth_bp.route('/update-password', methods=['POST'])
 def update_password():
-    """Update user password - CSRF exempt with debugging"""
+    """Update user password with proper CSRF protection"""
     print(f"🔍 Password update route accessed: {request.method}")
     print(f"🔍 Request endpoint: {request.endpoint}")
     print(f"🔍 Request path: {request.path}")
     print(f"🔍 Form data keys: {list(request.form.keys())}")
+    print(f"🔍 Has CSRF token: {'csrf_token' in request.form}")
     
     try:
         if not session.get('user_authenticated', False):
