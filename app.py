@@ -2813,14 +2813,19 @@ def equipment_management():
 
 @app.route('/manage-users')
 def manage_users():
-    """User Management - View center members (all users can view, only admins can modify)"""
-    # Check if user is authenticated (any logged-in user can view)
+    """User Management - RESTRICTED to managers and admins only"""
+    # Check if user is authenticated and has proper role
     user_authenticated = session.get('user_authenticated', False)
     user_role = session.get('user_role', 'user')
     
     if not user_authenticated:
-        flash('Please log in to view center members.', 'warning')
+        flash('Please log in to access user management.', 'warning')
         return redirect(url_for('auth.login'))
+    
+    # SECURITY: Only managers and admins can access user management
+    if user_role not in ['admin', 'manager']:
+        flash('Access denied. User management requires manager or administrator privileges.', 'error')
+        return redirect(url_for('homepage'))
     
     # Generate CSRF token for forms
     csrf_token = ''
@@ -2975,6 +2980,85 @@ def update_user_notifications():
     
     except Exception as e:
         print(f"Error updating user notifications: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/bulk-user-actions', methods=['POST'])
+@admin_required
+def bulk_user_actions():
+    """Handle bulk actions on multiple users"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'No data received'})
+        
+        action = data.get('action')
+        user_ids = data.get('user_ids', [])
+        
+        if not action or not user_ids:
+            return jsonify({'success': False, 'message': 'Action and user IDs required'})
+        
+        affected_users = 0
+        
+        # Get users
+        users = User.query.filter(User.id.in_(user_ids)).all()
+        if not users:
+            return jsonify({'success': False, 'message': 'No valid users found'})
+        
+        if action == 'change_role':
+            new_role = data.get('new_role')
+            if new_role not in ['user', 'manager', 'admin']:
+                return jsonify({'success': False, 'message': 'Invalid role specified'})
+            
+            # Prevent changing your own role
+            current_user_email = session.get('user_email')
+            for user in users:
+                if user.email != current_user_email:
+                    user.role = new_role
+                    affected_users += 1
+            
+            db.session.commit()
+            
+        elif action in ['enable_notifications', 'disable_notifications']:
+            # Load current notification settings
+            notification_emails = current_app.config.get('NOTIFICATION_EMAILS', [])
+            
+            for user in users:
+                if action == 'enable_notifications':
+                    if user.email not in notification_emails:
+                        notification_emails.append(user.email)
+                        affected_users += 1
+                else:  # disable_notifications
+                    if user.email in notification_emails:
+                        notification_emails.remove(user.email)
+                        affected_users += 1
+            
+            # Save updated notification settings
+            notification_settings_file = os.path.join(os.path.dirname(__file__), 'notification_settings.json')
+            try:
+                with open(notification_settings_file, 'w') as f:
+                    json.dump({
+                        'notification_emails': notification_emails,
+                        'updated_at': datetime.now().isoformat()
+                    }, f, indent=2)
+                
+                # Update app config
+                current_app.config['NOTIFICATION_EMAILS'] = notification_emails
+            except Exception as e:
+                print(f"Error saving notification settings: {e}")
+                return jsonify({'success': False, 'message': 'Error saving notification settings'})
+        
+        else:
+            return jsonify({'success': False, 'message': 'Unknown action'})
+        
+        return jsonify({
+            'success': True,
+            'message': f'Bulk {action} completed successfully',
+            'affected_users': affected_users
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in bulk user actions: {e}")
         return jsonify({'success': False, 'message': str(e)})
 
 @app.route('/notification-settings')

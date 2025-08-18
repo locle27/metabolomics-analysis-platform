@@ -618,7 +618,9 @@
                                                 <div class="sub-links">
                                                     <ul>
                                                         <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                                                        {% if session.get('user_role') in ['admin', 'manager'] %}
                                                         <li><a href="{{ url_for('manage_users') }}"><i class="fas fa-users-cog"></i> User Management</a></li>
+                                                        {% endif %}
                                                         <li><a href="{{ url_for('patient_management') }}"><i class="fas fa-users"></i> Patient Management</a></li>
                                                         <li><a href="{{ url_for('equipment_management') }}"><i class="fas fa-cogs"></i> Equipment Management</a></li>
                                                         <li><hr class="dropdown-divider"></li>
