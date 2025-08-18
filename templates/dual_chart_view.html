@@ -1018,92 +1018,10 @@ function createChart(lipidId, chartType, chartConfig) {
         console.warn(`⚠️ Error configuring zoom plugin for chart ${chartId}:`, error);
     }
     
-    // Professional 2D Area-Based Hover Detection System
+    // Disable tooltips for clean chart appearance
     if (chartConfig.options && chartConfig.options.plugins) {
-        // Disable tooltips completely - we're using onHover instead
         chartConfig.options.plugins.tooltip = {
             enabled: false
-        };
-        
-        // Add custom onHover event for 2D area detection
-        chartConfig.options.onHover = function(event, elements, chart) {
-            try {
-                // Check if chart and scales are properly initialized
-                if (!chart || !chart.scales || !chart.scales.x || !chart.scales.y) {
-                    console.warn('Chart scales not ready for hover detection');
-                    return;
-                }
-                
-                // Get mouse position relative to chart canvas
-                const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
-                
-                // Convert canvas position to data coordinates
-                const mouseX = chart.scales.x.getValueForPixel(canvasPosition.x);
-                const mouseY = chart.scales.y.getValueForPixel(canvasPosition.y);
-                
-                // Check if coordinates are valid
-                if (mouseX === undefined || mouseY === undefined || isNaN(mouseX) || isNaN(mouseY)) {
-                    return;
-                }
-            
-            console.log('=== 2D AREA HOVER DEBUG ===');
-            console.log(`Mouse position: X=${mouseX?.toFixed(2)}, Y=${mouseY?.toFixed(0)}`);
-            
-            // Find which integration area the mouse is within
-            let hoveredLipid = null;
-            
-            // Check each dataset for integration area bounds
-            chart.data.datasets.forEach((dataset, idx) => {
-                if (dataset.lipid_info && dataset.integration_range) {
-                    // Calculate 2D bounds for this integration area
-                    const timeStart = dataset.integration_range.start;
-                    const timeEnd = dataset.integration_range.end;
-                    
-                    // Find min/max intensity within this integration area
-                    let minIntensity = Infinity;
-                    let maxIntensity = -Infinity;
-                    
-                    dataset.data.forEach(point => {
-                        if (point.x >= timeStart && point.x <= timeEnd) {
-                            minIntensity = Math.min(minIntensity, point.y);
-                            maxIntensity = Math.max(maxIntensity, point.y);
-                        }
-                    });
-                    
-                    // Check if mouse is within this 2D rectangular area
-                    const inTimeRange = mouseX >= timeStart && mouseX <= timeEnd;
-                    const inIntensityRange = mouseY >= 0 && mouseY <= maxIntensity; // From baseline to peak
-                    
-                    console.log(`Dataset ${idx}: ${dataset.lipid_info.lipid_name} (${dataset.lipid_info.annotation})`);
-                    console.log(`  Time range: ${timeStart.toFixed(2)} - ${timeEnd.toFixed(2)} | In range: ${inTimeRange}`);
-                    console.log(`  Intensity range: 0 - ${maxIntensity.toFixed(0)} | In range: ${inIntensityRange}`);
-                    console.log(`  Mouse in 2D area: ${inTimeRange && inIntensityRange}`);
-                    
-                    if (inTimeRange && inIntensityRange) {
-                        // Mouse is within this integration area
-                        if (!hoveredLipid) {
-                            hoveredLipid = { dataset: dataset };
-                        } else {
-                            // Multiple matches - prefer the one with smaller area (more specific)
-                            const currentArea = (timeEnd - timeStart) * maxIntensity;
-                            const existingTimeRange = hoveredLipid.dataset.integration_range.end - hoveredLipid.dataset.integration_range.start;
-                            const existingMaxIntensity = Math.max(...hoveredLipid.dataset.data.map(p => p.y));
-                            const existingArea = existingTimeRange * existingMaxIntensity;
-                            
-                            if (currentArea < existingArea) {
-                                hoveredLipid = { dataset: dataset };
-                                console.log(`  -> Selected (smaller area: ${currentArea.toFixed(0)} vs ${existingArea.toFixed(0)})`);
-                            }
-                        }
-                    }
-                }
-            });
-            
-            console.log(`Final selection: ${hoveredLipid ? hoveredLipid.dataset.lipid_info.annotation : 'None'}`);
-            
-            } catch (error) {
-                console.warn('Error in chart hover detection:', error);
-            }
         };
     }
     

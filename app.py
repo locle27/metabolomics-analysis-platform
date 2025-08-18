@@ -519,7 +519,7 @@ def forgot_password():
         
         if not email:
             flash('Please enter your email address.', 'error')
-            return render_template('auth/forgot_password.html')
+            return render_template('auth/forgot_password_new.html')
         
         # Check if user exists and handle OAuth users
         if db and User:
@@ -562,7 +562,7 @@ def forgot_password():
             flash('OAuth users can change their password through their Google account settings.', 'info')
             return redirect(url_for('auth.profile'))
     
-    return render_template('auth/forgot_password.html')
+    return render_template('auth/forgot_password_new.html')
 
 @auth_bp.route('/reset-password/<token>')
 def reset_password_confirm(token):
@@ -709,15 +709,146 @@ def profile():
         flash(f'Error loading profile: {e}', 'error')
         return redirect(url_for('auth.login'))
 
-@auth_bp.route('/change-password')
-def change_password():
-    """Change password page"""
+@auth_bp.route('/password-settings')
+def password_settings():
+    """Password and security settings page"""
     if not session.get('user_authenticated', False):
-        flash('Please log in to change your password.', 'error')
+        flash('Please log in to access password settings.', 'error')
         return redirect(url_for('auth.login'))
     
-    flash('Password change currently unavailable for demo accounts.', 'info')
-    return redirect(url_for('auth.profile'))
+    user_email = session.get('user_email', '')
+    user_role = session.get('user_role', 'user')
+    user_name = session.get('user_name', user_email.split('@')[0] if user_email else 'User')
+    auth_method = session.get('user_auth_method', 'local')
+    
+    # Create enhanced user object with all required attributes
+    class EnhancedUser:
+        def __init__(self, email, role, name, auth_method):
+            self.email = email
+            self.role = role
+            self.username = name
+            self.full_name = name
+            self.auth_method = auth_method
+            self.oauth_provider = 'Google' if auth_method == 'oauth' else None
+            self.oauth_id = email if auth_method == 'oauth' else None
+            self.password_hash = None  # Check database for this
+            self.password_updated_at = None
+            self.email_verified = True
+            self.created_at = None
+            self.last_login = None
+            self.is_authenticated = True
+            
+            # Check if user has local password in database
+            if db and User:
+                try:
+                    db_user = User.query.filter_by(email=email).first()
+                    if db_user:
+                        self.password_hash = getattr(db_user, 'password_hash', None) or getattr(db_user, 'password', None)
+                        self.created_at = getattr(db_user, 'created_at', None)
+                        self.last_login = getattr(db_user, 'last_login', None)
+                        self.username = getattr(db_user, 'username', name) or name
+                        self.password_updated_at = getattr(db_user, 'password_updated_at', None)
+                except Exception as e:
+                    print(f"⚠️ Error checking user password: {e}")
+        
+        def is_admin(self):
+            return self.role.lower() == 'admin'
+    
+    current_user = EnhancedUser(user_email, user_role, user_name, auth_method)
+    return render_template('auth/profile_password.html', current_user=current_user)
+
+@auth_bp.route('/update-password', methods=['POST'])
+def update_password():
+    """Update user password"""
+    if not session.get('user_authenticated', False):
+        flash('Please log in to update your password.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    current_password = request.form.get('current_password', '')
+    new_password = request.form.get('new_password', '')
+    confirm_password = request.form.get('confirm_password', '')
+    
+    user_email = session.get('user_email', '')
+    
+    # Validation
+    if not new_password or not confirm_password:
+        flash('Please fill in all required fields.', 'error')
+        return redirect(url_for('auth.password_settings'))
+    
+    if new_password != confirm_password:
+        flash('New password and confirmation do not match.', 'error')
+        return redirect(url_for('auth.password_settings'))
+    
+    if len(new_password) < 8:
+        flash('Password must be at least 8 characters long.', 'error')
+        return redirect(url_for('auth.password_settings'))
+    
+    # Update password in database
+    if db and User:
+        try:
+            user = User.query.filter_by(email=user_email).first()
+            if user:
+                # Check current password if user already has one
+                if user.password_hash and current_password:
+                    # Simple password check for demo - in production use proper hashing
+                    if user.password_hash != current_password:
+                        flash('Current password is incorrect.', 'error')
+                        return redirect(url_for('auth.password_settings'))
+                
+                # Update password
+                user.password_hash = new_password  # In production, use proper hashing
+                from datetime import datetime
+                user.password_updated_at = datetime.utcnow()
+                
+                db.session.commit()
+                flash('Password updated successfully!', 'success')
+            else:
+                flash('User not found in database.', 'error')
+        except Exception as e:
+            print(f"⚠️ Password update error: {e}")
+            flash('Error updating password. Please try again.', 'error')
+    else:
+        flash('Password update service not available.', 'error')
+    
+    return redirect(url_for('auth.password_settings'))
+
+@auth_bp.route('/remove-password', methods=['POST'])
+def remove_password():
+    """Remove local password (OAuth users only)"""
+    if not session.get('user_authenticated', False):
+        flash('Please log in to remove your password.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    user_email = session.get('user_email', '')
+    auth_method = session.get('user_auth_method', 'local')
+    
+    if auth_method != 'oauth':
+        flash('You cannot remove your password as it is your only authentication method.', 'error')
+        return redirect(url_for('auth.password_settings'))
+    
+    # Remove password from database
+    if db and User:
+        try:
+            user = User.query.filter_by(email=user_email).first()
+            if user and user.oauth_provider:  # Ensure it's an OAuth user
+                user.password_hash = None
+                user.password_updated_at = None
+                db.session.commit()
+                flash('Local password removed successfully. You can now only log in using OAuth.', 'success')
+            else:
+                flash('Error: Cannot remove password for non-OAuth accounts.', 'error')
+        except Exception as e:
+            print(f"⚠️ Password removal error: {e}")
+            flash('Error removing password. Please try again.', 'error')
+    else:
+        flash('Password removal service not available.', 'error')
+    
+    return redirect(url_for('auth.password_settings'))
+
+@auth_bp.route('/change-password')
+def change_password():
+    """Redirect to new password settings page"""
+    return redirect(url_for('auth.password_settings'))
 
 # Register authentication blueprint
 app.register_blueprint(auth_bp)
