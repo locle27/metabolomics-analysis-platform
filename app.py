@@ -108,10 +108,18 @@ app.config.update({
     'PERMANENT_SESSION_LIFETIME': 3600,  # 1 hour
 })
 
-# Initialize CSRF protection
+# Initialize CSRF protection with OAuth route exemptions
 if CSRF_AVAILABLE:
     csrf.init_app(app)
-    print("✅ CSRF protection initialized")
+    
+    # Exempt OAuth endpoints from CSRF protection
+    @app.before_request
+    def exempt_oauth_from_csrf():
+        oauth_endpoints = ['login_authorized', 'auth.oauth_authorized', 'oauth_login']
+        if request.endpoint in oauth_endpoints or '/callback' in request.path or '/authorized' in request.path:
+            request.csrf_valid = True  # Mark as valid to bypass CSRF check
+    
+    print("✅ CSRF protection initialized with OAuth exemptions")
 
 # Apply proxy fix if available
 if PROXY_FIX_AVAILABLE:
@@ -533,13 +541,24 @@ def oauth_login():
         flash('OAuth service is not available.', 'error')
         return redirect(url_for('auth.login'))
     
-    # Use the actual domain from your DNS configuration
-    redirect_uri = "https://www.httpsphenikaa-lipidomics-analysis.xyz/callback"
-    print(f"🔗 OAuth redirect URI: {redirect_uri}")
-    return google.authorize_redirect(redirect_uri)
+    # Dynamic redirect URI based on request host
+    try:
+        host = request.host
+        if 'localhost' in host or '127.0.0.1' in host:
+            redirect_uri = url_for('login_authorized', _external=True)
+        else:
+            # Use production domain
+            redirect_uri = "https://www.httpsphenikaa-lipidomics-analysis.xyz/callback"
+        
+        print(f"🔗 OAuth redirect URI: {redirect_uri}")
+        return google.authorize_redirect(redirect_uri)
+    except Exception as e:
+        print(f"⚠️ OAuth redirect error: {e}")
+        flash('OAuth login failed. Please try again.', 'error')
+        return redirect(url_for('auth.login'))
 
-@auth_bp.route('/authorized')
-@auth_bp.route('/callback')
+@auth_bp.route('/authorized', methods=['GET', 'POST'])
+@auth_bp.route('/callback', methods=['GET', 'POST'])
 def oauth_authorized():
     """Handle OAuth callback from Google"""
     if not google:
@@ -1830,22 +1849,17 @@ def logout():
 
 @app.route('/google-login')
 def google_login():
-    """Google OAuth login with Railway domain support"""
+    """Google OAuth login with unified domain support"""
     if google and OAUTH_AVAILABLE:
         try:
-            # Handle domain properly for OAuth redirect
+            # Dynamic redirect URI based on request host  
             host = request.host
-            
-            # Force HTTPS and handle both domain variants
-            if 'httpsphenikaa-lipidomics-analysis.xyz' in host:
-                # Use the www version with HTTPS as canonical
-                redirect_uri = "https://www.httpsphenikaa-lipidomics-analysis.xyz/callback"
+            if 'localhost' in host or '127.0.0.1' in host:
+                # Local development
+                redirect_uri = url_for('login_authorized', _external=True)
             else:
-                # Fallback to standard Flask url_for for other domains
-                redirect_uri = url_for('login_authorized', _external=True).replace('/login/authorized', '/callback')
-                # Ensure HTTPS for production
-                if redirect_uri.startswith('http://') and 'localhost' not in redirect_uri:
-                    redirect_uri = redirect_uri.replace('http://', 'https://')
+                # Production domain - use the configured production URL
+                redirect_uri = "https://www.httpsphenikaa-lipidomics-analysis.xyz/callback"
             
             print(f"🔗 OAuth redirect URI: {redirect_uri}")
             return google.authorize_redirect(redirect_uri)
@@ -1857,8 +1871,8 @@ def google_login():
         flash('Google OAuth not configured. Use demo login: admin@demo.com / admin123', 'warning')
         return redirect(url_for('auth.login'))
 
-@app.route('/callback')
-@app.route('/login/authorized')
+@app.route('/callback', methods=['GET', 'POST'])
+@app.route('/login/authorized', methods=['GET', 'POST'])
 def login_authorized():
     """Google OAuth callback with enhanced error handling"""
     if not google:
@@ -2084,11 +2098,39 @@ def promote_to_admin():
     
     try:
         if db and User:
-            # Check if any admin users exist
+            user_email = session.get('user_email')
+            
+            # Special case: Auto-promote loc22100302@gmail.com to admin
+            if user_email == 'loc22100302@gmail.com':
+                user = User.query.filter_by(email=user_email).first()
+                if user:
+                    user.role = 'admin'
+                    db.session.commit()
+                    session['user_role'] = 'admin'
+                    flash('You have been promoted to main admin!', 'success')
+                    return redirect(url_for('homepage'))
+                else:
+                    # Create admin user if doesn't exist
+                    admin_user = User(
+                        username='loc22100302',
+                        email='loc22100302@gmail.com',
+                        full_name='Main Administrator',
+                        role='admin',
+                        is_active=True,
+                        is_verified=True,
+                        auth_method='oauth',
+                        last_login=datetime.now()
+                    )
+                    db.session.add(admin_user)
+                    db.session.commit()
+                    session['user_role'] = 'admin'
+                    flash('Admin account created and activated!', 'success')
+                    return redirect(url_for('homepage'))
+            
+            # Check if any admin users exist for other users
             admin_count = User.query.filter_by(role='admin').count()
             if admin_count == 0:
                 # No admins exist, promote current user
-                user_email = session.get('user_email')
                 user = User.query.filter_by(email=user_email).first()
                 if user:
                     user.role = 'admin'
