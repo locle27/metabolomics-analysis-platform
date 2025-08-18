@@ -533,8 +533,8 @@ def oauth_login():
         flash('OAuth service is not available.', 'error')
         return redirect(url_for('auth.login'))
     
-    # Use the corrected redirect URI (fixed duplicate https in domain)
-    redirect_uri = "https://www.phenikaa-lipidomics-analysis.xyz/callback"
+    # Use the actual domain from your DNS configuration
+    redirect_uri = "https://www.httpsphenikaa-lipidomics-analysis.xyz/callback"
     print(f"🔗 OAuth redirect URI: {redirect_uri}")
     return google.authorize_redirect(redirect_uri)
 
