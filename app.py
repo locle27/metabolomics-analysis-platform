@@ -152,15 +152,9 @@ if CSRF_AVAILABLE:
         from flask_wtf.csrf import CSRFError
         @app.errorhandler(CSRFError)
         def handle_csrf_error(e):
-            # Log CSRF error details for debugging
+            # Simple CSRF error handler that won't interfere with health checks
             print(f"❌ CSRF Error: {e.description}")
-            print(f"🔍 Session keys: {list(session.keys())}")
-            print(f"🔍 Session permanent: {session.permanent}")
-            print(f"🔍 SECRET_KEY available: {bool(app.secret_key)}")
-            
-            # Clear the session and redirect to form with a helpful message
-            flash('Security token expired. Please try your request again.', 'warning')
-            return redirect(request.referrer or url_for('auth.update_password'))
+            return 'CSRF Error: Security token expired. Please refresh the page and try again.', 400
             
     except Exception as csrf_init_error:
         print(f"❌ CSRF initialization failed: {csrf_init_error}")
@@ -1465,10 +1459,8 @@ def update_password():
                 print(f"✅ Generated CSRF token for form: {token[:10]}...")
             except Exception as e:
                 print(f"❌ CSRF token generation failed: {e}")
-                # Disable CSRF temporarily if token generation fails
-                global CSRF_AVAILABLE
-                CSRF_AVAILABLE = False
-                print("🔍 Temporarily disabled CSRF due to token generation failure")
+                # Note: CSRF_AVAILABLE is already defined globally, don't modify it here
+                print("🔍 CSRF token generation failed, but keeping CSRF enabled")
     
     # Handle POST request following Flask documentation pattern
     if request.method == 'POST' and form.validate_on_submit():
