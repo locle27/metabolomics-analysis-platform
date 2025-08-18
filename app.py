@@ -115,7 +115,7 @@ if CSRF_AVAILABLE:
     # Exempt OAuth endpoints from CSRF protection
     @app.before_request
     def exempt_oauth_from_csrf():
-        oauth_endpoints = ['login_authorized', 'auth.oauth_authorized', 'oauth_login']
+        oauth_endpoints = ['login_authorized', 'auth.oauth_authorized', 'oauth_login', 'auth.update_password']
         if request.endpoint in oauth_endpoints or '/callback' in request.path or '/authorized' in request.path:
             request.csrf_valid = True  # Mark as valid to bypass CSRF check
     
