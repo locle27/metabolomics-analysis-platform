@@ -125,6 +125,15 @@ app.config.update({
 if CSRF_AVAILABLE:
     csrf.init_app(app)
     
+    # Add CSRF error handler following Flask documentation
+    from flask_wtf.csrf import CSRFError
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(e):
+        return render_template('error.html', 
+                             error_title='Security Error', 
+                             error_message='Form security token expired. Please try again.',
+                             error_code=400), 400
+    
     # Only exempt OAuth callback routes from CSRF protection
     OAUTH_EXEMPT_ROUTES = [
         'login_authorized', 'auth.oauth_authorized', 'oauth_login'
@@ -1386,199 +1395,88 @@ def password_settings():
 
 @auth_bp.route('/update-password', methods=['GET', 'POST'])
 def update_password():
-    """Update user password using proper WTForms with CSRF protection"""
-    print(f"\n🔍 PASSWORD UPDATE ROUTE - {request.method}")
-    print(f"🔍 Request path: {request.path}")
-    print(f"🔍 Request endpoint: {request.endpoint}")
-    print(f"🔍 Request referrer: {request.referrer}")
-    print(f"🔍 Content type: {request.content_type}")
-    
-    # Debug session
-    print(f"🔍 Session keys: {list(session.keys())}")
-    print(f"🔍 User authenticated: {session.get('user_authenticated', False)}")
-    print(f"🔍 User email: {session.get('user_email', 'Not set')}")
-    
-    # Debug session ID and cookies
-    print(f"🔍 Session ID: {session.get('_id', 'No session ID')}")
-    print(f"🔍 Request cookies: {list(request.cookies.keys())}")
-    print(f"🔍 Session permanent: {session.permanent}")
-    
-    # Make session permanent to prevent loss
-    session.permanent = True
-    
-    # Test CSRF token generation
-    if CSRF_AVAILABLE:
-        try:
-            from flask_wtf.csrf import generate_csrf
-            token = generate_csrf()
-            print(f"🔍 CSRF token can be generated: {token[:10]}... (length: {len(token)})")
-        except Exception as e:
-            print(f"❌ CSRF token generation failed: {e}")
-    
-    # Import the form class
-    try:
-        from forms import PasswordUpdateForm
-        print("✅ Forms module imported successfully")
-    except ImportError as e:
-        print(f"❌ Forms module not available: {e}")
-        flash('System error: Forms not available', 'error')
-        return redirect(url_for('auth.password_settings'))
-    
-    # Check authentication
+    """Update user password - Clean Flask pattern implementation"""
+    # Simple authentication check
     if not session.get('user_authenticated', False):
-        print("❌ User not authenticated")
         flash('Please log in to update your password.', 'error')
         return redirect(url_for('auth.login'))
     
-    user_email = session.get('user_email', '')
-    print(f"🔍 Processing password update for: {user_email}")
-    
-    # Create form instance
+    # Import form class safely
     try:
+        from forms import PasswordUpdateForm
         form = PasswordUpdateForm()
-        print("✅ Form instance created successfully")
-    except Exception as e:
-        print(f"❌ Form instantiation failed: {e}")
-        flash(f'Form error: {e}', 'error')
+    except ImportError:
+        flash('System error: Forms not available', 'error')
         return redirect(url_for('auth.password_settings'))
     
-    # Handle GET request - show form
-    if request.method == 'GET':
-        print("✅ GET request - rendering form")
-        return render_template('auth/password_form.html', form=form)
+    # Get user details
+    user_email = session.get('user_email', '')
+    error = None
     
-    # Handle POST request - detailed debugging
-    if request.method == 'POST':
-        print(f"🔍 POST request received")
-        print(f"🔍 Form data keys: {list(request.form.keys())}")
-        print(f"🔍 Has csrf_token in form: {'csrf_token' in request.form}")
+    # Handle POST request following Flask documentation pattern
+    if request.method == 'POST' and form.validate_on_submit():
+        new_password = form.new_password.data
+        current_password = form.current_password.data
         
-        if 'csrf_token' in request.form:
-            token_value = request.form.get('csrf_token', '')
-            print(f"🔍 CSRF token from form: {token_value[:10]}... (length: {len(token_value)})")
-        else:
-            print("❌ NO CSRF TOKEN IN FORM DATA")
-        
-        print(f"🔍 Form data (without sensitive info): {dict(request.form)}")
-        
-        # Try manual CSRF validation
-        if CSRF_AVAILABLE:
-            try:
-                from flask_wtf.csrf import validate_csrf
-                csrf_token_value = request.form.get('csrf_token', '')
-                if csrf_token_value:
-                    validate_csrf(csrf_token_value)
-                    print("✅ Manual CSRF validation successful")
-                else:
-                    print("❌ No CSRF token for manual validation")
-            except Exception as csrf_error:
-                print(f"❌ Manual CSRF validation failed: {csrf_error}")
-        
-        # Check form validation
-        print(f"🔍 Form errors before validation: {form.errors}")
-        
-        if form.validate_on_submit():
-            print("✅ Form validation successful with CSRF")
-            
-            current_password = form.current_password.data
-            new_password = form.new_password.data
-            
-            try:
-                if db and User:
-                    user = User.query.filter_by(email=user_email).first()
-                    print(f"🔍 Database user lookup for '{user_email}': {'Found' if user else 'NOT FOUND'}")
+        try:
+            if db and User:
+                user = User.query.filter_by(email=user_email).first()
+                
+                if user:
+                    # Check current password if user has one
+                    if user.password_hash and current_password:
+                        if not user.check_password(current_password):
+                            error = 'Current password is incorrect.'
+                    elif user.password_hash and not current_password:
+                        error = 'Current password is required.'
                     
-                    if user:
-                        print(f"🔍 User found - has password: {'Yes' if user.password_hash else 'No'}")
-                        # Check current password if user has one
-                        if user.password_hash and current_password:
-                            if not user.check_password(current_password):
-                                flash('Current password is incorrect.', 'error')
-                                return render_template('auth/password_form.html', form=form)
-                        elif user.password_hash and not current_password:
-                            flash('Current password is required to change password.', 'error')
-                            return render_template('auth/password_form.html', form=form)
-                        
-                        # Set new password
+                    if error is None:
+                        # Update password
                         user.set_password(new_password)
                         user.last_password_change = datetime.utcnow()
-                        print(f"🔍 About to commit password change to database...")
                         db.session.commit()
-                        print(f"✅ Database commit successful!")
-                        
-                        print(f"✅ Password updated successfully for {user_email}")
-                        print(f"🔄 Redirecting to password success page...")
                         flash('Password updated successfully!', 'success')
-                        # Redirect to a simple success page to avoid form resubmission
-                        return redirect(url_for('password_success'))
-                    else:
-                        print(f"❌ User not found in database: {user_email}")
-                        print(f"🔍 Debugging user lookup:")
-                        try:
-                            all_users = User.query.all()
-                            print(f"   Total users in database: {len(all_users)}")
-                            for u in all_users[:3]:  # Show first 3 users
-                                print(f"   - Database user: '{u.email}' (ID: {u.id})")
-                        except Exception as db_debug_error:
-                            print(f"   Database debug failed: {db_debug_error}")
-                        
-                        # For demo/testing: create user if not found (OAuth users especially)
-                        if user_email and '@' in user_email:
-                            print(f"🔍 Creating new user for: {user_email}")
-                            try:
-                                user = User(
-                                    email=user_email,
-                                    username=user_email.split('@')[0],
-                                    full_name=user_email.split('@')[0].title(),
-                                    role=session.get('user_role', 'user'),
-                                    auth_method=session.get('auth_method', 'local'),
-                                    is_active=True,
-                                    is_verified=True,
-                                    created_at=datetime.utcnow()
-                                )
-                                user.set_password(new_password)
-                                user.last_password_change = datetime.utcnow()
-                                db.session.add(user)
-                                db.session.commit()
-                                
-                                print(f"✅ New user created and password set for {user_email}")
-                                flash('Account created and password set successfully!', 'success')
-                                return redirect(url_for('password_success'))
-                                
-                            except Exception as create_error:
-                                print(f"❌ Failed to create user: {create_error}")
-                                db.session.rollback()
-                                flash(f'Failed to create user account: {create_error}', 'error')
-                        else:
-                            flash('User account not found and cannot create account.', 'error')
+                        return redirect(url_for('auth.password_settings'))
                 else:
-                    print("❌ Database not available")
-                    flash('Database error. Please try again later.', 'error')
-                    
-            except Exception as e:
-                print(f"❌ Password update error: {e}")
-                flash(f'Password update failed: {e}', 'error')
-                if db:
-                    db.session.rollback()
-        
-        else:
-            # Form validation failed - show user-friendly errors
-            print(f"❌ Form validation failed: {form.errors}")
-            for field, errors in form.errors.items():
-                for error in errors:
-                    print(f"   - {field}: {error}")
-                    # Make error messages more user-friendly
-                    if 'Password requirements not met' in error:
-                        # Show the detailed password requirements
-                        flash('Please check the password requirements below and try again.', 'error')
-                        for req_error in error.split('\n• '):
-                            if req_error.strip():
-                                flash(req_error.replace('Password requirements not met:', '').strip(), 'warning')
+                    # Create user if not found (OAuth users)
+                    if user_email and '@' in user_email:
+                        user = User(
+                            email=user_email,
+                            username=user_email.split('@')[0],
+                            full_name=user_email.split('@')[0].title(),
+                            role=session.get('user_role', 'user'),
+                            auth_method=session.get('auth_method', 'local'),
+                            is_active=True,
+                            is_verified=True,
+                            created_at=datetime.utcnow()
+                        )
+                        user.set_password(new_password)
+                        user.last_password_change = datetime.utcnow()
+                        db.session.add(user)
+                        db.session.commit()
+                        flash('Account created and password set successfully!', 'success')
+                        return redirect(url_for('auth.password_settings'))
                     else:
-                        flash(f'{field}: {error}', 'error')
+                        error = 'User account not found.'
+            else:
+                error = 'Database error. Please try again later.'
+        except Exception as e:
+            if db:
+                db.session.rollback()
+            error = f'Password update failed: {str(e)}'
+        
+        if error:
+            flash(error, 'error')
     
-    # Return to password form with errors
-    print("🔄 Returning to password form")
+    # Handle form validation errors
+    elif request.method == 'POST':
+        for field, errors in form.errors.items():
+            for error in errors:
+                if 'Password requirements not met' in error:
+                    flash('Please check password requirements below.', 'error')
+                else:
+                    flash(f'{field}: {error}', 'error')
+    
     return render_template('auth/password_form.html', form=form)
 
 # Legacy route redirect
