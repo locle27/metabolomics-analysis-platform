@@ -533,12 +533,28 @@ function confirmRoleChange(selectElement) {
     const message = `Change ${userName}'s access level?\n\nFrom: ${roleDescriptions[oldRole] || oldRole}\nTo: ${roleDescriptions[newRole]}\n\nThis change will take effect immediately.`;
     
     if (confirm(message)) {
-        // Show loading state
+        // Show loading state with immediate visual feedback
         selectElement.classList.add('loading');
         selectElement.disabled = true;
         
-        // Submit the form
-        form.submit();
+        // Add visual loading indicator
+        const loadingSpan = document.createElement('span');
+        loadingSpan.innerHTML = ' <i class="fas fa-spinner fa-spin text-primary"></i>';
+        loadingSpan.className = 'role-loading-indicator';
+        selectElement.parentNode.appendChild(loadingSpan);
+        
+        // Debug form data before submission
+        console.log('Form submission debug:', {
+            user_id: form.querySelector('input[name="user_id"]').value,
+            role: form.querySelector('select[name="role"]').value,
+            csrf_token: form.querySelector('input[name="csrf_token"]').value,
+            action: form.action
+        });
+        
+        // Small delay to ensure all form data is properly set
+        setTimeout(() => {
+            form.submit();
+        }, 100);
     } else {
         // Restore original value
         const originalValue = selectElement.getAttribute('data-original-value');
@@ -838,6 +854,17 @@ function performBulkAction(action) {
 .role-select.loading {
     opacity: 0.6;
     pointer-events: none;
+}
+
+/* Loading indicator for role changes */
+.role-loading-indicator {
+    margin-left: 8px;
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 /* Member count styling */

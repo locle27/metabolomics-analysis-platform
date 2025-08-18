@@ -3128,8 +3128,17 @@ def update_user_role():
         user_id = request.form.get('user_id')
         new_role = request.form.get('role')
         
+        # DEBUG: Log all form data for troubleshooting
+        print(f"🔧 Role update debug - Form data received:")
+        print(f"   user_id: '{user_id}'")
+        print(f"   role: '{new_role}'")
+        print(f"   csrf_token: '{request.form.get('csrf_token')}'")
+        print(f"   All form keys: {list(request.form.keys())}")
+        print(f"   All form data: {dict(request.form)}")
+        
         if not user_id or not new_role:
-            flash("Missing required fields", "error")
+            print(f"❌ Missing fields - user_id: {user_id}, role: {new_role}")
+            flash(f"Missing required fields - user_id: {'✓' if user_id else '❌'}, role: {'✓' if new_role else '❌'}", "error")
             return redirect(url_for('manage_users'))
             
         if new_role not in ['user', 'manager', 'admin']:

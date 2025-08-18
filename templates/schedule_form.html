@@ -411,8 +411,13 @@
                     <button type="button" class="cancel-btn" onclick="window.history.back()">
                         <i class="fas fa-times"></i> Cancel
                     </button>
-                    <button type="submit" class="submit-btn">
-                        <i class="fas fa-paper-plane"></i> Submit Request
+                    <button type="submit" class="submit-btn" id="submitButton">
+                        <span class="button-text">
+                            <i class="fas fa-paper-plane"></i> Submit Request
+                        </span>
+                        <span class="loading-text" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i> Submitting...
+                        </span>
                     </button>
                 </div>
             </form>
@@ -472,6 +477,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     form.addEventListener('submit', function(e) {
+        const submitButton = document.getElementById('submitButton');
+        const buttonText = submitButton.querySelector('.button-text');
+        const loadingText = submitButton.querySelector('.loading-text');
+        
         let isValid = true;
         
         inputs.forEach(input => {
@@ -486,7 +495,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 behavior: 'smooth', 
                 block: 'center' 
             });
+            return;
         }
+        
+        // Show immediate loading feedback
+        submitButton.disabled = true;
+        buttonText.style.display = 'none';
+        loadingText.style.display = 'inline';
+        submitButton.style.opacity = '0.8';
+        
+        // Show immediate success notification
+        const notification = document.createElement('div');
+        notification.className = 'alert alert-info';
+        notification.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 10000; max-width: 400px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);';
+        notification.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="fas fa-clock me-2"></i>
+                <strong>Processing your request...</strong>
+            </div>
+            <div class="mt-1">
+                <small>Please wait while we submit your consultation request.</small>
+            </div>
+        `;
+        document.body.appendChild(notification);
+        
+        // Remove notification after form redirect
+        setTimeout(() => {
+            if (notification && notification.parentNode) {
+                notification.remove();
+            }
+        }, 8000);
     });
     
     // Real-time validation
