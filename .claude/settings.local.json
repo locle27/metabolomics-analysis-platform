@@ -41,7 +41,8 @@
       "Bash(railway logs:*)",
       "WebFetch(domain:httpsphenikaa-lipidomics-analysis.xyz)",
       "Bash(source:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "WebFetch(domain:www.httpsphenikaa-lipidomics-analysis.xyz)"
     ],
     "deny": []
   }
