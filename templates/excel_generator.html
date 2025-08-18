@@ -426,21 +426,21 @@
                 <h5><i class="fas fa-recycle"></i> Carryover Configuration</h5>
                 <div class="config-grid">
                     <div class="config-item">
+                        <label for="carryover-method">Carryover Method</label>
+                        <input type="text" id="carryover-method" value="Phenikaa_LipidMix_carryover_v1.m" placeholder="Method file name">
+                        <small>LC-MS method file for carryover samples</small>
+                    </div>
+                    
+                    <div class="config-item">
                         <label for="carryover-interval">Carryover Step</label>
                         <input type="number" id="carryover-interval" value="3" min="1" max="10">
                         <small>Insert carryover every N steps</small>
                     </div>
                     
                     <div class="config-item">
-                        <label for="carryover-prefix">Carryover Prefix</label>
-                        <input type="text" id="carryover-prefix" value="carryover_" placeholder="carryover_">
-                        <small>Prefix for carryover samples</small>
-                    </div>
-                    
-                    <div class="config-item">
-                        <label for="carryover-position">Carryover Position</label>
-                        <input type="text" id="carryover-position" value="P1-A1" placeholder="P1-A1">
-                        <small>Fixed position for all carryovers</small>
+                        <label for="carryover-sample-name">Carryover Sample Name</label>
+                        <input type="text" id="carryover-sample-name" value="carryover_" placeholder="carryover_">
+                        <small>Name prefix for carryover samples</small>
                     </div>
                 </div>
             </div>
@@ -449,6 +449,12 @@
             <div class="config-subsection">
                 <h5><i class="fas fa-certificate"></i> NIST Standard Configuration</h5>
                 <div class="config-grid">
+                    <div class="config-item">
+                        <label for="nist-method">NIST Method</label>
+                        <input type="text" id="nist-method" value="Phenikaa_LipidMix_NIST_v1.m" placeholder="Method file name">
+                        <small>LC-MS method file for NIST standards</small>
+                    </div>
+                    
                     <div class="config-item">
                         <label for="nist-interval">NIST Step</label>
                         <input type="number" id="nist-interval" value="25" min="1" max="100">
@@ -459,12 +465,6 @@
                         <label for="nist-name">NIST Sample Name</label>
                         <input type="text" id="nist-name" value="NIST_1101-1200 (1)" placeholder="NIST sample name">
                         <small>Name for NIST standard samples</small>
-                    </div>
-                    
-                    <div class="config-item">
-                        <label for="nist-position">NIST Position</label>
-                        <input type="text" id="nist-position" value="P2-F1" placeholder="P2-F1">
-                        <small>Fixed position for all NIST samples</small>
                     </div>
                 </div>
             </div>
