@@ -7,16 +7,32 @@
 {% block hero %}
 <div class="hero-section">
     <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-8 text-center">
-                <h1 class="hero-title">🏥 Research Center Members</h1>
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="hero-title">👥 Center Members</h1>
                 <p class="hero-subtitle">
                     {% if user_can_edit %}
-                        Manage research center members and their access permissions
+                        Manage member access levels and permissions
                     {% else %}
-                        View research center members and their roles
+                        Directory of research center members
                     {% endif %}
                 </p>
+            </div>
+            <div class="col-lg-6 text-lg-end">
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <span class="stat-number">{{ users|length }}</span>
+                        <span class="stat-label">Members</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">{{ users|selectattr('role', 'equalto', 'admin')|list|length }}</span>
+                        <span class="stat-label">Admins</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">{{ users|selectattr('role', 'equalto', 'manager')|list|length }}</span>
+                        <span class="stat-label">Managers</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -127,13 +143,12 @@
                     <table class="table table-hover">
                         <thead class="table-header">
                             <tr>
-                                <th width="8%">Member ID</th>
-                                <th width="25%">Research Member</th>
-                                <th width="20%">Contact Email</th>
-                                <th width="15%">Access Level</th>
-                                <th width="12%">Auth Type</th>
+                                <th width="5%">ID</th>
+                                <th width="30%">Member</th>
+                                <th width="25%">Email</th>
+                                <th width="20%">Access Level</th>
                                 <th width="10%">Status</th>
-                                <th width="10%">Actions</th>
+                                <th width="10%">Joined</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -204,11 +219,6 @@
                                     </div>
                                     {% endif %}
                                 </td>
-                                <td class="auth-method">
-                                    <span class="badge bg-{{ 'info' if user.auth_method == 'oauth' else 'warning' if user.auth_method == 'dual' else 'success' }}">
-                                        {{ user.auth_method.title() }}
-                                    </span>
-                                </td>
                                 <td class="user-status">
                                     {% if user.is_account_locked() %}
                                         <span class="badge bg-danger">
@@ -226,40 +236,12 @@
                                 </td>
                                 <td class="user-created">
                                     {% if user.created_at %}
-                                        <span title="{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}">
-                                            {{ user.created_at.strftime('%Y-%m-%d') }}
+                                        <span class="text-muted" title="{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}">
+                                            {{ user.created_at.strftime('%b %Y') }}
                                         </span>
                                     {% else %}
                                         <span class="text-muted">Unknown</span>
                                     {% endif %}
-                                </td>
-                                <td class="user-login">
-                                    {% if user.last_login %}
-                                        <span title="{{ user.last_login.strftime('%Y-%m-%d %H:%M:%S') }}">
-                                            {{ user.last_login.strftime('%Y-%m-%d') }}
-                                        </span>
-                                    {% else %}
-                                        <span class="text-muted">Never</span>
-                                    {% endif %}
-                                </td>
-                                <td class="user-actions">
-                                    <div class="btn-group btn-group-sm">
-                                        {% if user.failed_login_attempts > 0 %}
-                                        <button class="btn btn-outline-warning btn-sm" 
-                                                title="Failed attempts: {{ user.failed_login_attempts }}">
-                                            <i class="fas fa-exclamation-triangle"></i>
-                                        </button>
-                                        {% endif %}
-                                        {% if user.password_hash %}
-                                        <button class="btn btn-outline-success btn-sm" title="Password set">
-                                            <i class="fas fa-key"></i>
-                                        </button>
-                                        {% else %}
-                                        <button class="btn btn-outline-secondary btn-sm" title="No password">
-                                            <i class="fas fa-key-slash"></i>
-                                        </button>
-                                        {% endif %}
-                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -268,55 +250,6 @@
                 </div>
             </div>
 
-            <!-- Statistics Panel -->
-            <div class="stats-panel mt-4">
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-icon">
-                                <i class="fas fa-users"></i>
-                            </div>
-                            <div class="stat-content">
-                                <h3>{{ users|length }}</h3>
-                                <p>Total Users</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-icon">
-                                <i class="fas fa-user-shield"></i>
-                            </div>
-                            <div class="stat-content">
-                                <h3>{{ users|selectattr('role', 'equalto', 'admin')|list|length }}</h3>
-                                <p>Admins</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-icon">
-                                <i class="fas fa-user-tie"></i>
-                            </div>
-                            <div class="stat-content">
-                                <h3>{{ users|selectattr('role', 'equalto', 'manager')|list|length }}</h3>
-                                <p>Managers</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="stat-card">
-                            <div class="stat-icon">
-                                <i class="fab fa-google"></i>
-                            </div>
-                            <div class="stat-content">
-                                <h3>{{ users|selectattr('auth_method', 'equalto', 'oauth')|list|length }}</h3>
-                                <p>OAuth Users</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -430,19 +363,54 @@
 .hero-section {
     background: linear-gradient(135deg, var(--phenikaa-blue) 0%, var(--phenikaa-dark-blue) 100%);
     color: white;
-    padding: 80px 0;
+    padding: 60px 0;
     margin-bottom: 0;
 }
 
 .hero-title {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
+    font-size: 2.2rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
 }
 
 .hero-subtitle {
-    font-size: 1.2rem;
-    opacity: 0.9;
+    font-size: 1rem;
+    opacity: 0.85;
+    margin-bottom: 0;
+}
+
+.hero-stats {
+    display: flex;
+    gap: 30px;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    display: block;
+    font-size: 2rem;
+    font-weight: 700;
+    color: white;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.85rem;
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+@media (max-width: 992px) {
+    .hero-stats {
+        justify-content: center;
+        margin-top: 20px;
+        gap: 20px;
+    }
 }
 
 .btn-success {
