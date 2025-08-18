@@ -3191,6 +3191,11 @@ def update_user_role():
             flash("Cannot change your own role", "warning")
             return redirect(url_for('manage_users'))
             
+        # CRITICAL SECURITY: Super admin role is IMMUTABLE - cannot be changed by anyone
+        if user.email == 'loc22100302@gmail.com':
+            flash("⚠️ Super administrator role cannot be modified for security reasons", "error")
+            return redirect(url_for('manage_users'))
+            
         # SECURITY: Protect admin roles - only super admin (loc22100302@gmail.com) can change admin roles
         if user.role == 'admin' and current_user_email != 'loc22100302@gmail.com':
             flash("Only the super administrator can modify admin roles for security reasons", "error")
@@ -3769,30 +3774,49 @@ def promote_to_admin():
 def init_database():
     """Initialize database tables for Railway deployment"""
     try:
+        results = []
+        
         if db:
-            # Create all tables
+            # Create all tables (includes notification_settings)
             db.create_all()
+            results.append("✅ All database tables created")
             
-            # Check if we need to create a demo user
+            # Check notification settings table specifically
+            try:
+                from models_postgresql_optimized import NotificationSetting
+                count = NotificationSetting.query.count()
+                results.append(f"✅ notification_settings table ready (count: {count})")
+                
+                # Add default notification for super admin if not exists
+                super_admin_notification = NotificationSetting.query.filter_by(email='loc22100302@gmail.com').first()
+                if not super_admin_notification:
+                    super_admin_notification = NotificationSetting(
+                        email='loc22100302@gmail.com',
+                        enabled=True,
+                        setting_type='schedule_consultation'
+                    )
+                    db.session.add(super_admin_notification)
+                    db.session.commit()
+                    results.append("✅ Super admin notification setting created")
+                else:
+                    results.append("✅ Super admin notification setting already exists")
+                    
+            except Exception as e:
+                results.append(f"⚠️ Notification settings check failed: {e}")
+            
+            # Check if we need to create a demo user (but don't actually create it for security)
             if User:
                 demo_user = User.query.filter_by(email='demo@metabolomics-platform.com').first()
-                if not demo_user:
-                    demo_user = User(
-                        username='demo',
-                        email='demo@metabolomics-platform.com',
-                        full_name='Demo User',
-                        role='admin',
-                        is_verified=True,
-                        auth_method='demo'
-                    )
-                    demo_user.set_password('admin123')
-                    db.session.add(demo_user)
-                    db.session.commit()
-                    return jsonify({"status": "success", "message": "Database initialized and demo user created"})
+                if demo_user:
+                    results.append("ℹ️ Demo user found (not recommended for production)")
                 else:
-                    return jsonify({"status": "success", "message": "Database already initialized"})
-            else:
-                return jsonify({"status": "success", "message": "Database tables created"})
+                    results.append("✅ No demo user found (good for security)")
+            
+            return jsonify({
+                "status": "success", 
+                "message": "Database initialization completed",
+                "details": results
+            })
         else:
             return jsonify({"status": "error", "message": "Database not available"})
     except Exception as e:

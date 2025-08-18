@@ -162,6 +162,7 @@
                                                 data-user-id="{{ user.id }}"
                                                 data-original-role="{{ user.role }}"
                                                 {% if user.id == current_user.id %}data-disabled="own-role" title="Cannot change your own role"
+                                                {% elif user.email == 'loc22100302@gmail.com' %}data-disabled="super-admin-protected" title="Super administrator role cannot be modified"
                                                 {% elif user.role == 'admin' and session.get('user_email') != 'loc22100302@gmail.com' %}data-disabled="admin-protected" title="Only super admin can modify admin roles"
                                                 {% endif %}>
                                             <option value="user" {% if user.role == 'user' %}selected{% endif %}>
@@ -533,6 +534,8 @@ function handleRoleChange(selectElement) {
         selectElement.value = oldRole;
         if (disabledReason === 'own-role') {
             alert('You cannot change your own role for security reasons.');
+        } else if (disabledReason === 'super-admin-protected') {
+            alert('Super administrator role cannot be modified for security reasons.');
         } else if (disabledReason === 'admin-protected') {
             alert('Only the super administrator can modify admin roles.');
         }
