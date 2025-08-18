@@ -444,11 +444,11 @@ class DualChartService:
                         },
                         'grid': {'color': 'rgba(0, 0, 0, 0.1)'},
                         'ticks': {
-                            'stepSize': max(calculated_step_size, 1),  # Minimum step of 1
-                            'maxTicksLimit': 15,  # Reasonable number of ticks
+                            'maxTicksLimit': 8,  # Conservative number of ticks
                             'beginAtZero': False,  # Don't force zero - use our custom min
                             'min': y_min,  # Start very close to lowest data
-                            'max': max(y_max, y_min + 10)  # Reasonable max
+                            'max': max(y_max, y_min + 10),  # Reasonable max
+                            'precision': 0  # Prevent decimal formatting issues
                         }
                     }
                 },

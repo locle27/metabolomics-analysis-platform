@@ -760,19 +760,23 @@ function applyIndividualZoom(lipidId, chartType) {
         if (chart) {
             console.log(`🎯 Applying individual zoom to ${lipidId} ${chartType}: ${settings.start.toFixed(2)} - ${settings.end.toFixed(2)} minutes`);
             
-            // Reset and apply zoom only if zoom functions are available
-            if (chart.resetZoom) {
-                chart.resetZoom('none');
-            }
-            
-            // Apply zoom using Chart.js v3.9.1 zoom plugin API
+            // Apply zoom using Chart.js v3.9.1 zoom plugin API with safe formatting
             if (chart.zoom) {
+                // Temporarily disable number formatting to prevent errors
+                const originalYCallback = chart.options.scales.y.ticks.callback;
+                chart.options.scales.y.ticks.callback = function(value) {
+                    return Math.round(value).toString();
+                };
+                
                 chart.zoom({
                     x: {
                         min: settings.start,
                         max: settings.end
                     }
                 });
+                
+                // Restore original callback
+                chart.options.scales.y.ticks.callback = originalYCallback;
             } else {
                 console.warn('Zoom function not available on chart');
             }
@@ -788,6 +792,9 @@ function applyIndividualZoom(lipidId, chartType) {
         }
     } catch (error) {
         console.error(`Failed to apply individual zoom to ${lipidId} ${chartType}:`, error);
+        // Clear zoom settings if they're causing errors
+        delete individualZoomSettings[settingsKey];
+        saveZoomSettings();
     }
 }
 
@@ -1105,9 +1112,14 @@ function createChart(lipidId, chartType, chartConfig) {
                 });
             });
             
-            chart.update('none');
+            // Safe chart update with error handling
+            try {
+                chart.update('none');
+            } catch (updateError) {
+                console.warn('Chart update failed, skipping:', updateError);
+            }
         } catch (error) {
-            console.warn('Error activating chart zoom:', error);
+            console.error('Error activating chart zoom:', error);
         }
     });
     
@@ -1396,8 +1408,17 @@ function addDoubleClickReset(lipidId, chartType) {
     if (canvas) {
         canvas.addEventListener('dblclick', function() {
             try {
-                if (chartInstances[lipidId] && chartInstances[lipidId][chartType] && chartInstances[lipidId][chartType].resetZoom) {
-                    chartInstances[lipidId][chartType].resetZoom();
+                if (chartInstances[lipidId] && chartInstances[lipidId][chartType]) {
+                    const chart = chartInstances[lipidId][chartType];
+                    
+                    // Safe reset zoom with error handling
+                    try {
+                        if (chart.resetZoom) {
+                            chart.resetZoom();
+                        }
+                    } catch (resetError) {
+                        console.warn('Chart reset zoom failed in double-click:', resetError);
+                    }
                     
                     // Reapply individual zoom settings for Chart 2
                     if (chartType === 'chart2') {
@@ -1409,7 +1430,7 @@ function addDoubleClickReset(lipidId, chartType) {
                     }
                 }
             } catch (error) {
-                console.warn('Error in double-click reset:', error);
+                console.error('Error in double-click reset:', error);
             }
         });
     }
@@ -1426,10 +1447,22 @@ function deactivateChart(chart, canvas) {
         }
         canvas.style.border = '';
         canvas.style.borderRadius = '';
-        if (chart.resetZoom) {
-            chart.resetZoom();
+        
+        // Safe reset zoom with error handling
+        try {
+            if (chart.resetZoom) {
+                chart.resetZoom();
+            }
+        } catch (resetError) {
+            console.warn('Chart reset zoom failed, skipping:', resetError);
         }
-        chart.update('none');
+        
+        // Safe chart update with error handling
+        try {
+            chart.update('none');
+        } catch (updateError) {
+            console.warn('Chart update failed, skipping:', updateError);
+        }
         
         // Reapply individual zoom settings if this is Chart 2
         const canvasId = canvas.id;
@@ -1443,7 +1476,7 @@ function deactivateChart(chart, canvas) {
             }, 100);
         }
     } catch (error) {
-        console.warn('Error deactivating chart:', error);
+        console.error('Error deactivating chart:', error);
     }
 }
 
