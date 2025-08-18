@@ -114,10 +114,10 @@ if CSRF_AVAILABLE:
     
     # Only exempt OAuth callback routes from CSRF protection
     OAUTH_EXEMPT_ROUTES = [
-        'login_authorized', 'auth.oauth_authorized', 'oauth_login'
+        'login_authorized', 'auth.oauth_authorized', 'oauth_login', 'auth.update_password'
     ]
     
-    OAUTH_EXEMPT_PATHS = ['/callback', '/authorized']
+    OAUTH_EXEMPT_PATHS = ['/callback', '/authorized', '/auth/update-password']
     
     @app.before_request
     def disable_csrf_for_oauth_routes():
@@ -944,6 +944,34 @@ def update_password():
     print(f"🔍 Request path: {request.path}")
     print(f"🔍 Form data keys: {list(request.form.keys())}")
     print(f"🔍 Has CSRF token: {'csrf_token' in request.form}")
+    
+    # Debug CSRF token value
+    if 'csrf_token' in request.form:
+        csrf_token_value = request.form.get('csrf_token', '')
+        print(f"🔍 CSRF token value (first 10 chars): {csrf_token_value[:10]}...")
+        print(f"🔍 CSRF token length: {len(csrf_token_value)}")
+    else:
+        print("🔍 No CSRF token found in form data")
+        print(f"🔍 Available form fields: {dict(request.form)}")
+    
+    # Check request headers
+    print(f"🔍 Content-Type: {request.content_type}")
+    print(f"🔍 Form method: {request.method}")
+    print(f"🔍 Request referrer: {request.referrer}")
+    
+    # Try manual CSRF validation
+    if CSRF_AVAILABLE:
+        try:
+            from flask_wtf.csrf import validate_csrf
+            csrf_token_value = request.form.get('csrf_token', '')
+            if csrf_token_value:
+                validate_csrf(csrf_token_value)
+                print("✅ Manual CSRF validation successful")
+            else:
+                print("❌ No CSRF token provided for manual validation")
+        except Exception as csrf_error:
+            print(f"❌ Manual CSRF validation failed: {csrf_error}")
+            # But let's continue to see what other errors we might get
     
     try:
         if not session.get('user_authenticated', False):
