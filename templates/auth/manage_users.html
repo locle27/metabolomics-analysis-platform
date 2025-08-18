@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+
+{% block title %}User Management - Metabolomics Platform{% endblock %}
+
+{% block body_class %}admin-page{% endblock %}
+
+{% block hero %}
+<div class="hero-section">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+                <h1 class="hero-title">User Management</h1>
+                <p class="hero-subtitle">Manage user accounts and permissions</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <!-- Management Header -->
+            <div class="management-header mb-4">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h2>
+                            <i class="fas fa-users text-primary me-2"></i>
+                            System Users
+                        </h2>
+                        <p class="text-muted mb-0">Total: {{ users|length }} users</p>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <a href="{{ url_for('auth.register_local') }}" class="btn btn-success">
+                            <i class="fas fa-user-plus me-2"></i>Add New User
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Table -->
+            <div class="users-table-container">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-header">
+                            <tr>
+                                <th>ID</th>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Auth Method</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Last Login</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr class="user-row">
+                                <td class="user-id">
+                                    <strong>#{{ user.id }}</strong>
+                                </td>
+                                <td class="user-info">
+                                    <div class="d-flex align-items-center">
+                                        {% if user.picture %}
+                                        <img src="{{ user.picture }}" class="user-avatar me-2" alt="Avatar">
+                                        {% else %}
+                                        <div class="user-avatar-placeholder me-2">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        {% endif %}
+                                        <div>
+                                            <div class="fw-bold">{{ user.full_name or user.username }}</div>
+                                            <small class="text-muted">@{{ user.username }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="user-email">
+                                    {{ user.email }}
+                                    {% if user.is_verified %}
+                                        <i class="fas fa-check-circle text-success ms-1" title="Verified"></i>
+                                    {% else %}
+                                        <i class="fas fa-exclamation-circle text-warning ms-1" title="Unverified"></i>
+                                    {% endif %}
+                                </td>
+                                <td class="user-role">
+                                    <form method="POST" action="{{ url_for('auth.update_user_role') }}" class="role-form d-inline">
+                                        <input type="hidden" name="user_id" value="{{ user.id }}">
+                                        <select name="role" class="form-select form-select-sm role-select" 
+                                                onchange="this.form.submit()"
+                                                {% if user.id == current_user.id %}disabled{% endif %}>
+                                            <option value="user" {% if user.role == 'user' %}selected{% endif %}>User</option>
+                                            <option value="manager" {% if user.role == 'manager' %}selected{% endif %}>Manager</option>
+                                            <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                                        </select>
+                                    </form>
+                                </td>
+                                <td class="auth-method">
+                                    <span class="badge bg-{{ 'info' if user.auth_method == 'oauth' else 'warning' if user.auth_method == 'dual' else 'success' }}">
+                                        {{ user.auth_method.title() }}
+                                    </span>
+                                </td>
+                                <td class="user-status">
+                                    {% if user.is_account_locked() %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-lock me-1"></i>Locked
+                                        </span>
+                                    {% elif user.is_active %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check me-1"></i>Active
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-pause me-1"></i>Inactive
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="user-created">
+                                    {% if user.created_at %}
+                                        <span title="{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}">
+                                            {{ user.created_at.strftime('%Y-%m-%d') }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">Unknown</span>
+                                    {% endif %}
+                                </td>
+                                <td class="user-login">
+                                    {% if user.last_login %}
+                                        <span title="{{ user.last_login.strftime('%Y-%m-%d %H:%M:%S') }}">
+                                            {{ user.last_login.strftime('%Y-%m-%d') }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">Never</span>
+                                    {% endif %}
+                                </td>
+                                <td class="user-actions">
+                                    <div class="btn-group btn-group-sm">
+                                        {% if user.failed_login_attempts > 0 %}
+                                        <button class="btn btn-outline-warning btn-sm" 
+                                                title="Failed attempts: {{ user.failed_login_attempts }}">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                        </button>
+                                        {% endif %}
+                                        {% if user.password_hash %}
+                                        <button class="btn btn-outline-success btn-sm" title="Password set">
+                                            <i class="fas fa-key"></i>
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-outline-secondary btn-sm" title="No password">
+                                            <i class="fas fa-key-slash"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Statistics Panel -->
+            <div class="stats-panel mt-4">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>{{ users|length }}</h3>
+                                <p>Total Users</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-user-shield"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>{{ users|selectattr('role', 'equalto', 'admin')|list|length }}</h3>
+                                <p>Admins</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-user-tie"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>{{ users|selectattr('role', 'equalto', 'manager')|list|length }}</h3>
+                                <p>Managers</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fab fa-google"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>{{ users|selectattr('auth_method', 'equalto', 'oauth')|list|length }}</h3>
+                                <p>OAuth Users</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.management-header {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid var(--phenikaa-orange);
+}
+
+.users-table-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.table-header th {
+    background: var(--phenikaa-blue);
+    color: white;
+    font-weight: 600;
+    border: none;
+    padding: 15px 12px;
+    font-size: 14px;
+}
+
+.user-row {
+    border-bottom: 1px solid #f1f3f4;
+    transition: background-color 0.2s ease;
+}
+
+.user-row:hover {
+    background-color: #f8f9fa;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-avatar-placeholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--phenikaa-blue);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+
+.role-select {
+    width: 120px;
+    border-radius: 6px;
+    font-size: 13px;
+    padding: 4px 8px;
+}
+
+.badge {
+    font-size: 11px;
+    padding: 4px 8px;
+}
+
+.stats-panel {
+    margin-top: 30px;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    border-left: 4px solid var(--phenikaa-orange);
+    margin-bottom: 20px;
+}
+
+.stat-icon {
+    background: linear-gradient(135deg, var(--phenikaa-blue) 0%, var(--phenikaa-dark-blue) 100%);
+    color: white;
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin-right: 20px;
+}
+
+.stat-content h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--phenikaa-blue);
+    margin-bottom: 5px;
+}
+
+.stat-content p {
+    color: #6c757d;
+    margin: 0;
+    font-weight: 500;
+}
+
+.hero-section {
+    background: linear-gradient(135deg, var(--phenikaa-blue) 0%, var(--phenikaa-dark-blue) 100%);
+    color: white;
+    padding: 80px 0;
+    margin-bottom: 0;
+}
+
+.hero-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.hero-subtitle {
+    font-size: 1.2rem;
+    opacity: 0.9;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #218838 0%, #1a9b7a 100%);
+    transform: translateY(-1px);
+}
+</style>
+
+<script>
+// Confirmation for role changes
+document.addEventListener('DOMContentLoaded', function() {
+    const roleSelects = document.querySelectorAll('.role-select');
+    
+    roleSelects.forEach(select => {
+        let originalValue = select.value;
+        
+        select.addEventListener('change', function(e) {
+            const newRole = e.target.value;
+            const userRow = e.target.closest('tr');
+            const userName = userRow.querySelector('.fw-bold').textContent;
+            
+            if (confirm(`Are you sure you want to change ${userName}'s role to ${newRole}?`)) {
+                // Form will submit automatically due to onchange
+            } else {
+                // Restore original value
+                e.target.value = originalValue;
+            }
+        });
+        
+        // Update original value after successful changes
+        select.addEventListener('focus', function() {
+            originalValue = this.value;
+        });
+    });
+});
+</script>
+{% endblock %}

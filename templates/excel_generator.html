@@ -386,120 +386,119 @@
                 <h4>Sequence Configuration</h4>
             </div>
             
-            <!-- Sample Configuration Section -->
-            <div class="config-subsection">
-                <h5><i class="fas fa-vial"></i> Sample Configuration</h5>
-                <div class="config-grid">
-                    <div class="config-item">
-                        <label for="project-name">Project Name</label>
-                        <select id="project-name">
-                            <option value="PH-HC">PH-HC</option>
-                            <option value="Phenikaa">Phenikaa</option>
-                            <option value="BachMai">BachMai</option>
-                        </select>
-                        <small>Select the project for data file path</small>
+            <!-- Project Information -->
+            <div class="config-subsection" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #28a745;">
+                <h5 style="color: #28a745; font-weight: 700;"><i class="fas fa-project-diagram"></i> Project Information</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <select id="project-name" class="form-select" style="border-radius: 10px; border: 2px solid #dee2e6; font-weight: 500;">
+                                <option value="PH-HC">PH-HC</option>
+                                <option value="Phenikaa">Phenikaa</option>
+                                <option value="BachMai">BachMai</option>
+                            </select>
+                            <label for="project-name"><i class="fas fa-folder-open me-2"></i>Project Name</label>
+                        </div>
                     </div>
-                    
-                    <div class="config-item">
-                        <label for="batch-date">Batch Date</label>
-                        <input type="date" id="batch-date" value="">
-                        <small>Date for batch folder naming</small>
-                    </div>
-                    
-                    <div class="config-item">
-                        <label for="sample-prefix">Sample Prefix</label>
-                        <input type="text" id="sample-prefix" value="PKM_" placeholder="e.g., PKM_">
-                        <small>Prefix for all main samples</small>
-                    </div>
-                    
-                    <div class="config-item">
-                        <label for="sample-start">Starting Number</label>
-                        <input type="number" id="sample-start" value="1" min="1">
-                        <small>First sample number</small>
-                    </div>
-                    
-                    <div class="config-item">
-                        <label for="sample-count">Batch Size</label>
-                        <input type="number" id="sample-count" value="100" min="1" max="1000">
-                        <small>Number of samples in this batch</small>
-                    </div>
-                    
-                    <div class="config-item">
-                        <label for="starting-position">Starting Position</label>
-                        <select id="starting-position">
-                            <option value="P1-B1">P1-B1</option>
-                            <option value="P1-A1">P1-A1</option>
-                            <option value="P1-C1">P1-C1</option>
-                            <option value="P2-A1">P2-A1</option>
-                        </select>
-                        <small>First position on the plate</small>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="date" id="batch-date" class="form-control" style="border-radius: 10px; border: 2px solid #dee2e6; font-weight: 500;">
+                            <label for="batch-date"><i class="fas fa-calendar-alt me-2"></i>Batch Date</label>
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Carryover Configuration Section -->
-            <div class="config-subsection">
-                <h5><i class="fas fa-recycle"></i> Carryover Configuration</h5>
-                <div class="config-grid">
-                    <div class="config-item">
-                        <label for="carryover-method">Carryover Method</label>
-                        <input type="text" id="carryover-method" value="Phenikaa_LipidMix_carryover_v1.m" placeholder="Method file name">
-                        <small>LC-MS method file for carryover samples</small>
+            <!-- Sample Configuration -->
+            <div class="config-subsection" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #007bff;">
+                <h5 style="color: #007bff; font-weight: 700;"><i class="fas fa-vial"></i> Sample Configuration</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" id="sample-prefix" class="form-control" value="PH-HC_" placeholder="PH-HC_" style="border-radius: 10px; border: 2px solid #dee2e6; font-weight: 500; font-family: 'Courier New', monospace;">
+                            <label for="sample-prefix"><i class="fas fa-tag me-2"></i>Sample Prefix</label>
+                        </div>
                     </div>
-                    
-                    <div class="config-item">
-                        <label for="carryover-interval">Carryover Step</label>
-                        <input type="number" id="carryover-interval" value="5" min="1" max="10">
-                        <small>Insert carryover every N steps</small>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="number" id="sample-start" class="form-control" value="1401" min="1" style="border-radius: 10px; border: 2px solid #dee2e6; font-weight: 500;">
+                            <label for="sample-start"><i class="fas fa-play me-2"></i>Starting Number</label>
+                        </div>
                     </div>
-                    
-                    <div class="config-item">
-                        <label for="carryover-sample-name">Carryover Sample Name</label>
-                        <input type="text" id="carryover-sample-name" value="carryover_" placeholder="carryover_">
-                        <small>Name prefix for carryover samples</small>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="number" id="sample-count" class="form-control" value="100" min="1" max="1000" style="border-radius: 10px; border: 2px solid #dee2e6; font-weight: 500;">
+                            <label for="sample-count"><i class="fas fa-list-ol me-2"></i>Batch Size</label>
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <!-- NIST Configuration Section -->
-            <div class="config-subsection">
-                <h5><i class="fas fa-certificate"></i> NIST Standard Configuration</h5>
-                <div class="config-grid">
-                    <div class="config-item">
-                        <label for="nist-method">NIST Method</label>
-                        <input type="text" id="nist-method" value="Phenikaa_LipidMix_NIST_v1.m" placeholder="Method file name">
-                        <small>LC-MS method file for NIST standards</small>
+            <!-- Carryover Configuration -->
+            <div class="config-subsection" style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); border-left: 4px solid #ffc107;">
+                <h5 style="color: #856404; font-weight: 700;"><i class="fas fa-recycle"></i> Carryover Configuration</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" id="carryover-sample-name" class="form-control" value="carryover_" placeholder="carryover_" style="border-radius: 10px; border: 2px solid #ffc107; font-weight: 500; font-family: 'Courier New', monospace;">
+                            <label for="carryover-sample-name"><i class="fas fa-tag me-2"></i>Carryover Prefix</label>
+                        </div>
                     </div>
-                    
-                    <div class="config-item">
-                        <label for="nist-interval">NIST Step</label>
-                        <input type="number" id="nist-interval" value="30" min="1" max="100">
-                        <small>Insert NIST every N steps</small>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="number" id="carryover-interval" class="form-control" value="5" min="1" max="10" style="border-radius: 10px; border: 2px solid #ffc107; font-weight: 500;">
+                            <label for="carryover-interval"><i class="fas fa-step-forward me-2"></i>Every N Steps</label>
+                        </div>
                     </div>
-                    
-                    <div class="config-item">
-                        <label for="nist-name">NIST Sample Name</label>
-                        <input type="text" id="nist-name" value="NIST_1101-1200 (1)" placeholder="NIST sample name">
-                        <small>Name for NIST standard samples</small>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" id="carryover-method" class="form-control" value="Phenikaa_LipidMix_carryover_v1.m" style="border-radius: 10px; border: 2px solid #ffc107; font-weight: 500; font-family: 'Courier New', monospace;">
+                            <label for="carryover-method"><i class="fas fa-file-code me-2"></i>Method File</label>
+                        </div>
                     </div>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Position: Fixed at P1-A1 for all carryover samples</small>
+                </div>
+            </div>
+            
+            <!-- NIST Standard Configuration -->
+            <div class="config-subsection" style="background: linear-gradient(135deg, #d1ecf1 0%, #b8daff 100%); border-left: 4px solid #17a2b8;">
+                <h5 style="color: #0c5460; font-weight: 700;"><i class="fas fa-certificate"></i> NIST Standard Configuration</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" id="nist-name" class="form-control" value="NIST_1401-1500 (1)" style="border-radius: 10px; border: 2px solid #17a2b8; font-weight: 500; font-family: 'Courier New', monospace;">
+                            <label for="nist-name"><i class="fas fa-tag me-2"></i>NIST Prefix</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="number" id="nist-interval" class="form-control" value="30" min="1" max="100" style="border-radius: 10px; border: 2px solid #17a2b8; font-weight: 500;">
+                            <label for="nist-interval"><i class="fas fa-step-forward me-2"></i>Every N Steps</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" id="nist-method" class="form-control" value="Phenikaa_LipidMix_NIST_v1.m" style="border-radius: 10px; border: 2px solid #17a2b8; font-weight: 500; font-family: 'Courier New', monospace;">
+                            <label for="nist-method"><i class="fas fa-file-code me-2"></i>Method File</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Position: Fixed at P2-F1 for all NIST standards</small>
                 </div>
             </div>
         </div>
         
-        <!-- Pattern Preview -->
-        <div class="pattern-display" id="pattern-preview">
-            <h5><i class="fas fa-eye"></i> Sequence Pattern Preview</h5>
-            <div class="pattern-items">
-                <div class="pattern-item">🧪 Every 5 steps → Carryover</div>
-                <div class="pattern-item">📊 Every 30 steps → NIST Standard</div>
-                <div class="pattern-item">🔬 Automated position calculation</div>
-            </div>
-        </div>
         
         <!-- Generate Button -->
-        <button class="generate-btn" onclick="generateSequence()">
-            <i class="fas fa-magic"></i> Generate Sequence
-        </button>
+        <div class="text-center my-4">
+            <button class="btn btn-success btn-lg px-5 py-3" onclick="generateSequence()" style="background: linear-gradient(45deg, #28a745, #20c997); border: none; border-radius: 12px; font-weight: 600; font-size: 18px; color: white; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3); transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(40, 167, 69, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(40, 167, 69, 0.3)'">
+                <i class="fas fa-flask me-2"></i>
+                Generate LC-MS Sequence
+            </button>
+        </div>
         
         <!-- Results Section -->
         <div class="results-section" id="results-section" style="position: relative;">
@@ -676,7 +675,7 @@ function generateSequence() {
             carryoverCount++;
         }
         
-        // Check for NIST insertion (every N samples)
+        // Check for NIST insertion (every N samples) - separate from carryover
         if ((i + 1) % config.nistInterval === 0) {
             const nistName = config.nistName.replace('(1)', `(${nistCount})`);
             const nistDatafile = `D:\\Projects\\OQ-2024\\Data\\${config.projectName}\\${config.samplePrefix}${batchRange} (${formattedDate})\\${nistName}.d`;

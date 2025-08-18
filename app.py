@@ -10,7 +10,8 @@ import sys
 import json
 import base64
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
+import datetime as dt
 from pathlib import Path
 from functools import wraps
 from io import BytesIO
@@ -469,21 +470,61 @@ def login():
             flash('Please enter both username and password.', 'error')
             return render_template('auth/login.html')
         
-        # Try database user login first
+        # Try database user login first (support both email and username)
         if db and User:
             try:
-                user = User.query.filter_by(email=username).first()
-                if user and user.check_password(password):
-                    # Valid database user with correct password
-                    session['user_authenticated'] = True
-                    session['user_email'] = user.email
-                    session['user_role'] = user.role or 'user'
-                    user.last_login = datetime.now()  # Update last login
-                    db.session.commit()
-                    flash(f'Welcome back, {user.full_name}!', 'success')
-                    return redirect(url_for('homepage'))
+                # Try to find user by email or username
+                user = User.query.filter(
+                    (User.email == username) | (User.username == username)
+                ).first()
+                
+                if user:
+                    # Check if account is locked
+                    if user.is_account_locked():
+                        flash('Account is temporarily locked due to failed login attempts. Please try again later.', 'error')
+                        return render_template('auth/login.html')
+                    
+                    # Check password
+                    if user.check_password(password):
+                        # Successful login - reset failed attempts and login via Flask-Login
+                        user.failed_login_attempts = 0
+                        user.locked_until = None
+                        user.last_login = datetime.utcnow()
+                        db.session.commit()
+                        
+                        # Use Flask-Login for proper session management
+                        login_user(user, remember=True)
+                        
+                        # Also set session variables for backward compatibility
+                        session['user_authenticated'] = True
+                        session['user_email'] = user.email
+                        session['user_role'] = user.role or 'user'
+                        session['user_auth_method'] = user.auth_method or 'password'
+                        
+                        flash(f'Welcome back, {user.full_name or user.username}!', 'success')
+                        
+                        # Redirect to next page or dashboard
+                        next_page = request.args.get('next')
+                        return redirect(next_page) if next_page else redirect(url_for('homepage'))
+                    else:
+                        # Wrong password - increment failed attempts
+                        user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+                        if user.failed_login_attempts >= 5:
+                            user.lock_account(30)  # Lock for 30 minutes
+                            flash('Too many failed login attempts. Account locked for 30 minutes.', 'error')
+                        else:
+                            flash(f'Invalid credentials. {5 - user.failed_login_attempts} attempts remaining.', 'error')
+                        db.session.commit()
+                        return render_template('auth/login.html')
+                else:
+                    # User not found
+                    flash('Invalid credentials. Please check your username/email and password.', 'error')
+                    return render_template('auth/login.html')
+                    
             except Exception as db_error:
                 print(f"⚠️ Database login check failed: {db_error}")
+                flash('Login service temporarily unavailable. Please try again later.', 'error')
+                return render_template('auth/login.html')
         
         # Demo login credentials (multiple formats for compatibility)
         demo_emails = [
@@ -508,15 +549,131 @@ def login():
 @auth_bp.route('/logout')
 def logout():
     """Logout and clear session"""
+    # Use Flask-Login logout if user is logged in
+    if current_user.is_authenticated:
+        logout_user()
+    
     session.clear()
     flash('Logged out successfully.', 'success')
     return redirect(url_for('homepage'))
 
+@auth_bp.route('/oauth-login')
+def oauth_login():
+    """Initiate OAuth login with Google"""
+    if not google:
+        flash('OAuth service is not available.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    redirect_uri = url_for('auth.oauth_authorized', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+@auth_bp.route('/authorized')
+def oauth_authorized():
+    """Handle OAuth callback from Google"""
+    if not google:
+        flash('OAuth service is not available.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    try:
+        token = google.authorize_access_token()
+        if not token:
+            flash('Authorization failed. Please try again.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        # Get user info from Google
+        user_info = token.get('userinfo')
+        if not user_info:
+            # Try to get userinfo from the token
+            resp = google.parse_id_token(token)
+            user_info = resp
+        
+        if not user_info or not user_info.get('email'):
+            flash('Failed to get user information from Google.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        email = user_info.get('email')
+        full_name = user_info.get('name', '')
+        picture = user_info.get('picture', '')
+        
+        # Check if user exists in database
+        if db and User:
+            user = User.query.filter_by(email=email).first()
+            
+            if user:
+                # Existing user - update their info and login
+                user.full_name = full_name or user.full_name
+                user.picture = picture or user.picture
+                user.last_login = datetime.utcnow()
+                
+                # If this is a local user switching to OAuth, update auth method
+                if user.auth_method == 'password':
+                    user.auth_method = 'dual'  # Now supports both
+                elif user.auth_method != 'dual':
+                    user.auth_method = 'oauth'
+                
+                db.session.commit()
+                
+            else:
+                # New user - create account
+                username = email.split('@')[0]  # Use email prefix as username
+                counter = 1
+                original_username = username
+                
+                # Ensure username is unique
+                while User.query.filter_by(username=username).first():
+                    username = f"{original_username}{counter}"
+                    counter += 1
+                
+                user = User(
+                    username=username,
+                    email=email,
+                    full_name=full_name,
+                    picture=picture,
+                    auth_method='oauth',
+                    is_active=True,
+                    is_verified=True  # OAuth users are auto-verified
+                )
+                
+                # Set admin role for loc22100302
+                if username == 'loc22100302' or email == 'loc22100302@gmail.com':
+                    user.role = 'admin'
+                
+                db.session.add(user)
+                db.session.commit()
+                
+                flash(f'Welcome to the Metabolomics Platform, {full_name}!', 'success')
+            
+            # Login the user
+            login_user(user, remember=True)
+            
+            # Set session variables for backward compatibility
+            session['user_authenticated'] = True
+            session['user_email'] = user.email
+            session['user_role'] = user.role or 'user'
+            session['user_auth_method'] = 'oauth'
+            
+            # Redirect to next page or dashboard
+            next_page = request.args.get('next')
+            return redirect(next_page) if next_page else redirect(url_for('homepage'))
+        
+        else:
+            # Database not available - fallback session login
+            session['user_authenticated'] = True
+            session['user_email'] = email
+            session['user_role'] = 'admin' if 'loc22100302' in email else 'user'
+            session['user_auth_method'] = 'oauth'
+            flash(f'Welcome, {full_name}!', 'success')
+            return redirect(url_for('homepage'))
+            
+    except Exception as e:
+        print(f"OAuth error: {e}")
+        flash('Authentication failed. Please try again.', 'error')
+        return redirect(url_for('auth.login'))
+
 @auth_bp.route('/register')
 def register():
-    """Registration page placeholder"""
-    flash('Registration currently unavailable. Use demo login: admin@demo.com / admin123', 'info')
-    return redirect(url_for('auth.login'))
+    """Registration page - redirect to local registration"""
+    return redirect(url_for('auth.register_local'))
 
 @auth_bp.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
@@ -851,6 +1008,165 @@ def remove_password():
         flash('Password removal service not available.', 'error')
     
     return redirect(url_for('auth.password_settings'))
+
+@auth_bp.route('/set-oauth-password', methods=['POST'])
+@login_required
+def set_oauth_password():
+    """Allow OAuth users to set a local password"""
+    if not current_user.is_authenticated:
+        flash('Please log in to set a password.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    new_password = request.form.get('new_password', '').strip()
+    confirm_password = request.form.get('confirm_password', '').strip()
+    
+    # Validation
+    if not new_password or not confirm_password:
+        flash('Both password fields are required.', 'error')
+        return redirect(url_for('auth.profile'))
+    
+    if new_password != confirm_password:
+        flash('Passwords do not match.', 'error')
+        return redirect(url_for('auth.profile'))
+    
+    if len(new_password) < 8:
+        flash('Password must be at least 8 characters long.', 'error')
+        return redirect(url_for('auth.profile'))
+    
+    try:
+        # Set password for the user
+        current_user.set_password(new_password)
+        
+        # Update auth method to support both OAuth and password
+        if current_user.auth_method == 'oauth':
+            current_user.auth_method = 'dual'  # Support both OAuth and password
+        
+        db.session.commit()
+        
+        action = 'updated' if current_user.password_hash else 'set'
+        flash(f'Password {action} successfully! You can now login with either OAuth or your password.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash('An error occurred while setting your password. Please try again.', 'error')
+        print(f"Password setting error: {e}")
+    
+    return redirect(url_for('auth.profile'))
+
+@auth_bp.route('/register-local', methods=['GET', 'POST'])
+def register_local():
+    """Local user registration"""
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        full_name = request.form.get('full_name', '').strip()
+        password = request.form.get('password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
+        
+        # Validation
+        if not all([username, email, full_name, password, confirm_password]):
+            flash('All fields are required.', 'error')
+            return render_template('auth/register_local.html')
+        
+        if password != confirm_password:
+            flash('Passwords do not match.', 'error')
+            return render_template('auth/register_local.html')
+        
+        if len(password) < 8:
+            flash('Password must be at least 8 characters long.', 'error')
+            return render_template('auth/register_local.html')
+        
+        try:
+            # Check if user already exists
+            if User.query.filter_by(email=email).first():
+                flash('An account with this email already exists.', 'error')
+                return render_template('auth/register_local.html')
+            
+            if User.query.filter_by(username=username).first():
+                flash('This username is already taken.', 'error')
+                return render_template('auth/register_local.html')
+            
+            # Create new user
+            new_user = User(
+                username=username,
+                email=email,
+                full_name=full_name,
+                auth_method='password',
+                is_active=True,
+                is_verified=True  # Auto-verify for now, can add email verification later
+            )
+            new_user.set_password(password)
+            
+            # Set admin role for loc22100302
+            if username == 'loc22100302':
+                new_user.role = 'admin'
+            
+            db.session.add(new_user)
+            db.session.commit()
+            
+            flash('Account created successfully! You can now log in.', 'success')
+            return redirect(url_for('auth.login'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash('An error occurred while creating your account. Please try again.', 'error')
+            print(f"Registration error: {e}")
+    
+    return render_template('auth/register_local.html')
+
+@auth_bp.route('/manage-users')
+@login_required
+def manage_users():
+    """User management interface for admins"""
+    if not current_user.is_admin():
+        flash('Access denied. Admin privileges required.', 'error')
+        return redirect(url_for('dashboard'))
+    
+    users = User.query.order_by(User.created_at.desc()).all()
+    return render_template('auth/manage_users.html', users=users)
+
+@auth_bp.route('/update-user-role', methods=['POST'])
+@login_required
+def update_user_role():
+    """Update user role (admin only)"""
+    if not current_user.is_admin():
+        flash('Access denied. Admin privileges required.', 'error')
+        return redirect(url_for('dashboard'))
+    
+    user_id = request.form.get('user_id')
+    new_role = request.form.get('role')
+    
+    if not user_id or not new_role:
+        flash('User ID and role are required.', 'error')
+        return redirect(url_for('auth.manage_users'))
+    
+    if new_role not in ['user', 'manager', 'admin']:
+        flash('Invalid role specified.', 'error')
+        return redirect(url_for('auth.manage_users'))
+    
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            flash('User not found.', 'error')
+            return redirect(url_for('auth.manage_users'))
+        
+        # Prevent admin from removing their own admin role
+        if user.id == current_user.id and new_role != 'admin':
+            flash('You cannot remove your own admin privileges.', 'error')
+            return redirect(url_for('auth.manage_users'))
+        
+        old_role = user.role
+        user.role = new_role
+        db.session.commit()
+        
+        flash(f'User {user.username} role updated from {old_role} to {new_role}.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash('An error occurred while updating user role.', 'error')
+        print(f"Role update error: {e}")
+    
+    return redirect(url_for('auth.manage_users'))
 
 @auth_bp.route('/change-password')
 def change_password():

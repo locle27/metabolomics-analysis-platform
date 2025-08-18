@@ -112,6 +112,69 @@
                                 </button>
                             </div>
                         </form>
+                        
+                        <!-- Password Setting Section for OAuth Users -->
+                        <div class="auth-card mt-4">
+                            <div class="auth-header">
+                                <h3 class="mb-3">
+                                    <i class="fas fa-key text-warning me-2"></i>
+                                    Set Local Password
+                                </h3>
+                                <p class="text-muted">Set a password to enable direct login to this platform without OAuth.</p>
+                            </div>
+                            
+                            <form method="POST" action="{{ url_for('auth.set_oauth_password') }}" class="auth-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                
+                                <!-- New Password Field -->
+                                <div class="form-group mb-3">
+                                    <label for="new_password" class="form-label">
+                                        <i class="fas fa-lock me-2"></i>
+                                        New Password
+                                    </label>
+                                    <input type="password" 
+                                           class="form-control" 
+                                           id="new_password" 
+                                           name="new_password" 
+                                           required
+                                           minlength="8"
+                                           placeholder="Enter your new password">
+                                    <small class="form-text text-muted">
+                                        Password must be at least 8 characters long
+                                    </small>
+                                </div>
+                                
+                                <!-- Confirm Password Field -->
+                                <div class="form-group mb-4">
+                                    <label for="confirm_password" class="form-label">
+                                        <i class="fas fa-lock me-2"></i>
+                                        Confirm Password
+                                    </label>
+                                    <input type="password" 
+                                           class="form-control" 
+                                           id="confirm_password" 
+                                           name="confirm_password" 
+                                           required
+                                           minlength="8"
+                                           placeholder="Confirm your new password">
+                                </div>
+                                
+                                <!-- Submit Button -->
+                                <div class="d-grid">
+                                    {% if current_user.password_hash %}
+                                    <button type="submit" class="btn btn-warning btn-lg">
+                                        <i class="fas fa-key me-2"></i>
+                                        Update Password
+                                    </button>
+                                    {% else %}
+                                    <button type="submit" class="btn btn-success btn-lg">
+                                        <i class="fas fa-plus me-2"></i>
+                                        Set Password
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </form>
+                        </div>
                         {% else %}
                         <!-- Local User Profile Form -->
                         <form method="POST" class="auth-form">
@@ -161,8 +224,20 @@
                                 Account Details
                             </h5>
                             <ul class="list-unstyled mb-3">
-                                <li><strong>User ID:</strong> #{{ current_user.user_id }}</li>
-                                <li><strong>Role:</strong> {{ current_user.role.title() }}</li>
+                                <li><strong>User ID:</strong> #{{ current_user.id }}</li>
+                                <li><strong>Role:</strong> 
+                                    <span class="badge bg-{{ 'danger' if current_user.role == 'admin' else 'warning' if current_user.role == 'manager' else 'primary' }}">{{ current_user.role.title() }}</span>
+                                </li>
+                                <li><strong>Auth Method:</strong> 
+                                    <span class="badge bg-{{ 'info' if current_user.auth_method == 'oauth' else 'success' }}">{{ current_user.auth_method.title() }}</span>
+                                </li>
+                                <li><strong>Password Set:</strong> 
+                                    {% if current_user.password_hash %}
+                                        <span class="text-success"><i class="fas fa-check"></i> Yes</span>
+                                    {% else %}
+                                        <span class="text-warning"><i class="fas fa-times"></i> No</span>
+                                    {% endif %}
+                                </li>
                                 <li><strong>Status:</strong> 
                                     {% if current_user.is_active %}
                                         <span class="text-success">Active</span>
@@ -174,9 +249,16 @@
                                 <li><strong>Last Login:</strong> {{ current_user.last_login.strftime('%Y-%m-%d %H:%M') }}</li>
                                 {% endif %}
                             </ul>
-                            <a href="{{ url_for('user_debug') }}" class="btn btn-outline-info w-100">
-                                <i class="fas fa-cog me-2"></i>System Info
-                            </a>
+                            <div class="d-grid gap-2">
+                                <a href="{{ url_for('user_debug') }}" class="btn btn-outline-info">
+                                    <i class="fas fa-cog me-2"></i>System Info
+                                </a>
+                                {% if current_user.is_admin() %}
+                                <a href="{{ url_for('auth.manage_users') }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-users me-2"></i>Manage Users
+                                </a>
+                                {% endif %}
+                            </div>
                         </div>
 
                     </div>
@@ -185,6 +267,24 @@
         </div>
     </div>
 </div>
+
+<script>
+// Password confirmation validation
+document.addEventListener('DOMContentLoaded', function() {
+    const newPassword = document.getElementById('new_password');
+    const confirmPassword = document.getElementById('confirm_password');
+    
+    if (newPassword && confirmPassword) {
+        confirmPassword.addEventListener('input', function() {
+            if (newPassword.value !== confirmPassword.value) {
+                confirmPassword.setCustomValidity('Passwords do not match');
+            } else {
+                confirmPassword.setCustomValidity('');
+            }
+        });
+    }
+});
+</script>
 
 <style>
 .profile-header {
