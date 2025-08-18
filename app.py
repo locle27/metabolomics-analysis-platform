@@ -2209,22 +2209,36 @@ def inject_user():
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated:
+        # Check session-based authentication first
+        user_authenticated = session.get('user_authenticated', False)
+        user_role = session.get('user_role', 'user')
+        
+        if not user_authenticated:
+            flash('Please log in to access this page.', 'warning')
             return redirect(url_for('auth.login'))
-        if not current_user.is_admin():
-            flash('Admin access required.', 'error')
+        
+        if user_role not in ['admin', 'manager']:
+            flash('Administrative access required.', 'error')
             return redirect(url_for('homepage'))
+        
         return f(*args, **kwargs)
     return decorated_function
 
 def manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated:
+        # Check session-based authentication first
+        user_authenticated = session.get('user_authenticated', False)
+        user_role = session.get('user_role', 'user')
+        
+        if not user_authenticated:
+            flash('Please log in to access this page.', 'warning')
             return redirect(url_for('auth.login'))
-        if not current_user.is_manager():
+        
+        if user_role not in ['admin', 'manager']:
             flash('Manager or Admin access required.', 'error')
             return redirect(url_for('homepage'))
+        
         return f(*args, **kwargs)
     return decorated_function
 

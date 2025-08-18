@@ -9,8 +9,8 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-lg-8 text-center">
-                <h1 class="hero-title">User Management</h1>
-                <p class="hero-subtitle">Manage user accounts and permissions</p>
+                <h1 class="hero-title">🏥 Center Member Management</h1>
+                <p class="hero-subtitle">Manage research center members and their access permissions</p>
             </div>
         </div>
     </div>
@@ -21,20 +21,76 @@
 <div class="container my-5">
     <div class="row">
         <div class="col-12">
-            <!-- Management Header -->
+            <!-- Professional Center Management Header -->
             <div class="management-header mb-4">
                 <div class="row align-items-center">
-                    <div class="col-md-6">
+                    <div class="col-md-8">
                         <h2>
-                            <i class="fas fa-users text-primary me-2"></i>
-                            System Users
+                            <i class="fas fa-id-badge text-primary me-2"></i>
+                            Research Center Members
                         </h2>
-                        <p class="text-muted mb-0">Total: {{ users|length }} users</p>
+                        <p class="text-muted mb-0">
+                            <strong>{{ users|length }}</strong> registered members | 
+                            <span class="text-success">{{ users|selectattr('role', 'equalto', 'admin')|list|length }} Administrators</span> | 
+                            <span class="text-warning">{{ users|selectattr('role', 'equalto', 'manager')|list|length }} Managers</span> | 
+                            <span class="text-info">{{ users|selectattr('role', 'equalto', 'user')|list|length }} Researchers</span>
+                        </p>
                     </div>
-                    <div class="col-md-6 text-md-end">
-                        <a href="{{ url_for('auth.register') }}" class="btn btn-success">
-                            <i class="fas fa-user-plus me-2"></i>Add New User
-                        </a>
+                    <div class="col-md-4 text-md-end">
+                        <div class="btn-group" role="group">
+                            <a href="{{ url_for('auth.register') }}" class="btn btn-success btn-sm">
+                                <i class="fas fa-user-plus me-1"></i>Add Member
+                            </a>
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkActionsModal">
+                                <i class="fas fa-cogs me-1"></i>Bulk Actions
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Role Management Quick Stats -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="role-stats-card admin-card">
+                        <div class="d-flex align-items-center">
+                            <div class="role-icon bg-danger text-white me-3">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div>
+                                <h4 class="mb-0">{{ users|selectattr('role', 'equalto', 'admin')|list|length }}</h4>
+                                <small class="text-muted">Administrators</small>
+                                <div class="small text-success">Full system access</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="role-stats-card admin-card">
+                        <div class="d-flex align-items-center">
+                            <div class="role-icon bg-warning text-white me-3">
+                                <i class="fas fa-user-tie"></i>
+                            </div>
+                            <div>
+                                <h4 class="mb-0">{{ users|selectattr('role', 'equalto', 'manager')|list|length }}</h4>
+                                <small class="text-muted">Managers</small>
+                                <div class="small text-warning">Management access</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="role-stats-card admin-card">
+                        <div class="d-flex align-items-center">
+                            <div class="role-icon bg-info text-white me-3">
+                                <i class="fas fa-microscope"></i>
+                            </div>
+                            <div>
+                                <h4 class="mb-0">{{ users|selectattr('role', 'equalto', 'user')|list|length }}</h4>
+                                <small class="text-muted">Researchers</small>
+                                <div class="small text-info">Analysis access</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -45,15 +101,13 @@
                     <table class="table table-hover">
                         <thead class="table-header">
                             <tr>
-                                <th>ID</th>
-                                <th>User</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Auth Method</th>
-                                <th>Status</th>
-                                <th>Created</th>
-                                <th>Last Login</th>
-                                <th>Actions</th>
+                                <th width="8%">Member ID</th>
+                                <th width="25%">Research Member</th>
+                                <th width="20%">Contact Email</th>
+                                <th width="15%">Access Level</th>
+                                <th width="12%">Auth Type</th>
+                                <th width="10%">Status</th>
+                                <th width="10%">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -92,11 +146,17 @@
                                         {% endif %}
                                         <input type="hidden" name="user_id" value="{{ user.id }}">
                                         <select name="role" class="form-select form-select-sm role-select" 
-                                                onchange="this.form.submit()"
+                                                onchange="confirmRoleChange(this)"
                                                 {% if user.id == current_user.id %}disabled{% endif %}>
-                                            <option value="user" {% if user.role == 'user' %}selected{% endif %}>User</option>
-                                            <option value="manager" {% if user.role == 'manager' %}selected{% endif %}>Manager</option>
-                                            <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                                            <option value="user" {% if user.role == 'user' %}selected{% endif %}>
+                                                🔬 Researcher - Analysis Access
+                                            </option>
+                                            <option value="manager" {% if user.role == 'manager' %}selected{% endif %}>
+                                                👔 Manager - Management Access
+                                            </option>
+                                            <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>
+                                                🛡️ Administrator - Full Access
+                                            </option>
                                         </select>
                                     </form>
                                 </td>
@@ -381,5 +441,154 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// Enhanced professional role change confirmation
+function confirmRoleChange(selectElement) {
+    const form = selectElement.closest('form');
+    const userRow = selectElement.closest('tr');
+    const userName = userRow.querySelector('.fw-bold').textContent;
+    const oldRole = selectElement.getAttribute('data-original-value') || 'unknown';
+    const newRole = selectElement.value;
+    
+    // Professional role descriptions
+    const roleDescriptions = {
+        'user': 'Researcher (Analysis access only)',
+        'manager': 'Manager (Management + Analysis access)',  
+        'admin': 'Administrator (Full system access)'
+    };
+    
+    const message = `Change ${userName}'s access level?\n\nFrom: ${roleDescriptions[oldRole] || oldRole}\nTo: ${roleDescriptions[newRole]}\n\nThis change will take effect immediately.`;
+    
+    if (confirm(message)) {
+        // Show loading state
+        selectElement.classList.add('loading');
+        selectElement.disabled = true;
+        
+        // Submit the form
+        form.submit();
+    } else {
+        // Restore original value
+        const originalValue = selectElement.getAttribute('data-original-value');
+        if (originalValue) {
+            selectElement.value = originalValue;
+        }
+    }
+}
+
+// Store original values and enhance UX
+document.addEventListener('DOMContentLoaded', function() {
+    const roleSelects = document.querySelectorAll('.role-select');
+    roleSelects.forEach(select => {
+        select.setAttribute('data-original-value', select.value);
+        
+        select.addEventListener('focus', function() {
+            this.setAttribute('data-original-value', this.value);
+        });
+    });
+    
+    // Professional flash messages auto-hide
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+        setTimeout(() => {
+            if (alert.classList.contains('alert-success')) {
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 300);
+            }
+        }, 5000);
+    });
+});
 </script>
+
+{% block extra_css %}
+<style>
+.role-stats-card {
+    transition: transform 0.2s ease;
+    border-left: 4px solid #2E4C92;
+}
+
+.role-stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+.role-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.management-header h2 {
+    color: #2E4C92;
+    font-weight: 600;
+}
+
+.table-header th {
+    background: linear-gradient(135deg, #2E4C92, #213671);
+    color: white;
+    font-weight: 500;
+    border: none;
+    padding: 12px 8px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.user-row {
+    transition: background-color 0.2s ease;
+}
+
+.user-row:hover {
+    background-color: rgba(46, 76, 146, 0.05);
+}
+
+.role-select {
+    min-width: 180px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+.role-select:focus {
+    border-color: #2E4C92;
+    box-shadow: 0 0 0 0.2rem rgba(46, 76, 146, 0.25);
+}
+
+.user-avatar, .user-avatar-placeholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.user-avatar-placeholder {
+    background: #e9ecef;
+    color: #6c757d;
+}
+
+.users-table-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(46, 76, 146, 0.1);
+    overflow: hidden;
+}
+
+/* Professional loading state for role changes */
+.role-select.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Member count styling */
+.text-success { color: #28a745 !important; }
+.text-warning { color: #ffc107 !important; }
+.text-info { color: #17a2b8 !important; }
+</style>
+{% endblock %}
+
 {% endblock %}
