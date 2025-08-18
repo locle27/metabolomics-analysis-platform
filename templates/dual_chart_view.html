@@ -764,11 +764,17 @@ function applyIndividualZoom(lipidId, chartType) {
             if (chart.resetZoom) {
                 chart.resetZoom('none');
             }
-            if (chart.zoomScale) {
-                chart.zoomScale('x', {
-                    min: settings.start,
-                    max: settings.end
-                }, 'none');
+            
+            // Apply zoom using Chart.js v3.9.1 zoom plugin API
+            if (chart.zoom) {
+                chart.zoom({
+                    x: {
+                        min: settings.start,
+                        max: settings.end
+                    }
+                });
+            } else {
+                console.warn('Zoom function not available on chart');
             }
             
             // Add visual indicator
@@ -1027,12 +1033,28 @@ function createChart(lipidId, chartType, chartConfig) {
         
         // Add custom onHover event for 2D area detection
         chartConfig.options.onHover = function(event, elements, chart) {
-            // Get mouse position relative to chart canvas
-            const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
-            
-            // Convert canvas position to data coordinates
-            const mouseX = chart.scales.x.getValueForPixel(canvasPosition.x);
-            const mouseY = chart.scales.y.getValueForPixel(canvasPosition.y);
+            try {
+                // Check if chart and scales are properly initialized
+                if (!chart || !chart.scales || !chart.scales.x || !chart.scales.y) {
+                    console.warn('Chart scales not ready for hover detection');
+                    return;
+                }
+                
+                // Get mouse position relative to chart canvas
+                const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
+                
+                // Convert canvas position to data coordinates
+                const mouseX = chart.scales.x.getValueForPixel(canvasPosition.x);
+                const mouseY = chart.scales.y.getValueForPixel(canvasPosition.y);
+                
+                // Check if coordinates are valid
+                if (mouseX === undefined || mouseY === undefined || isNaN(mouseX) || isNaN(mouseY)) {
+                    return;
+                }
+            } catch (error) {
+                console.warn('Error in hover detection:', error);
+                return;
+            }
             
             console.log('=== 2D AREA HOVER DEBUG ===');
             console.log(`Mouse position: X=${mouseX?.toFixed(2)}, Y=${mouseY?.toFixed(0)}`);
