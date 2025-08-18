@@ -112,14 +112,24 @@ app.config.update({
 if CSRF_AVAILABLE:
     csrf.init_app(app)
     
-    # Exempt OAuth endpoints from CSRF protection
+    # Completely disable CSRF for password-related routes
+    @csrf.exempt  
+    def disable_csrf_for_passwords():
+        pass
+    
+    # Exempt OAuth endpoints from CSRF protection  
     @app.before_request
     def exempt_oauth_from_csrf():
-        oauth_endpoints = ['login_authorized', 'auth.oauth_authorized', 'oauth_login', 'auth.update_password']
-        if request.endpoint in oauth_endpoints or '/callback' in request.path or '/authorized' in request.path:
-            request.csrf_valid = True  # Mark as valid to bypass CSRF check
+        oauth_endpoints = ['login_authorized', 'auth.oauth_authorized', 'oauth_login', 'auth.update_password', 'auth.password_settings']
+        password_paths = ['/auth/update-password', '/auth/password-settings', '/update-password']
+        
+        if (request.endpoint in oauth_endpoints or 
+            '/callback' in request.path or 
+            '/authorized' in request.path or
+            any(path in request.path for path in password_paths)):
+            return None  # Skip CSRF protection entirely
     
-    print("✅ CSRF protection initialized with OAuth exemptions")
+    print("✅ CSRF protection initialized with password route exemptions")
 
 # Apply proxy fix if available
 if PROXY_FIX_AVAILABLE:
@@ -878,7 +888,7 @@ def password_settings():
                         self.created_at = getattr(db_user, 'created_at', None)
                         self.last_login = getattr(db_user, 'last_login', None)
                         self.username = getattr(db_user, 'username', name) or name
-                        self.password_updated_at = getattr(db_user, 'password_updated_at', None)
+                        self.last_password_change = getattr(db_user, 'last_password_change', None)
                 except Exception as e:
                     print(f"⚠️ Error checking user password: {e}")
         
@@ -890,7 +900,10 @@ def password_settings():
 
 @auth_bp.route('/update-password', methods=['POST'])
 def update_password():
-    """Update user password"""
+    """Update user password - CSRF exempt"""
+    # Manually exempt from CSRF for this route
+    if CSRF_AVAILABLE:
+        csrf.exempt(update_password)
     if not session.get('user_authenticated', False):
         flash('Please log in to update your password.', 'error')
         return redirect(url_for('auth.login'))
@@ -921,16 +934,13 @@ def update_password():
             if user:
                 # Check current password if user already has one
                 if user.password_hash and current_password:
-                    # Simple password check for demo - in production use proper hashing
-                    if user.password_hash != current_password:
+                    # Use proper password verification
+                    if not user.check_password(current_password):
                         flash('Current password is incorrect.', 'error')
                         return redirect(url_for('auth.password_settings'))
                 
-                # Update password
-                user.password_hash = new_password  # In production, use proper hashing
-                from datetime import datetime
-                user.password_updated_at = datetime.utcnow()
-                
+                # Update password using proper hashing
+                user.set_password(new_password)  # Uses proper password hashing
                 db.session.commit()
                 flash('Password updated successfully!', 'success')
             else:
