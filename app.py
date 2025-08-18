@@ -1196,10 +1196,226 @@ def oauth_authorized():
         flash('Login failed. Please try again.', 'error')
         return redirect(url_for('auth.login'))
 
-@auth_bp.route('/register')
+@auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
-    """Registration page placeholder"""
-    flash('Registration currently unavailable. Use demo login: admin@demo.com / admin123', 'info')
+    """User registration with local account creation"""
+    
+    # Generate CSRF token for template
+    csrf_token = ''
+    if CSRF_AVAILABLE:
+        try:
+            from flask_wtf.csrf import generate_csrf
+            csrf_token = generate_csrf()
+            print(f"✅ Registration CSRF token generated: {csrf_token[:10]}...")
+        except Exception as e:
+            print(f"⚠️ CSRF token generation failed in register: {e}")
+    
+    if request.method == 'POST':
+        full_name = request.form.get('full_name', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
+        agree_terms = request.form.get('agree_terms')
+        
+        # Validation
+        if not all([full_name, email, password, confirm_password]):
+            flash('All fields are required.', 'error')
+            return render_template('auth/register.html', csrf_token=csrf_token)
+        
+        if len(full_name) < 2:
+            flash('Full name must be at least 2 characters long.', 'error')
+            return render_template('auth/register.html', csrf_token=csrf_token)
+        
+        if '@' not in email or '.' not in email:
+            flash('Please provide a valid email address.', 'error')
+            return render_template('auth/register.html', csrf_token=csrf_token)
+        
+        if len(password) < 8:
+            flash('Password must be at least 8 characters long.', 'error')
+            return render_template('auth/register.html', csrf_token=csrf_token)
+        
+        if password != confirm_password:
+            flash('Passwords do not match.', 'error')
+            return render_template('auth/register.html', csrf_token=csrf_token)
+        
+        if not agree_terms:
+            flash('You must agree to the terms and conditions.', 'error')
+            return render_template('auth/register.html', csrf_token=csrf_token)
+        
+        # Password strength validation
+        import re
+        if not (re.search(r'[A-Z]', password) and re.search(r'[a-z]', password) and 
+                re.search(r'\d', password) and len(password) >= 8):
+            flash('Password must contain at least: 1 uppercase letter, 1 lowercase letter, 1 number, and be 8+ characters.', 'error')
+            return render_template('auth/register.html', csrf_token=csrf_token)
+        
+        # Check if user already exists
+        if db and User:
+            try:
+                existing_user = User.query.filter_by(email=email).first()
+                if existing_user:
+                    flash('An account with this email already exists. Please login or use forgot password.', 'error')
+                    return render_template('auth/register.html', csrf_token=csrf_token)
+                
+                # Create new user
+                new_user = User(
+                    email=email,
+                    username=email.split('@')[0],  # Use email prefix as username
+                    full_name=full_name,
+                    role='user',  # Default role
+                    auth_method='local',
+                    is_active=True,
+                    is_verified=False,  # Email verification required
+                    created_at=datetime.utcnow()
+                )
+                
+                # Set password
+                new_user.set_password(password)
+                new_user.last_password_change = datetime.utcnow()
+                
+                # Add to database
+                db.session.add(new_user)
+                db.session.commit()
+                
+                print(f"✅ New local user created: {email}")
+                
+                # Log them in immediately
+                session['user_authenticated'] = True
+                session['user_email'] = email
+                session['user_role'] = 'user'
+                session['auth_method'] = 'local'
+                session['user_password_exists'] = True
+                
+                flash(f'Account created successfully! Welcome, {full_name}!', 'success')
+                return redirect(url_for('homepage'))
+                
+            except Exception as e:
+                db.session.rollback()
+                print(f"❌ Registration failed: {e}")
+                flash('Registration failed due to a system error. Please try again.', 'error')
+                return render_template('auth/register.html', csrf_token=csrf_token)
+        else:
+            flash('Registration system is not available. Please contact support.', 'error')
+            return render_template('auth/register.html', csrf_token=csrf_token)
+    
+    # GET request - show registration form
+    return render_template('auth/register.html', csrf_token=csrf_token)
+
+@auth_bp.route('/send-verification-email')
+def send_verification_email():
+    """Send email verification for local users"""
+    if not session.get('user_authenticated', False):
+        flash('Please log in first.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    user_email = session.get('user_email')
+    if not user_email:
+        flash('Invalid session. Please log in again.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Check if user exists and is local user
+    if db and User:
+        try:
+            user = User.query.filter_by(email=user_email).first()
+            if not user:
+                flash('User not found.', 'error')
+                return redirect(url_for('auth.profile'))
+            
+            if user.auth_method != 'local':
+                flash('Email verification is only available for local accounts.', 'info')
+                return redirect(url_for('auth.profile'))
+            
+            if user.is_verified:
+                flash('Your email is already verified.', 'info')
+                return redirect(url_for('auth.profile'))
+            
+            # Generate verification token
+            import secrets
+            verification_token = secrets.token_urlsafe(32)
+            
+            # Store token temporarily in session (in production, use database)
+            session[f'verification_token_{user_email}'] = verification_token
+            session[f'verification_token_expiry_{user_email}'] = time.time() + 3600  # 1 hour
+            
+            # Generate verification link
+            verification_link = url_for('auth.verify_email', token=verification_token, _external=True)
+            
+            # Send verification email (placeholder for now)
+            try:
+                # In a real implementation, send email here
+                print(f"📧 Email verification link for {user_email}: {verification_link}")
+                flash('Verification email sent! Check your inbox and click the verification link.', 'success')
+                
+                # For demo purposes, show the link in the flash message
+                flash(f'Demo: Click this link to verify - <a href="{verification_link}" style="color: #2E4C92; text-decoration: underline;">Verify Email</a>', 'info')
+                
+            except Exception as e:
+                print(f"⚠️ Email sending failed: {e}")
+                flash('Failed to send verification email. Please try again later.', 'error')
+            
+        except Exception as e:
+            print(f"⚠️ Verification email error: {e}")
+            flash('System error. Please try again.', 'error')
+    else:
+        flash('Email verification system is not available.', 'error')
+    
+    return redirect(url_for('auth.profile'))
+
+@auth_bp.route('/verify-email/<token>')
+def verify_email(token):
+    """Verify email address with token"""
+    if not token:
+        flash('Invalid verification link.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Find user by verification token
+    user_email = None
+    for key in session.keys():
+        if key.startswith('verification_token_') and session.get(key) == token:
+            user_email = key.replace('verification_token_', '')
+            expiry_key = f'verification_token_expiry_{user_email}'
+            
+            # Check if token is expired
+            expiry_time = session.get(expiry_key, 0)
+            if expiry_time < time.time():
+                flash('Verification link has expired. Please request a new one.', 'error')
+                return redirect(url_for('auth.profile'))
+            
+            break
+    
+    if not user_email:
+        flash('Invalid or expired verification link.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Update user verification status
+    if db and User:
+        try:
+            user = User.query.filter_by(email=user_email).first()
+            if user:
+                user.is_verified = True
+                user.email_verified = True
+                db.session.commit()
+                
+                # Clear verification token
+                session.pop(f'verification_token_{user_email}', None)
+                session.pop(f'verification_token_expiry_{user_email}', None)
+                
+                # Log user in if not already
+                session['user_authenticated'] = True
+                session['user_email'] = user_email
+                session['user_role'] = user.role
+                session['auth_method'] = 'local'
+                
+                flash('Email verified successfully! Your account is now fully activated.', 'success')
+                return redirect(url_for('auth.profile'))
+            else:
+                flash('User not found.', 'error')
+        except Exception as e:
+            print(f"⚠️ Email verification error: {e}")
+            flash('Verification failed. Please try again.', 'error')
+    else:
+        flash('Email verification system is not available.', 'error')
+    
     return redirect(url_for('auth.login'))
 
 @auth_bp.route('/forgot-password', methods=['GET', 'POST'])

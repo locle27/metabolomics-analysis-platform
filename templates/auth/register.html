@@ -377,15 +377,18 @@
 
             <!-- Registration Form -->
             <form action="{{ url_for('auth.register') }}" method="POST" id="registerForm">
+                {% if csrf_token %}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                {% endif %}
                 <div class="form-group">
                     <i class="fas fa-user input-icon"></i>
                     <input type="text" 
-                           name="username" 
+                           name="full_name" 
                            class="form-input" 
-                           placeholder="Tên đăng nhập (tối thiểu 3 ký tự)" 
+                           placeholder="Họ và tên đầy đủ" 
                            required 
-                           minlength="3"
-                           value="{{ request.form.username if request.form else '' }}">
+                           minlength="2"
+                           value="{{ request.form.full_name if request.form else '' }}">
                 </div>
 
                 <div class="form-group">
@@ -393,7 +396,7 @@
                     <input type="email" 
                            name="email" 
                            class="form-input" 
-                           placeholder="Địa chỉ email" 
+                           placeholder="Địa chỉ email (sẽ dùng để đăng nhập)" 
                            required
                            value="{{ request.form.email if request.form else '' }}">
                 </div>
@@ -435,6 +438,22 @@
                     Tạo Tài Khoản
                 </button>
             </form>
+
+            <!-- OAuth Registration -->
+            <div style="text-align: center; margin: 25px 0;">
+                <div style="position: relative; margin: 20px 0;">
+                    <div style="height: 1px; background: linear-gradient(to right, transparent, #E5E7EB, transparent);"></div>
+                    <span style="position: absolute; top: -8px; left: 50%; transform: translateX(-50%); background: rgba(255, 255, 255, 0.98); padding: 0 20px; color: #6B7280; font-size: 14px;">Hoặc đăng ký với</span>
+                </div>
+                
+                <a href="{{ url_for('auth.oauth_login') }}" 
+                   style="display: inline-flex; align-items: center; gap: 12px; padding: 14px 20px; border: 2px solid #4285f4; border-radius: 12px; background: #4285f4; color: white; text-decoration: none; font-weight: 500; transition: all 0.3s ease; margin-bottom: 15px;"
+                   onmouseover="this.style.background='#3367d6'; this.style.transform='translateY(-1px)'"
+                   onmouseout="this.style.background='#4285f4'; this.style.transform='translateY(0)'">
+                    <i class="fab fa-google"></i>
+                    <span>Đăng ký với Google</span>
+                </a>
+            </div>
 
             <!-- Login Link -->
             <div class="login-link">

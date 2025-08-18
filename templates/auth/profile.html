@@ -110,79 +110,55 @@
 
 
                             <!-- Submit Button -->
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-primary btn-lg">
+                            <div class="text-end">
+                                <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-save me-2"></i>
-                                    Update Profile
+                                    Save Changes
                                 </button>
                             </div>
                         </form>
                         
                         <!-- Password Setting Section for OAuth Users -->
-                        <div class="auth-card mt-4">
-                            <div class="auth-header">
-                                <h3 class="mb-3">
-                                    <i class="fas fa-key text-warning me-2"></i>
-                                    Password Settings
-                                </h3>
-                                <p class="text-muted">Manage your password for secure access to this platform.</p>
-                            </div>
+                        <hr class="my-4">
+                        <div class="mb-4">
+                            <h5 class="mb-3">
+                                <i class="fas fa-key text-primary me-2"></i>
+                                Password Settings
+                            </h5>
                             
-                            <div class="password-status-info">
-                                <div class="row align-items-center">
-                                    <div class="col-md-8">
-                                        <div class="d-flex align-items-center mb-3">
-                                            <div class="password-status-icon me-3">
+                            <div class="card border-0 bg-light">
+                                <div class="card-body py-3">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-8">
+                                            <div class="d-flex align-items-center">
                                                 {% if current_user.password_hash %}
-                                                <i class="fas fa-check-circle text-success" style="font-size: 24px;"></i>
+                                                <i class="fas fa-check-circle text-success me-3"></i>
+                                                <div>
+                                                    <h6 class="mb-1">Local Password Active</h6>
+                                                    <small class="text-muted">You can login with email/password or {{ current_user.auth_method.title() }}</small>
+                                                </div>
                                                 {% else %}
-                                                <i class="fas fa-times-circle text-warning" style="font-size: 24px;"></i>
+                                                <i class="fas fa-info-circle text-warning me-3"></i>
+                                                <div>
+                                                    <h6 class="mb-1">No Local Password</h6>
+                                                    <small class="text-muted">Currently using {{ current_user.auth_method.title() }} authentication only</small>
+                                                </div>
                                                 {% endif %}
                                             </div>
-                                            <div>
-                                                <h5 class="mb-1">
-                                                    {% if current_user.password_hash %}
-                                                    <span class="text-success">Password Set</span>
-                                                    {% else %}
-                                                    <span class="text-warning">No Password</span>
-                                                    {% endif %}
-                                                </h5>
-                                                <p class="text-muted mb-0">
-                                                    {% if current_user.password_hash %}
-                                                    You can login with your email and password, or continue using {{ current_user.auth_method.title() }} authentication.
-                                                    {% else %}
-                                                    You currently rely on {{ current_user.auth_method.title() }} for authentication. Setting a password provides an additional login method.
-                                                    {% endif %}
-                                                </p>
-                                            </div>
                                         </div>
-                                        
-                                        {% if current_user.password_hash %}
-                                        <div class="password-details">
-                                            <small class="text-muted">
-                                                <i class="fas fa-info-circle me-1"></i>
-                                                <strong>Password Strength:</strong> Strong (meets all requirements)<br>
-                                                <strong>Last Updated:</strong> {{ current_user.last_password_change.strftime('%B %d, %Y') if current_user.last_password_change else 'Unknown' }}
-                                            </small>
+                                        <div class="col-md-4 text-md-end">
+                                            {% if current_user.password_hash %}
+                                            <a href="{{ url_for('auth.update_password') }}" class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-edit me-1"></i>
+                                                Change
+                                            </a>
+                                            {% else %}
+                                            <a href="{{ url_for('auth.update_password') }}" class="btn btn-success btn-sm">
+                                                <i class="fas fa-plus me-1"></i>
+                                                Create Password
+                                            </a>
+                                            {% endif %}
                                         </div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-md-4 text-md-end">
-                                        {% if current_user.password_hash %}
-                                        <a href="{{ url_for('auth.update_password') }}" class="btn btn-warning btn-lg d-block mb-2">
-                                            <i class="fas fa-edit me-2"></i>
-                                            Change Password
-                                        </a>
-                                        {% else %}
-                                        <a href="{{ url_for('auth.update_password') }}" class="btn btn-success btn-lg d-block mb-2">
-                                            <i class="fas fa-plus me-2"></i>
-                                            Create Password
-                                        </a>
-                                        {% endif %}
-                                        <a href="{{ url_for('auth.password_settings') }}" class="btn btn-outline-primary btn-sm d-block">
-                                            <i class="fas fa-cog me-2"></i>
-                                            Advanced Settings
-                                        </a>
                                     </div>
                                 </div>
                             </div>
@@ -205,70 +181,95 @@
 
                             <!-- Email Field -->
                             <div class="form-group mb-4">
-                                <label for="email" class="form-label">Email Address</label>
+                                <label for="email" class="form-label">
+                                    <i class="fas fa-envelope me-2"></i>
+                                    Email Address (Login Username)
+                                </label>
                                 <input type="email" 
                                        class="form-control" 
                                        id="email" 
                                        name="email" 
                                        value="{{ current_user.email }}">
-                                <small class="form-text text-muted">
-                                    Changing your email will require re-verification
+                                <small class="form-text text-warning">
+                                    <strong><i class="fas fa-key me-1"></i>This is your login username.</strong>
+                                    Changing your email will require re-verification and update your login credentials.
                                 </small>
                             </div>
 
                             <!-- Submit Button -->
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-primary btn-lg">
+                            <div class="text-end">
+                                <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-save me-2"></i>
-                                    Update Profile
+                                    Save Changes
                                 </button>
                             </div>
                         </form>
                         
-                        <!-- Password Setting Section for Local Users -->
-                        <div class="auth-card mt-4">
-                            <div class="auth-header">
-                                <h3 class="mb-3">
-                                    <i class="fas fa-key text-warning me-2"></i>
-                                    Password Settings
-                                </h3>
-                                <p class="text-muted">Manage your account password for secure access.</p>
-                            </div>
+                        <!-- Password & Security Section for Local Users -->
+                        <hr class="my-4">
+                        <div class="mb-4">
+                            <h5 class="mb-3">
+                                <i class="fas fa-shield-alt text-primary me-2"></i>
+                                Security Settings
+                            </h5>
                             
-                            <div class="password-status-info">
-                                <div class="row align-items-center">
-                                    <div class="col-md-8">
-                                        <div class="d-flex align-items-center mb-3">
-                                            <div class="password-status-icon me-3">
-                                                <i class="fas fa-check-circle text-success" style="font-size: 24px;"></i>
-                                            </div>
-                                            <div>
-                                                <h5 class="mb-1">
-                                                    <span class="text-success">Password Active</span>
-                                                </h5>
-                                                <p class="text-muted mb-0">
-                                                    Your account uses local password authentication for secure access.
-                                                </p>
+                            <!-- Password Status -->
+                            <div class="card border-0 bg-light mb-3">
+                                <div class="card-body py-3">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-8">
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-check-circle text-success me-3"></i>
+                                                <div>
+                                                    <h6 class="mb-1">Password Protected</h6>
+                                                    <small class="text-muted">Local account with secure password authentication</small>
+                                                </div>
                                             </div>
                                         </div>
-                                        
-                                        <div class="password-details">
-                                            <small class="text-muted">
-                                                <i class="fas fa-info-circle me-1"></i>
-                                                <strong>Password Strength:</strong> Strong (meets all requirements)<br>
-                                                <strong>Last Updated:</strong> {{ current_user.last_password_change.strftime('%B %d, %Y') if current_user.last_password_change else 'Unknown' }}
-                                            </small>
+                                        <div class="col-md-4 text-md-end">
+                                            <a href="{{ url_for('auth.update_password') }}" class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-edit me-1"></i>
+                                                Change
+                                            </a>
                                         </div>
                                     </div>
-                                    <div class="col-md-4 text-md-end">
-                                        <a href="{{ url_for('auth.update_password') }}" class="btn btn-warning btn-lg d-block mb-2">
-                                            <i class="fas fa-edit me-2"></i>
-                                            Change Password
-                                        </a>
-                                        <a href="{{ url_for('auth.password_settings') }}" class="btn btn-outline-primary btn-sm d-block">
-                                            <i class="fas fa-cog me-2"></i>
-                                            Advanced Settings
-                                        </a>
+                                </div>
+                            </div>
+
+                            <!-- Email Verification Status -->
+                            <div class="card border-0 bg-light">
+                                <div class="card-body py-3">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-8">
+                                            <div class="d-flex align-items-center">
+                                                {% if current_user.email_verified %}
+                                                <i class="fas fa-check-circle text-success me-3"></i>
+                                                <div>
+                                                    <h6 class="mb-1">Email Verified</h6>
+                                                    <small class="text-muted">Your email address is confirmed and secure</small>
+                                                </div>
+                                                {% else %}
+                                                <i class="fas fa-exclamation-triangle text-warning me-3"></i>
+                                                <div>
+                                                    <h6 class="mb-1">Email Not Verified</h6>
+                                                    <small class="text-muted">Please verify your email for enhanced security</small>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 text-md-end">
+                                            {% if not current_user.email_verified %}
+                                            <a href="{{ url_for('auth.send_verification_email') }}" class="btn btn-warning btn-sm">
+                                                <i class="fas fa-envelope me-1"></i>
+                                                Verify Email
+                                            </a>
+                                            {% else %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check me-1"></i>
+                                                Verified
+                                            </span>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
