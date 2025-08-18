@@ -108,28 +108,43 @@ app.config.update({
     'PERMANENT_SESSION_LIFETIME': 3600,  # 1 hour
 })
 
-# Initialize CSRF protection with OAuth route exemptions
-if CSRF_AVAILABLE:
+# NUCLEAR OPTION: Completely disable CSRF protection
+if False and CSRF_AVAILABLE:  # Disabled for debugging
     csrf.init_app(app)
     
-    # Completely disable CSRF for password-related routes
-    @csrf.exempt  
-    def disable_csrf_for_passwords():
-        pass
+    # Define routes that should never have CSRF protection
+    CSRF_EXEMPT_ROUTES = [
+        'login_authorized', 'auth.oauth_authorized', 'oauth_login', 
+        'auth.update_password', 'auth.password_settings', 'auth.remove_password',
+        'auth.set_oauth_password'
+    ]
     
-    # Exempt OAuth endpoints from CSRF protection  
+    CSRF_EXEMPT_PATHS = [
+        '/auth/update-password', '/auth/password-settings', '/update-password',
+        '/auth/remove-password', '/auth/set-oauth-password', '/callback', '/authorized'
+    ]
+    
     @app.before_request
-    def exempt_oauth_from_csrf():
-        oauth_endpoints = ['login_authorized', 'auth.oauth_authorized', 'oauth_login', 'auth.update_password', 'auth.password_settings']
-        password_paths = ['/auth/update-password', '/auth/password-settings', '/update-password']
-        
-        if (request.endpoint in oauth_endpoints or 
-            '/callback' in request.path or 
-            '/authorized' in request.path or
-            any(path in request.path for path in password_paths)):
-            return None  # Skip CSRF protection entirely
+    def disable_csrf_for_exempted_routes():
+        """Completely disable CSRF for specific routes"""
+        try:
+            # Check endpoint
+            if request.endpoint in CSRF_EXEMPT_ROUTES:
+                print(f"🔓 CSRF disabled for endpoint: {request.endpoint}")
+                return None
+            
+            # Check path
+            for path in CSRF_EXEMPT_PATHS:
+                if path in request.path:
+                    print(f"🔓 CSRF disabled for path: {request.path}")
+                    return None
+                    
+        except Exception as e:
+            print(f"⚠️ CSRF exemption error: {e}")
     
-    print("✅ CSRF protection initialized with password route exemptions")
+    print("✅ CSRF protection with complete password route exemption")
+else:
+    print("🚫 CSRF protection COMPLETELY DISABLED for debugging")
 
 # Apply proxy fix if available
 if PROXY_FIX_AVAILABLE:
@@ -900,58 +915,86 @@ def password_settings():
 
 @auth_bp.route('/update-password', methods=['POST'])
 def update_password():
-    """Update user password - CSRF exempt"""
-    # Manually exempt from CSRF for this route
-    if CSRF_AVAILABLE:
-        csrf.exempt(update_password)
-    if not session.get('user_authenticated', False):
-        flash('Please log in to update your password.', 'error')
-        return redirect(url_for('auth.login'))
+    """Update user password - CSRF exempt with debugging"""
+    print(f"🔍 Password update route accessed: {request.method}")
+    print(f"🔍 Request endpoint: {request.endpoint}")
+    print(f"🔍 Request path: {request.path}")
+    print(f"🔍 Form data keys: {list(request.form.keys())}")
     
-    current_password = request.form.get('current_password', '')
-    new_password = request.form.get('new_password', '')
-    confirm_password = request.form.get('confirm_password', '')
+    try:
+        if not session.get('user_authenticated', False):
+            print("❌ User not authenticated")
+            flash('Please log in to update your password.', 'error')
+            return redirect(url_for('auth.login'))
+    except Exception as e:
+        print(f"❌ Authentication check error: {e}")
+        return jsonify({"error": "Authentication check failed", "details": str(e)}), 500
+    try:
+        current_password = request.form.get('current_password', '')
+        new_password = request.form.get('new_password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        
+        user_email = session.get('user_email', '')
+        print(f"🔍 Processing password update for: {user_email}")
+        
+        # Validation
+        if not new_password or not confirm_password:
+            print("❌ Missing required fields")
+            flash('Please fill in all required fields.', 'error')
+            return redirect(url_for('auth.password_settings'))
+        
+        if new_password != confirm_password:
+            print("❌ Passwords don't match")
+            flash('New password and confirmation do not match.', 'error')
+            return redirect(url_for('auth.password_settings'))
+        
+        if len(new_password) < 8:
+            print("❌ Password too short")
+            flash('Password must be at least 8 characters long.', 'error')
+            return redirect(url_for('auth.password_settings'))
+        
+        print("✅ Password validation passed")
+    except Exception as e:
+        print(f"❌ Password validation error: {e}")
+        return jsonify({"error": "Password validation failed", "details": str(e)}), 400
     
-    user_email = session.get('user_email', '')
-    
-    # Validation
-    if not new_password or not confirm_password:
-        flash('Please fill in all required fields.', 'error')
+    # Update password in database  
+    try:
+        if not (db and User):
+            print("❌ Database or User model not available")
+            return jsonify({"error": "Database service unavailable"}), 500
+            
+        user = User.query.filter_by(email=user_email).first()
+        if not user:
+            print(f"❌ User not found: {user_email}")
+            flash('User not found in database.', 'error')
+            return redirect(url_for('auth.password_settings'))
+        
+        print(f"✅ Found user: {user.email}")
+        
+        # Check current password if user already has one
+        if user.password_hash and current_password:
+            print("🔍 Checking current password")
+            if not user.check_password(current_password):
+                print("❌ Current password incorrect")
+                flash('Current password is incorrect.', 'error')
+                return redirect(url_for('auth.password_settings'))
+            print("✅ Current password verified")
+        
+        # Update password using proper hashing
+        print("🔍 Setting new password")
+        user.set_password(new_password)
+        db.session.commit()
+        print("✅ Password updated and committed to database")
+        
+        flash('Password updated successfully!', 'success')
         return redirect(url_for('auth.password_settings'))
-    
-    if new_password != confirm_password:
-        flash('New password and confirmation do not match.', 'error')
+        
+    except Exception as e:
+        print(f"❌ Database error: {e}")
+        db.session.rollback()  # Rollback on error
+        flash('Error updating password. Please try again.', 'error')
         return redirect(url_for('auth.password_settings'))
-    
-    if len(new_password) < 8:
-        flash('Password must be at least 8 characters long.', 'error')
-        return redirect(url_for('auth.password_settings'))
-    
-    # Update password in database
-    if db and User:
-        try:
-            user = User.query.filter_by(email=user_email).first()
-            if user:
-                # Check current password if user already has one
-                if user.password_hash and current_password:
-                    # Use proper password verification
-                    if not user.check_password(current_password):
-                        flash('Current password is incorrect.', 'error')
-                        return redirect(url_for('auth.password_settings'))
-                
-                # Update password using proper hashing
-                user.set_password(new_password)  # Uses proper password hashing
-                db.session.commit()
-                flash('Password updated successfully!', 'success')
-            else:
-                flash('User not found in database.', 'error')
-        except Exception as e:
-            print(f"⚠️ Password update error: {e}")
-            flash('Error updating password. Please try again.', 'error')
-    else:
-        flash('Password update service not available.', 'error')
-    
-    return redirect(url_for('auth.password_settings'))
 
 @auth_bp.route('/remove-password', methods=['POST'])
 def remove_password():
