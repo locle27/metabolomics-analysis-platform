@@ -82,6 +82,15 @@ except:
     MAIL_AVAILABLE = False
     print("⚠️ Flask-Mail unavailable")
 
+try:
+    from flask_wtf.csrf import CSRFProtect
+    csrf = CSRFProtect()
+    CSRF_AVAILABLE = True
+    print("✅ CSRF protection available")
+except:
+    CSRF_AVAILABLE = False
+    print("⚠️ CSRF protection unavailable")
+
 # === FLASK APP CONFIGURATION ===
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -98,6 +107,11 @@ app.config.update({
     'SESSION_COOKIE_SAMESITE': 'Lax',
     'PERMANENT_SESSION_LIFETIME': 3600,  # 1 hour
 })
+
+# Initialize CSRF protection
+if CSRF_AVAILABLE:
+    csrf.init_app(app)
+    print("✅ CSRF protection initialized")
 
 # Apply proxy fix if available
 if PROXY_FIX_AVAILABLE:
@@ -512,6 +526,94 @@ def logout():
     flash('Logged out successfully.', 'success')
     return redirect(url_for('homepage'))
 
+@auth_bp.route('/oauth-login')
+def oauth_login():
+    """Initiate OAuth login with Google"""
+    if not google:
+        flash('OAuth service is not available.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    redirect_uri = url_for('auth.oauth_authorized', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+@auth_bp.route('/authorized')
+def oauth_authorized():
+    """Handle OAuth callback from Google"""
+    if not google:
+        flash('OAuth service is not available.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    try:
+        token = google.authorize_access_token()
+        if not token:
+            flash('Authorization failed. Please try again.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        # Get user info from Google
+        user_info = token.get('userinfo')
+        if not user_info:
+            # Try to get userinfo from the token
+            resp = google.parse_id_token(token)
+            user_info = resp
+        
+        if not user_info or not user_info.get('email'):
+            flash('Failed to get user information from Google.', 'error')
+            return redirect(url_for('auth.login'))
+        
+        # Check if user exists or create new user
+        user_email = user_info.get('email').lower()
+        user_name = user_info.get('name', user_email.split('@')[0])
+        
+        if db and User:
+            try:
+                user = User.query.filter_by(email=user_email).first()
+                if not user:
+                    # Create new OAuth user
+                    user = User(
+                        email=user_email,
+                        full_name=user_name,
+                        role='user',
+                        auth_method='oauth',
+                        is_verified=True
+                    )
+                    db.session.add(user)
+                    db.session.commit()
+                    flash(f'Welcome {user_name}! Your account has been created.', 'success')
+                else:
+                    # Update existing user
+                    if not user.full_name:
+                        user.full_name = user_name
+                    if user.auth_method not in ['oauth', 'dual']:
+                        user.auth_method = 'oauth'
+                    user.last_login = datetime.now()
+                    db.session.commit()
+                    flash(f'Welcome back, {user.full_name}!', 'success')
+                
+                # Set session
+                session['user_authenticated'] = True
+                session['user_email'] = user.email
+                session['user_role'] = user.role
+                session['auth_method'] = 'oauth'
+                
+            except Exception as db_error:
+                print(f"⚠️ OAuth database error: {db_error}")
+                flash('Database error during login. Please try again.', 'error')
+                return redirect(url_for('auth.login'))
+        else:
+            # Fallback session without database
+            session['user_authenticated'] = True
+            session['user_email'] = user_email
+            session['user_role'] = 'user'
+            session['auth_method'] = 'oauth'
+            flash(f'Welcome, {user_name}!', 'success')
+        
+        return redirect(url_for('homepage'))
+        
+    except Exception as e:
+        print(f"⚠️ OAuth error: {e}")
+        flash('Login failed. Please try again.', 'error')
+        return redirect(url_for('auth.login'))
+
 @auth_bp.route('/register')
 def register():
     """Registration page placeholder"""
@@ -851,6 +953,55 @@ def remove_password():
         flash('Password removal service not available.', 'error')
     
     return redirect(url_for('auth.password_settings'))
+
+@auth_bp.route('/set-oauth-password', methods=['POST'])
+def set_oauth_password():
+    """Allow OAuth users to set a local password"""
+    if not session.get('user_authenticated', False):
+        flash('Please log in to set a password.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    new_password = request.form.get('new_password', '').strip()
+    confirm_password = request.form.get('confirm_password', '').strip()
+    
+    # Validation
+    if not new_password or not confirm_password:
+        flash('Both password fields are required.', 'error')
+        return redirect(url_for('auth.profile'))
+    
+    if new_password != confirm_password:
+        flash('Passwords do not match.', 'error')
+        return redirect(url_for('auth.profile'))
+    
+    if len(new_password) < 8:
+        flash('Password must be at least 8 characters long.', 'error')
+        return redirect(url_for('auth.profile'))
+    
+    user_email = session.get('user_email', '')
+    
+    # Set password in database
+    if db and User:
+        try:
+            user = User.query.filter_by(email=user_email).first()
+            if user:
+                # Hash and set password
+                user.set_password(new_password)
+                user.auth_method = 'dual'  # Now supports both OAuth and password
+                db.session.commit()
+                
+                # Update session
+                session['auth_method'] = 'dual'
+                
+                flash('Password set successfully! You can now login with either Google or your password.', 'success')
+            else:
+                flash('User not found in database.', 'error')
+        except Exception as e:
+            print(f"⚠️ Set OAuth password error: {e}")
+            flash('Error setting password. Please try again.', 'error')
+    else:
+        flash('Password setting service not available.', 'error')
+    
+    return redirect(url_for('auth.profile'))
 
 @auth_bp.route('/change-password')
 def change_password():

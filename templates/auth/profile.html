@@ -124,7 +124,7 @@
                             </div>
                             
                             <form method="POST" action="{{ url_for('auth.update_password') }}" class="auth-form">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                {{ csrf_token() }}
                                 
                                 <!-- New Password Field -->
                                 <div class="form-group mb-3">

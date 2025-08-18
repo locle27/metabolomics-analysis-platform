@@ -515,11 +515,11 @@
                 <span>Hoặc đăng nhập</span>
             </div>
 
-            <!-- Google OAuth Login (Temporarily Disabled) -->
-            <div class="secondary-button" style="background: #ccc; color: #666; border-color: #ccc; cursor: not-allowed;">
-                <i class="fab fa-google" style="color: #666;"></i>
-                <span>OAuth Login (Coming Soon)</span>
-            </div>
+            <!-- Google OAuth Login -->
+            <a href="{{ url_for('auth.oauth_login') }}" class="secondary-button" style="background: #4285f4; color: white; border-color: #4285f4;">
+                <i class="fab fa-google" style="color: white;"></i>
+                <span>Đăng nhập với Google</span>
+            </a>
 
             <!-- Registration Option -->
             <a href="{{ url_for('auth.register') }}" class="secondary-button register-button">
