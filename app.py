@@ -3051,6 +3051,11 @@ def ping():
     """Simple ping endpoint for Railway health checks"""
     return "pong", 200
 
+@app.route('/health')
+def health():
+    """Railway health check endpoint"""
+    return {"status": "healthy", "timestamp": datetime.now().isoformat()}, 200
+
 @app.route('/status')
 def status():
     """Railway deployment status check"""
