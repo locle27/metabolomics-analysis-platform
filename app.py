@@ -22,15 +22,8 @@ try:
 except ImportError:
     print("ℹ️ python-dotenv not available, using system environment variables")
 
-import time
-startup_time = time.time()
-
 print("🚀 BULLETPROOF METABOLOMICS PLATFORM STARTING")
-print(f"🐍 Python: {sys.version}")
-print(f"📁 Directory: {os.getcwd()}")
-print(f"🔑 SECRET_KEY loaded: {'Yes' if os.getenv('SECRET_KEY') else 'No (using default)'}")
 print(f"📡 Port: {os.getenv('PORT', '5000')}")
-print(f"⏱️ Startup time: {time.time()}")
 print("=" * 60)
 
 # === BULLETPROOF IMPORTS ===
@@ -560,35 +553,24 @@ if PROXY_FIX_AVAILABLE:
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1, x_for=1)
     print("✅ Railway proxy configured")
 
-# Session persistence fix for production
+# Session persistence fix for production  
 @app.before_request
 def fix_session_persistence():
     """Fix session persistence issues in production"""
-    # Skip all debugging for health check routes to avoid performance issues
-    if request.endpoint in ['ping', 'health', 'status']:
+    # Skip all processing for health check routes
+    if request.endpoint in ['ping', 'health', 'status', 'healthz']:
         return
     
-    # Make sessions permanent to prevent loss
-    session.permanent = True
-    
-    # Minimal debugging - only for critical auth issues
-    if (request.endpoint and 'auth.' in str(request.endpoint) and 
-        not session.get('user_authenticated') and len(session.keys()) == 0):
-        print(f"⚠️ Empty session on critical auth route: {request.endpoint}")
-        return
+    # Only make sessions permanent for non-health routes
+    if session:
+        session.permanent = True
 
-@app.after_request
+@app.after_request  
 def after_request(response):
-    """Ensure session cookies are set properly"""
-    # Skip processing for health check routes
-    if request.endpoint in ['ping', 'health', 'status']:
+    """Minimal session processing"""
+    # Skip all processing for health check routes
+    if request.endpoint in ['ping', 'health', 'status', 'healthz']:
         return response
-    
-    # Add cache control only for auth pages
-    if request.endpoint and 'auth' in str(request.endpoint):
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
     
     return response
 
@@ -3038,13 +3020,8 @@ def stop_change_tracking():
 # APPLICATION STARTUP
 # =====================================================
 
-print(f"⏱️ App initialization complete at {time.time() - startup_time:.2f}s")
-print("🎯 ORIGINAL INTERFACE METABOLOMICS PLATFORM READY")
-print("   All original features, navigation, and styling preserved")
-print("   SQLAlchemy initialization fixed for bulletproof deployment")
-print("🤖 Automated change tracking system integrated")
-print(f"💚 Health endpoint available at /health")
-print(f"🔧 Debug endpoint available at /session-test")
+print("🎯 METABOLOMICS PLATFORM READY")
+print("💚 Health endpoints: /health, /healthz, /ping")
 
 @app.route('/ping')
 def ping():
@@ -3071,51 +3048,7 @@ def status():
     except:
         return "ok", 200
 
-@app.route('/session-test')
-def session_test():
-    """Test session persistence - CRITICAL DEBUG TOOL"""
-    visit_count = session.get('visit_count', 0) + 1
-    session['visit_count'] = visit_count
-    session['last_visit'] = datetime.now().isoformat()
-    session['test_data'] = 'Session is working!'
-    
-    debug_info = f"""
-    <style>
-        body {{ font-family: Arial, sans-serif; margin: 40px; }}
-        .debug {{ background: #f0f0f0; padding: 20px; border-radius: 5px; margin: 10px 0; }}
-        .success {{ background: #d4edda; border: 1px solid #c3e6cb; }}
-        .warning {{ background: #fff3cd; border: 1px solid #ffeaa7; }}
-    </style>
-    <h1>🔬 Session Persistence Test</h1>
-    
-    <div class="debug success">
-        <h3>Session Data</h3>
-        <p><strong>Visit count:</strong> {visit_count}</p>
-        <p><strong>Last visit:</strong> {session.get('last_visit')}</p>
-        <p><strong>Session permanent:</strong> {session.permanent}</p>
-        <p><strong>Session keys:</strong> {list(session.keys())}</p>
-        <p><strong>Session ID:</strong> {id(session)}</p>
-    </div>
-    
-    <div class="debug warning">
-        <h3>Configuration</h3>
-        <p><strong>Cookie name:</strong> {app.config.get('SESSION_COOKIE_NAME')}</p>
-        <p><strong>Secret key length:</strong> {len(app.secret_key) if app.secret_key else 0}</p>
-        <p><strong>SECRET_KEY from env:</strong> {bool(os.getenv('SECRET_KEY'))}</p>
-        <p><strong>Session lifetime:</strong> {app.config.get('PERMANENT_SESSION_LIFETIME')}</p>
-    </div>
-    
-    <p><a href="/session-test" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">🔄 Refresh Test</a></p>
-    <p><a href="/" style="background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">🏠 Back to Home</a></p>
-    
-    <div class="debug">
-        <h3>Instructions</h3>
-        <p>If the visit count increases each time you refresh, sessions are working correctly.</p>
-        <p>If it stays at 1, there's a session persistence issue.</p>
-    </div>
-    """
-    
-    return debug_info
+# Session test route defined earlier in file
 
 @app.errorhandler(404)
 def not_found(error):
@@ -3140,10 +3073,9 @@ if __name__ == '__main__':
         sys.exit(1)
 else:
     port = int(os.getenv('PORT', 8080))
-    print(f"🚀 Gunicorn deployment on port {port} (startup: {time.time() - startup_time:.2f}s)")
+    print(f"🚀 Gunicorn deployment on port {port}")
     print(f"🌐 Health checks: /health, /healthz, /ping, /status") 
-    print(f"🎯 App will be available at: http://0.0.0.0:{port}")
-    print("✅ App successfully initialized for gunicorn")
+    print("✅ App ready")
 
 # For gunicorn
 application = app
