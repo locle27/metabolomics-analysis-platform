@@ -2278,12 +2278,104 @@ def server_error(error):
         return '<h1>500 - Server Error</h1>', 500
 
 # =====================================================
+# AUTOMATED CHANGE TRACKING SYSTEM
+# =====================================================
+
+try:
+    from automated_change_tracker import get_change_tracker_service, start_monitoring
+    CHANGE_TRACKER_AVAILABLE = True
+    print("✅ Change tracking system loaded")
+except ImportError as e:
+    CHANGE_TRACKER_AVAILABLE = False
+    print(f"⚠️ Change tracker not available: {e}")
+
+@app.route('/change-tracker')
+@admin_required
+def change_tracker_dashboard():
+    """Change tracking dashboard - Admin only"""
+    if not CHANGE_TRACKER_AVAILABLE:
+        flash('Change tracking system not available. Install watchdog: pip install watchdog', 'error')
+        return redirect(url_for('admin_panel'))
+    
+    try:
+        service = get_change_tracker_service()
+        stats = service.get_stats()
+        recent_changes = service.get_recent_changes(24)
+        
+        return render_template('change_tracker.html', 
+                             stats=stats, 
+                             recent_changes=recent_changes,
+                             service_available=True)
+    except Exception as e:
+        flash(f'Error loading change tracker: {e}', 'error')
+        return redirect(url_for('admin_panel'))
+
+@app.route('/api/change-tracker-stats')
+@admin_required
+def api_change_tracker_stats():
+    """API endpoint for change tracker statistics"""
+    if not CHANGE_TRACKER_AVAILABLE:
+        return {"error": "Change tracker not available"}, 404
+    
+    try:
+        service = get_change_tracker_service()
+        stats = service.get_stats()
+        return stats
+    except Exception as e:
+        return {"error": str(e)}, 500
+
+@app.route('/api/recent-changes/<int:hours>')
+@admin_required
+def api_recent_changes(hours):
+    """API endpoint for recent changes"""
+    if not CHANGE_TRACKER_AVAILABLE:
+        return {"error": "Change tracker not available"}, 404
+    
+    try:
+        service = get_change_tracker_service()
+        changes = service.get_recent_changes(hours)
+        return {"changes": changes}
+    except Exception as e:
+        return {"error": str(e)}, 500
+
+@app.route('/start-change-tracking', methods=['POST'])
+@admin_required
+def start_change_tracking():
+    """Start the automated change tracking service"""
+    if not CHANGE_TRACKER_AVAILABLE:
+        return {"status": "error", "message": "Change tracker not available"}, 404
+    
+    try:
+        success = start_monitoring()
+        if success:
+            return {"status": "success", "message": "Change tracking service started"}
+        else:
+            return {"status": "error", "message": "Failed to start change tracking"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}, 500
+
+@app.route('/stop-change-tracking', methods=['POST'])
+@admin_required
+def stop_change_tracking():
+    """Stop the automated change tracking service"""
+    if not CHANGE_TRACKER_AVAILABLE:
+        return {"status": "error", "message": "Change tracker not available"}, 404
+    
+    try:
+        from automated_change_tracker import stop_monitoring
+        stop_monitoring()
+        return {"status": "success", "message": "Change tracking service stopped"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}, 500
+
+# =====================================================
 # APPLICATION STARTUP
 # =====================================================
 
 print("🎯 ORIGINAL INTERFACE METABOLOMICS PLATFORM READY")
 print("   All original features, navigation, and styling preserved")
 print("   SQLAlchemy initialization fixed for bulletproof deployment")
+print("🤖 Automated change tracking system integrated")
 
 @app.route('/ping')
 def ping():
