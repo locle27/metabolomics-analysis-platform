@@ -114,10 +114,10 @@ if CSRF_AVAILABLE:
     
     # Only exempt OAuth callback routes from CSRF protection
     OAUTH_EXEMPT_ROUTES = [
-        'login_authorized', 'auth.oauth_authorized', 'oauth_login', 'auth.update_password'
+        'login_authorized', 'auth.oauth_authorized', 'oauth_login'
     ]
     
-    OAUTH_EXEMPT_PATHS = ['/callback', '/authorized', '/auth/update-password']
+    OAUTH_EXEMPT_PATHS = ['/callback', '/authorized']
     
     @app.before_request
     def disable_csrf_for_oauth_routes():
@@ -936,42 +936,100 @@ def password_settings():
     current_user = EnhancedUser(user_email, user_role, user_name, auth_method)
     return render_template('auth/profile_password.html', current_user=current_user)
 
-@auth_bp.route('/update-password', methods=['POST'])
+@auth_bp.route('/update-password', methods=['GET', 'POST'])
 def update_password():
-    """Update user password with proper CSRF protection"""
+    """Update user password using proper WTForms with CSRF protection"""
+    # Import the form class
+    try:
+        from forms import PasswordUpdateForm
+    except ImportError:
+        print("❌ Forms module not available")
+        flash('System error: Forms not available', 'error')
+        return redirect(url_for('auth.password_settings'))
+    
+    # Check authentication
+    if not session.get('user_authenticated', False):
+        print("❌ User not authenticated")
+        flash('Please log in to update your password.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    user_email = session.get('user_email', '')
+    print(f"🔍 Processing password update for: {user_email}")
+    
+    # Create form instance
+    form = PasswordUpdateForm()
+    
+    # Handle GET request - show form
+    if request.method == 'GET':
+        return render_template('auth/password_form.html', form=form)
+    
+    # Handle POST request - process form
+    if form.validate_on_submit():
+        print("✅ Form validation successful with CSRF")
+        
+        current_password = form.current_password.data
+        new_password = form.new_password.data
+        
+        try:
+            if db and User:
+                user = User.query.filter_by(email=user_email).first()
+                if user:
+                    # Check current password if user has one
+                    if user.password_hash and current_password:
+                        if not user.check_password(current_password):
+                            flash('Current password is incorrect.', 'error')
+                            return render_template('auth/password_form.html', form=form)
+                    elif user.password_hash and not current_password:
+                        flash('Current password is required to change password.', 'error')
+                        return render_template('auth/password_form.html', form=form)
+                    
+                    # Set new password
+                    user.set_password(new_password)
+                    user.last_password_change = datetime.utcnow()
+                    db.session.commit()
+                    
+                    print(f"✅ Password updated successfully for {user_email}")
+                    flash('Password updated successfully!', 'success')
+                    return redirect(url_for('auth.password_settings'))
+                else:
+                    print(f"❌ User not found: {user_email}")
+                    flash('User account not found.', 'error')
+            else:
+                print("❌ Database not available")
+                flash('Database error. Please try again later.', 'error')
+                
+        except Exception as e:
+            print(f"❌ Password update error: {e}")
+            flash(f'Password update failed: {e}', 'error')
+            if db:
+                db.session.rollback()
+    
+    else:
+        # Form validation failed
+        print("❌ Form validation failed")
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f'{field}: {error}', 'error')
+                
+    # Return to password form with errors
+    return render_template('auth/password_form.html', form=form)
+
+# Legacy route redirect
+@auth_bp.route('/update-password-legacy', methods=['POST'])
+def update_password_legacy():
+    """Legacy password update route - redirect to new form-based route"""
+    flash('Please use the updated password form below.', 'info')
+    return redirect(url_for('auth.update_password'))
+    
+# Old implementation for reference
+@auth_bp.route('/update-password-old', methods=['POST'])
+def update_password_old():
+    """OLD VERSION - Update user password with manual form handling"""
     print(f"🔍 Password update route accessed: {request.method}")
     print(f"🔍 Request endpoint: {request.endpoint}")
     print(f"🔍 Request path: {request.path}")
     print(f"🔍 Form data keys: {list(request.form.keys())}")
     print(f"🔍 Has CSRF token: {'csrf_token' in request.form}")
-    
-    # Debug CSRF token value
-    if 'csrf_token' in request.form:
-        csrf_token_value = request.form.get('csrf_token', '')
-        print(f"🔍 CSRF token value (first 10 chars): {csrf_token_value[:10]}...")
-        print(f"🔍 CSRF token length: {len(csrf_token_value)}")
-    else:
-        print("🔍 No CSRF token found in form data")
-        print(f"🔍 Available form fields: {dict(request.form)}")
-    
-    # Check request headers
-    print(f"🔍 Content-Type: {request.content_type}")
-    print(f"🔍 Form method: {request.method}")
-    print(f"🔍 Request referrer: {request.referrer}")
-    
-    # Try manual CSRF validation
-    if CSRF_AVAILABLE:
-        try:
-            from flask_wtf.csrf import validate_csrf
-            csrf_token_value = request.form.get('csrf_token', '')
-            if csrf_token_value:
-                validate_csrf(csrf_token_value)
-                print("✅ Manual CSRF validation successful")
-            else:
-                print("❌ No CSRF token provided for manual validation")
-        except Exception as csrf_error:
-            print(f"❌ Manual CSRF validation failed: {csrf_error}")
-            # But let's continue to see what other errors we might get
     
     try:
         if not session.get('user_authenticated', False):
