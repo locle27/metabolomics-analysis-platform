@@ -110,7 +110,7 @@ app.config.update({
     'SESSION_COOKIE_SECURE': False,  # Allow both HTTP and HTTPS
     'SESSION_COOKIE_HTTPONLY': True,
     'SESSION_COOKIE_SAMESITE': 'Lax',
-    'SESSION_COOKIE_NAME': 'metabolomics_session',
+    # Remove custom cookie name - use Flask default 'session'
     'SESSION_COOKIE_PATH': '/',  # Available for all paths
     'PERMANENT_SESSION_LIFETIME': timedelta(hours=1),  # 1 hour
     'SESSION_REFRESH_EACH_REQUEST': True,  # Keep session alive
@@ -393,17 +393,33 @@ Permanent: {session.permanent}
 SECRET_KEY length: {len(app.secret_key) if app.secret_key else 0}
 SECRET_KEY hash: {secret_key_hash}
 SECRET_KEY from env: {bool(os.getenv('SECRET_KEY'))}
-Cookie name: {app.config.get('SESSION_COOKIE_NAME')}
+Cookie name: {app.config.get('SESSION_COOKIE_NAME', 'session')}
 
 <strong>Request:</strong>
 Cookies: {list(request.cookies.keys())}
 Host: {request.host}
     </pre>
     <p><a href="/session-test" style="padding: 10px 20px; background: #007bff; color: white; text-decoration: none;">🔄 Refresh Test</a></p>
+    <p><a href="/clear-cookies" style="padding: 10px 20px; background: #dc3545; color: white; text-decoration: none;">🗑️ Clear Cookies</a></p>
     <p><a href="/auth/login" style="padding: 10px 20px; background: #28a745; color: white; text-decoration: none;">🔐 Test Login</a></p>
     <hr>
     <p><em>If counter increases on refresh, sessions work. If it stays at 1, there's a persistence issue.</em></p>
     """
+
+@app.route('/clear-cookies')
+def clear_cookies():
+    """Clear conflicting session cookies"""
+    response = make_response(redirect(url_for('session_test')))
+    
+    # Clear both potential session cookies
+    response.set_cookie('session', '', expires=0, path='/')
+    response.set_cookie('metabolomics_session', '', expires=0, path='/')
+    
+    # Clear session data
+    session.clear()
+    
+    flash('All cookies cleared. Test session persistence again.', 'info')
+    return response
 
 @app.route('/password-help')
 def password_help():
@@ -572,9 +588,9 @@ def fix_session_persistence():
     # Debug empty sessions - only for auth routes
     if request.endpoint and 'auth.' in str(request.endpoint) and len(session.keys()) == 0:
         print(f"🔍 DEBUG: Empty session on {request.endpoint}")
-        print(f"🔍 Session cookie exists: {'session' in request.cookies}")
-        print(f"🔍 SECRET_KEY length: {len(app.secret_key) if app.secret_key else 0}")
-        print(f"🔍 SECRET_KEY source: {'env' if os.getenv('SECRET_KEY') else 'default'}")
+        print(f"🔍 Cookies: {list(request.cookies.keys())}")
+        print(f"🔍 Flask session cookie name: {app.config.get('SESSION_COOKIE_NAME', 'session')}")
+        print(f"🔍 SECRET_KEY consistent: {len(app.secret_key) == 39}")
         
         # Test session write
         session['test_debug'] = 'debug_value'
