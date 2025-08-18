@@ -433,7 +433,7 @@
                     
                     <div class="config-item">
                         <label for="carryover-interval">Carryover Step</label>
-                        <input type="number" id="carryover-interval" value="3" min="1" max="10">
+                        <input type="number" id="carryover-interval" value="5" min="1" max="10">
                         <small>Insert carryover every N steps</small>
                     </div>
                     
@@ -457,7 +457,7 @@
                     
                     <div class="config-item">
                         <label for="nist-interval">NIST Step</label>
-                        <input type="number" id="nist-interval" value="25" min="1" max="100">
+                        <input type="number" id="nist-interval" value="30" min="1" max="100">
                         <small>Insert NIST every N steps</small>
                     </div>
                     
@@ -513,6 +513,7 @@
                             <th>Step</th>
                             <th>Sample Name</th>
                             <th>Position</th>
+                            <th>Method</th>
                             <th>Type</th>
                             <th>Notes</th>
                         </tr>
@@ -601,11 +602,11 @@ function generateSequence() {
         sampleCount: parseInt(document.getElementById('sample-count').value),
         startingPosition: document.getElementById('starting-position').value,
         carryoverInterval: parseInt(document.getElementById('carryover-interval').value),
-        carryoverPrefix: document.getElementById('carryover-prefix').value,
-        carryoverPosition: document.getElementById('carryover-position').value,
+        carryoverSampleName: document.getElementById('carryover-sample-name').value,
+        carryoverMethod: document.getElementById('carryover-method').value,
         nistInterval: parseInt(document.getElementById('nist-interval').value),
         nistName: document.getElementById('nist-name').value,
-        nistPosition: document.getElementById('nist-position').value
+        nistMethod: document.getElementById('nist-method').value
     };
     
     // Initialize variables
@@ -626,6 +627,7 @@ function generateSequence() {
             step: stepNumber++,
             sampleName: sampleName,
             position: currentPosition,
+            method: 'Phenikaa_LipidMix_v1.m', // Default method for main samples
             type: 'Sample',
             notes: `Main sample ${i + 1}`,
             rowClass: 'sample-row'
@@ -636,11 +638,12 @@ function generateSequence() {
         
         // Check for carryover insertion (every N samples)
         if ((i + 1) % config.carryoverInterval === 0) {
-            const carryoverName = config.carryoverPrefix + carryoverCount.toString().padStart(2, '0');
+            const carryoverName = config.carryoverSampleName + carryoverCount.toString().padStart(2, '0');
             generatedSequence.push({
                 step: stepNumber++,
                 sampleName: carryoverName,
-                position: config.carryoverPosition,
+                position: 'P1-A1', // Fixed carryover position
+                method: config.carryoverMethod,
                 type: 'Carryover',
                 notes: `After ${config.carryoverInterval} samples`,
                 rowClass: 'carryover-row'
@@ -654,7 +657,8 @@ function generateSequence() {
             generatedSequence.push({
                 step: stepNumber++,
                 sampleName: nistName,
-                position: config.nistPosition,
+                position: 'P2-F1', // Fixed NIST position
+                method: config.nistMethod,
                 type: 'NIST Standard',
                 notes: `Quality control after ${config.nistInterval} samples`,
                 rowClass: 'nist-row'
@@ -693,6 +697,7 @@ function renderSequenceTable() {
             <td><strong>${item.step}</strong></td>
             <td><code>${item.sampleName}</code></td>
             <td><span class="badge bg-secondary">${item.position}</span></td>
+            <td><small class="text-info">${item.method || 'Default'}</small></td>
             <td><span class="badge bg-${getTypeBadgeColor(item.type)}">${item.type}</span></td>
             <td><small class="text-muted">${item.notes}</small></td>
         `;
@@ -729,7 +734,7 @@ function exportToExcel() {
     
     // Prepare data for Excel
     const wsData = [
-        ['Step', 'Sample Name', 'Position', 'Type', 'Notes']
+        ['Step', 'Sample Name', 'Position', 'Method', 'Type', 'Notes']
     ];
     
     generatedSequence.forEach(item => {
@@ -737,6 +742,7 @@ function exportToExcel() {
             item.step,
             item.sampleName,
             item.position,
+            item.method || 'Default',
             item.type,
             item.notes
         ]);
@@ -767,13 +773,14 @@ function exportToCSV() {
         return;
     }
     
-    let csvContent = 'Step,Sample Name,Position,Type,Notes\n';
+    let csvContent = 'Step,Sample Name,Position,Method,Type,Notes\n';
     
     generatedSequence.forEach(item => {
         const row = [
             item.step,
             `"${item.sampleName}"`,
             `"${item.position}"`,
+            `"${item.method || 'Default'}"`,
             `"${item.type}"`,
             `"${item.notes}"`
         ].join(',');
@@ -801,10 +808,10 @@ function copyToClipboard() {
         return;
     }
     
-    let textContent = 'Step\tSample Name\tPosition\tType\tNotes\n';
+    let textContent = 'Step\tSample Name\tPosition\tMethod\tType\tNotes\n';
     
     generatedSequence.forEach(item => {
-        textContent += `${item.step}\t${item.sampleName}\t${item.position}\t${item.type}\t${item.notes}\n`;
+        textContent += `${item.step}\t${item.sampleName}\t${item.position}\t${item.method || 'Default'}\t${item.type}\t${item.notes}\n`;
     });
     
     navigator.clipboard.writeText(textContent).then(() => {
