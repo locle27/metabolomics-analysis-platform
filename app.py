@@ -333,6 +333,48 @@ def password_help():
     <p><a href="/test-wtform">→ Test Simple Form</a></p>
     """
 
+@app.route('/password-success')
+def password_success():
+    """Simple password update success page"""
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Password Updated - Metabolomics Platform</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container">
+            <div class="row justify-content-center mt-5">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow">
+                        <div class="card-body text-center p-5">
+                            <div class="mb-4">
+                                <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
+                            </div>
+                            <h2 class="text-success mb-3">Password Updated Successfully!</h2>
+                            <p class="text-muted mb-4">Your password has been updated securely. You can now use your new password to log in.</p>
+                            
+                            <div class="d-grid gap-2">
+                                <a href="/auth/profile" class="btn btn-primary">
+                                    <i class="fas fa-user"></i> Go to Profile
+                                </a>
+                                <a href="/" class="btn btn-outline-secondary">
+                                    <i class="fas fa-home"></i> Go to Dashboard
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
 # Apply proxy fix if available
 if PROXY_FIX_AVAILABLE:
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1, x_for=1)
@@ -1207,11 +1249,15 @@ def update_password():
                         # Set new password
                         user.set_password(new_password)
                         user.last_password_change = datetime.utcnow()
+                        print(f"🔍 About to commit password change to database...")
                         db.session.commit()
+                        print(f"✅ Database commit successful!")
                         
                         print(f"✅ Password updated successfully for {user_email}")
+                        print(f"🔄 Redirecting to password success page...")
                         flash('Password updated successfully!', 'success')
-                        return redirect(url_for('auth.password_settings'))
+                        # Redirect to a simple success page to avoid form resubmission
+                        return redirect(url_for('password_success'))
                     else:
                         print(f"❌ User not found: {user_email}")
                         flash('User account not found.', 'error')
