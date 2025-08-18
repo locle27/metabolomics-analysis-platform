@@ -394,19 +394,26 @@ else:
     print("⚠️ No DATABASE_URL - database features unavailable")
 
 # === CHART SERVICES (Working + Bulletproof) ===
+# Try to import chart services separately - dual_chart_service is essential
 SimpleChartGenerator = None
 DualChartService = None
 
 try:
-    from simple_chart_service import SimpleChartGenerator
     from dual_chart_service import DualChartService
-    print("✅ Chart services loaded")
+    print("✅ DualChartService loaded successfully")
 except Exception as e:
-    print(f"⚠️ Chart services failed: {e}")
+    print(f"❌ CRITICAL: DualChartService failed to import: {e}")
     # Create minimal fallback chart service
     class DualChartService:
         def get_dual_chart_data(self, lipid_id):
             return {"error": "Chart service unavailable", "chart1": {}, "chart2": {}}
+
+try:
+    from simple_chart_service import SimpleChartGenerator
+    print("✅ SimpleChartGenerator loaded")
+except Exception as e:
+    print(f"⚠️ SimpleChartGenerator failed (optional): {e}")
+    SimpleChartGenerator = None
 
 # === EMAIL SERVICE (Conditional) ===
 send_schedule_notification = None
