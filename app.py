@@ -29,7 +29,7 @@ print("=" * 60)
 # === BULLETPROOF IMPORTS ===
 # Core Flask (REQUIRED)
 try:
-    from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response, send_file, session, get_flashed_messages, make_response
+    from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response, send_file, session, get_flashed_messages, make_response, current_app
     print("✅ Flask core loaded")
 except ImportError as e:
     print(f"❌ CRITICAL: Flask failed: {e}")
@@ -2944,7 +2944,7 @@ def update_user_notifications():
             return jsonify({'success': False, 'message': 'User not found'})
         
         # Load current notification settings
-        notification_emails = current_app.config.get('NOTIFICATION_EMAILS', [])
+        notification_emails = app.config.get('NOTIFICATION_EMAILS', [])
         
         # Update notification list
         if notifications_enabled:
@@ -2966,7 +2966,7 @@ def update_user_notifications():
                 }, f, indent=2)
             
             # Update app config
-            current_app.config['NOTIFICATION_EMAILS'] = notification_emails
+            app.config['NOTIFICATION_EMAILS'] = notification_emails
             
             return jsonify({
                 'success': True, 
@@ -3145,6 +3145,16 @@ def update_user_role():
         current_user_email = session.get('user_email')
         if user.email == current_user_email:
             flash("Cannot change your own role", "warning")
+            return redirect(url_for('manage_users'))
+            
+        # SECURITY: Protect admin roles - only super admin (loc22100302@gmail.com) can change admin roles
+        if user.role == 'admin' and current_user_email != 'loc22100302@gmail.com':
+            flash("Only the super administrator can modify admin roles for security reasons", "error")
+            return redirect(url_for('manage_users'))
+            
+        # SECURITY: Only super admin can promote to admin role
+        if new_role == 'admin' and current_user_email != 'loc22100302@gmail.com':
+            flash("Only the super administrator can grant admin privileges for security reasons", "error")
             return redirect(url_for('manage_users'))
             
         old_role = user.role

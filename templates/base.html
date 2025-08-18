@@ -609,7 +609,7 @@
                                     
                                     <!-- Management System (renamed from Admin) -->
                                     <li class="nav-item has-submenu">
-                                        <a class="nav-link {% if request.endpoint in ['admin_dashboard', 'admin_stats', 'backup_management', 'patient_management', 'equipment_management', 'change_tracker_dashboard'] %}active{% endif %}" href="#">
+                                        <a class="nav-link {% if request.endpoint in ['admin_dashboard', 'admin_stats', 'backup_management', 'patient_management', 'equipment_management'] %}active{% endif %}" href="#">
                                             MANAGEMENT
                                             <span class="sub-nav-toggler"></span>
                                         </a>
@@ -624,7 +624,6 @@
                                                         <li><a href="{{ url_for('patient_management') }}"><i class="fas fa-users"></i> Patient Management</a></li>
                                                         <li><a href="{{ url_for('equipment_management') }}"><i class="fas fa-cogs"></i> Equipment Management</a></li>
                                                         <li><hr class="dropdown-divider"></li>
-                                                        <li><a href="{{ url_for('change_tracker_dashboard') }}"><i class="fas fa-robot"></i> Change Tracker</a></li>
                                                     </ul>
                                                 </div>
                                             </div>
@@ -659,7 +658,6 @@
                                                         <li><a href="{{ url_for('auth.profile') }}"><i class="fas fa-user-circle"></i> Profile</a></li>
                                                         {% if session.get('user_email') == 'loc22100302@gmail.com' %}
                                                         <li><a href="{{ url_for('backup_management') }}"><i class="fas fa-database"></i> System Backup</a></li>
-                                                        <li><a href="{{ url_for('change_tracker_dashboard') }}"><i class="fas fa-history"></i> Change History</a></li>
                                                         {% endif %}
                                                         <li><hr class="dropdown-divider"></li>
                                                         <li><a href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>

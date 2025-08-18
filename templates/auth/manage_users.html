@@ -5,22 +5,7 @@
 {% block body_class %}admin-page{% endblock %}
 
 {% block hero %}
-<div class="hero-section">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-8 text-center">
-                <h1 class="hero-title">👥 Center Members</h1>
-                <p class="hero-subtitle">
-                    {% if user_can_edit %}
-                        Manage member access levels and permissions
-                    {% else %}
-                        Directory of research center members
-                    {% endif %}
-                </p>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Hero section removed for cleaner interface -->
 {% endblock %}
 
 {% block content %}
@@ -174,7 +159,9 @@
                                         <input type="hidden" name="user_id" value="{{ user.id }}">
                                         <select name="role" class="form-select form-select-sm role-select" 
                                                 onchange="confirmRoleChange(this)"
-                                                {% if user.id == current_user.id %}disabled title="Cannot change your own role"{% endif %}>
+                                                {% if user.id == current_user.id %}disabled title="Cannot change your own role"
+                                                {% elif user.role == 'admin' and session.get('user_email') != 'loc22100302@gmail.com' %}disabled title="Only super admin can modify admin roles"
+                                                {% endif %}>
                                             <option value="user" {% if user.role == 'user' %}selected{% endif %}>
                                                 🔬 Researcher - Analysis Access
                                             </option>
