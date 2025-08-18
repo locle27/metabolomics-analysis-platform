@@ -1,1 +1,1 @@
-web: gunicorn --bind [::]:$PORT --timeout 600 --workers 1 --preload app:app
+web: gunicorn --bind [::]:$PORT --timeout 600 --workers 2 --threads 4 --worker-class gthread --worker-tmp-dir /dev/shm --max-requests 1000 --max-requests-jitter 100 --preload app:app

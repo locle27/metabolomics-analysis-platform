@@ -10,6 +10,7 @@ import sys
 import json
 import base64
 import time
+import logging
 from datetime import datetime, timedelta
 import datetime as dt
 from pathlib import Path
@@ -21,6 +22,176 @@ print(f"🐍 Python: {sys.version}")
 print(f"📁 Directory: {os.getcwd()}")
 print(f"📡 Port: {os.getenv('PORT', '5000')}")
 print("=" * 60)
+
+# Log startup information
+app_logger.info("Platform startup", extra={
+    'action': 'startup',
+    'python_version': sys.version,
+    'directory': os.getcwd(),
+    'port': os.getenv('PORT', '5000'),
+    'environment': os.getenv('FLASK_ENV', 'development')
+})
+
+# Request timing middleware
+@app.before_request
+def before_request():
+    """Log request start and set timing"""
+    request.start_time = time.time()
+    app_logger.info("Request started", extra={
+        'action': 'request_start',
+        'method': request.method,
+        'path': request.path,
+        'remote_addr': request.remote_addr,
+        'user_agent': request.headers.get('User-Agent', '')
+    })
+
+@app.after_request
+def after_request(response):
+    """Log request completion with timing"""
+    duration = time.time() - getattr(request, 'start_time', time.time())
+    
+    app_logger.info("Request completed", extra={
+        'action': 'request_complete',
+        'method': request.method,
+        'path': request.path,
+        'status_code': response.status_code,
+        'duration_ms': round(duration * 1000, 2),
+        'content_length': response.content_length
+    })
+    
+    # Add performance headers
+    response.headers['X-Response-Time'] = f"{duration:.3f}s"
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    
+    return response
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Log internal server errors"""
+    app_logger.error("Internal server error", extra={
+        'action': 'error_500',
+        'method': request.method,
+        'path': request.path,
+        'error': str(error)
+    })
+    return "Internal server error", 500
+
+@app.errorhandler(404)
+def not_found(error):
+    """Log 404 errors"""
+    app_logger.warning("Page not found", extra={
+        'action': 'error_404',
+        'method': request.method,
+        'path': request.path
+    })
+    return "Page not found", 404
+
+# Health check endpoints for monitoring
+@app.route('/health')
+def health_check():
+    """Simple health check endpoint"""
+    try:
+        # Test database connection
+        if db:
+            db.session.execute(text('SELECT 1'))
+            db_status = 'healthy'
+        else:
+            db_status = 'unavailable'
+        
+        health_data = {
+            'status': 'healthy',
+            'timestamp': datetime.utcnow().isoformat(),
+            'version': '2.0.0',
+            'database': db_status,
+            'environment': os.getenv('FLASK_ENV', 'development')
+        }
+        
+        app_logger.info("Health check completed", extra={
+            'action': 'health_check',
+            'status': 'healthy',
+            'db_status': db_status
+        })
+        
+        return jsonify(health_data), 200
+        
+    except Exception as e:
+        app_logger.error("Health check failed", extra={
+            'action': 'health_check',
+            'status': 'unhealthy',
+            'error': str(e)
+        })
+        
+        return jsonify({
+            'status': 'unhealthy',
+            'timestamp': datetime.utcnow().isoformat(),
+            'error': str(e)
+        }), 503
+
+@app.route('/ping')
+def ping():
+    """Simple ping endpoint for load balancer"""
+    return 'pong', 200
+
+@app.route('/status')
+def status():
+    """Detailed status endpoint"""
+    try:
+        # Database connection test
+        db_healthy = False
+        db_error = None
+        if db:
+            try:
+                db.session.execute(text('SELECT 1'))
+                db_healthy = True
+            except Exception as e:
+                db_error = str(e)
+        
+        # Memory usage (basic)
+        import psutil
+        process = psutil.Process()
+        memory_info = process.memory_info()
+        
+        status_data = {
+            'status': 'healthy' if db_healthy else 'degraded',
+            'timestamp': datetime.utcnow().isoformat(),
+            'uptime': time.time() - app.start_time if hasattr(app, 'start_time') else 0,
+            'version': '2.0.0',
+            'database': {
+                'status': 'healthy' if db_healthy else 'unhealthy',
+                'error': db_error
+            },
+            'memory': {
+                'rss': memory_info.rss,
+                'vms': memory_info.vms
+            },
+            'environment': os.getenv('FLASK_ENV', 'development'),
+            'features': {
+                'authentication': True,
+                'database': db is not None,
+                'email': MAIL_AVAILABLE,
+                'oauth': OAUTH_AVAILABLE,
+                'csrf_protection': CSRF_AVAILABLE,
+                'security_headers': TALISMAN_AVAILABLE
+            }
+        }
+        
+        return jsonify(status_data), 200
+        
+    except ImportError:
+        # psutil not available, return basic status
+        return jsonify({
+            'status': 'healthy',
+            'timestamp': datetime.utcnow().isoformat(),
+            'version': '2.0.0',
+            'note': 'Limited status - install psutil for detailed metrics'
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'timestamp': datetime.utcnow().isoformat(),
+            'error': str(e)
+        }), 500
 
 # === BULLETPROOF IMPORTS ===
 # Core Flask (REQUIRED)
@@ -93,6 +264,14 @@ except:
     CSRF_AVAILABLE = False
     print("⚠️ CSRF protection unavailable")
 
+try:
+    from flask_talisman import Talisman
+    TALISMAN_AVAILABLE = True
+    print("✅ Security headers available")
+except:
+    TALISMAN_AVAILABLE = False
+    print("⚠️ Security headers unavailable - install flask-talisman")
+
 # === FLASK APP CONFIGURATION ===
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -101,18 +280,114 @@ app = Flask(__name__,
     static_folder=BASE_DIR / "static"
 )
 app.secret_key = os.getenv('SECRET_KEY', 'bulletproof-metabolomics-platform-secret-key')
+app.start_time = time.time()  # Track app start time for uptime calculation
 
 # Initialize CSRF protection
 if CSRF_AVAILABLE:
     csrf.init_app(app)
     print("✅ CSRF protection initialized")
 
-# Enhanced session configuration for OAuth
+# Initialize security headers
+if TALISMAN_AVAILABLE:
+    # Configure CSP to allow necessary resources
+    csp = {
+        'default-src': "'self'",
+        'script-src': [
+            "'self'",
+            "'unsafe-inline'",  # Needed for some inline scripts
+            "https://cdnjs.cloudflare.com",
+            "https://cdn.jsdelivr.net",
+            "https://code.jquery.com"
+        ],
+        'style-src': [
+            "'self'",
+            "'unsafe-inline'",  # Needed for inline styles
+            "https://cdnjs.cloudflare.com",
+            "https://cdn.jsdelivr.net",
+            "https://fonts.googleapis.com"
+        ],
+        'font-src': [
+            "'self'",
+            "https://cdnjs.cloudflare.com",
+            "https://fonts.gstatic.com"
+        ],
+        'img-src': "'self' data: https:",
+        'connect-src': "'self'"
+    }
+    
+    Talisman(app, 
+        force_https=False,  # Let Railway handle HTTPS
+        content_security_policy=csp,
+        referrer_policy='strict-origin-when-cross-origin',
+        feature_policy={
+            'geolocation': "'none'",
+            'camera': "'none'",
+            'microphone': "'none'"
+        }
+    )
+    print("✅ Security headers initialized")
+else:
+    print("⚠️ Install flask-talisman for enhanced security")
+
+# Configure structured logging
+def setup_logging():
+    """Configure structured logging for production"""
+    # Configure root logger
+    logging.basicConfig(
+        level=logging.INFO if os.getenv('FLASK_ENV') == 'production' else logging.DEBUG,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+    
+    # Create app logger
+    app_logger = logging.getLogger('metabolomics_app')
+    
+    # Add structured logging for important events
+    class StructuredFormatter(logging.Formatter):
+        def format(self, record):
+            log_data = {
+                'timestamp': datetime.utcnow().isoformat(),
+                'level': record.levelname,
+                'logger': record.name,
+                'message': record.getMessage(),
+                'module': record.module,
+                'function': record.funcName,
+                'line': record.lineno
+            }
+            
+            # Add extra fields if present
+            if hasattr(record, 'user_id'):
+                log_data['user_id'] = record.user_id
+            if hasattr(record, 'request_id'):
+                log_data['request_id'] = record.request_id
+            if hasattr(record, 'action'):
+                log_data['action'] = record.action
+                
+            return json.dumps(log_data)
+    
+    # Use structured formatter in production
+    if os.getenv('FLASK_ENV') == 'production':
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(StructuredFormatter())
+        app_logger.addHandler(handler)
+        app_logger.propagate = False
+    
+    return app_logger
+
+# Initialize logging
+app_logger = setup_logging()
+app_logger.info("Metabolomics platform starting", extra={'action': 'app_startup'})
+
+# Enhanced session configuration for OAuth and security
 app.config.update({
-    'SESSION_COOKIE_SECURE': False,  # Allow HTTP for localhost
+    'SESSION_COOKIE_SECURE': os.getenv('FLASK_ENV') == 'production',  # HTTPS in production
     'SESSION_COOKIE_HTTPONLY': True,
     'SESSION_COOKIE_SAMESITE': 'Lax',
     'PERMANENT_SESSION_LIFETIME': 3600,  # 1 hour
+    'WTF_CSRF_TIME_LIMIT': None,  # No time limit for CSRF tokens
+    'WTF_CSRF_SSL_STRICT': False,  # Allow CSRF over HTTP for development
 })
 
 # Apply proxy fix if available

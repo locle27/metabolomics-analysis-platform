@@ -1,0 +1,19 @@
+# Development dependencies
+-r requirements-prod.txt
+
+# Development and testing tools
+pytest==7.4.2
+pytest-flask==1.2.0
+pytest-cov==4.1.0
+flake8==6.0.0
+black==23.7.0
+pip-audit==2.6.1
+
+# Data scraping tools (dev only)
+aiohttp==3.8.5
+selenium==4.11.2
+webdriver-manager==3.8.6
+
+# Development utilities
+ipython==8.14.0
+jupyter==1.0.0

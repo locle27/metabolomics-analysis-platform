@@ -1,0 +1,108 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: metabolomics_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements-dev.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
+
+    - name: Security scan with pip-audit
+      run: |
+        pip-audit --desc --format=json --output=security-report.json || true
+        
+    - name: Lint with flake8
+      run: |
+        flake8 app.py models_postgresql_optimized.py --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 app.py models_postgresql_optimized.py --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Format check with black
+      run: |
+        black --check app.py models_postgresql_optimized.py || true
+
+    - name: Test with pytest
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost/metabolomics_test
+        SECRET_KEY: test-secret-key
+        FLASK_ENV: testing
+      run: |
+        pytest --cov=. --cov-report=xml --cov-report=html || true
+
+    - name: Upload coverage to artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: htmlcov/
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  deploy:
+    needs: [test, security]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Deploy to Railway
+      uses: railway-cli/railway-action@v1
+      with:
+        token: ${{ secrets.RAILWAY_TOKEN }}
+        command: up --detach
+      env:
+        RAILWAY_PROJECT: ${{ secrets.RAILWAY_PROJECT_ID }}
