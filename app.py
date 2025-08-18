@@ -103,7 +103,10 @@ app = Flask(__name__,
     template_folder=BASE_DIR / "templates", 
     static_folder=BASE_DIR / "static"
 )
-app.secret_key = os.getenv('SECRET_KEY', 'bulletproof-metabolomics-platform-secret-key')
+# Enhanced SECRET_KEY configuration with debug info
+SECRET_KEY = os.getenv('SECRET_KEY', 'bulletproof-metabolomics-platform-secret-key-for-local-dev')
+app.secret_key = SECRET_KEY
+print(f"✅ SECRET_KEY configured: {len(SECRET_KEY)} characters, from env: {bool(os.getenv('SECRET_KEY'))}")
 
 # Enhanced session configuration for OAuth
 app.config.update({
@@ -122,22 +125,30 @@ app.config.update({
     'WTF_CSRF_SECRET_KEY': None,  # Use main SECRET_KEY
 })
 
-# Enable CSRF protection properly
+# Enable CSRF protection properly with error handling
 if CSRF_AVAILABLE:
-    csrf.init_app(app)
-    
-    # Add CSRF error handler following Flask documentation
-    from flask_wtf.csrf import CSRFError
-    @app.errorhandler(CSRFError)
-    def handle_csrf_error(e):
-        # Log CSRF error details for debugging
-        print(f"❌ CSRF Error: {e.description}")
-        print(f"🔍 Session keys: {list(session.keys())}")
-        print(f"🔍 Session permanent: {session.permanent}")
+    try:
+        csrf.init_app(app)
+        print("✅ CSRF protection initialized successfully")
         
-        # Clear the session and redirect to form with a helpful message
-        flash('Security token expired. Please try your request again.', 'warning')
-        return redirect(request.referrer or url_for('auth.update_password'))
+        # Add CSRF error handler following Flask documentation
+        from flask_wtf.csrf import CSRFError
+        @app.errorhandler(CSRFError)
+        def handle_csrf_error(e):
+            # Log CSRF error details for debugging
+            print(f"❌ CSRF Error: {e.description}")
+            print(f"🔍 Session keys: {list(session.keys())}")
+            print(f"🔍 Session permanent: {session.permanent}")
+            print(f"🔍 SECRET_KEY available: {bool(app.secret_key)}")
+            
+            # Clear the session and redirect to form with a helpful message
+            flash('Security token expired. Please try your request again.', 'warning')
+            return redirect(request.referrer or url_for('auth.update_password'))
+            
+    except Exception as csrf_init_error:
+        print(f"❌ CSRF initialization failed: {csrf_init_error}")
+        print(f"🔍 SECRET_KEY length: {len(app.secret_key) if app.secret_key else 0}")
+        CSRF_AVAILABLE = False
     
     # Only exempt OAuth callback routes from CSRF protection
     OAUTH_EXEMPT_ROUTES = [
@@ -1347,7 +1358,14 @@ def profile():
         return render_template('auth/profile.html', current_user=current_user, user=current_user)
     except Exception as e:
         print(f"⚠️ Profile route error: {e}")
-        flash(f'Error loading profile: {e}', 'error')
+        print(f"🔍 CSRF_AVAILABLE: {CSRF_AVAILABLE}")
+        print(f"🔍 SECRET_KEY available: {bool(app.secret_key)}")
+        
+        # Handle CSRF-related errors gracefully
+        if 'secret key is required' in str(e).lower():
+            flash('System configuration issue. Please contact administrator.', 'error')
+        else:
+            flash(f'Error loading profile: {e}', 'error')
         return redirect(url_for('auth.login'))
 
 @auth_bp.route('/password-settings')
@@ -1430,6 +1448,10 @@ def update_password():
                 print(f"✅ Generated CSRF token for form: {token[:10]}...")
             except Exception as e:
                 print(f"❌ CSRF token generation failed: {e}")
+                # Disable CSRF temporarily if token generation fails
+                global CSRF_AVAILABLE
+                CSRF_AVAILABLE = False
+                print("🔍 Temporarily disabled CSRF due to token generation failure")
     
     # Handle POST request following Flask documentation pattern
     if request.method == 'POST' and form.validate_on_submit():
@@ -1509,7 +1531,10 @@ def csrf_debug():
         'session_keys': list(session.keys()),
         'session_permanent': session.permanent,
         'session_id': session.get('_id', 'No ID'),
-        'csrf_available': CSRF_AVAILABLE
+        'csrf_available': CSRF_AVAILABLE,
+        'secret_key_set': bool(app.secret_key),
+        'secret_key_length': len(app.secret_key) if app.secret_key else 0,
+        'secret_key_from_env': bool(os.getenv('SECRET_KEY'))
     }
     
     if CSRF_AVAILABLE:
@@ -1522,6 +1547,20 @@ def csrf_debug():
             debug_info['csrf_error'] = str(e)
             debug_info['csrf_generation'] = 'FAILED'
     
+    return f"<pre>{json.dumps(debug_info, indent=2)}</pre>"
+
+# Simple system health check 
+@app.route('/system-debug')
+def system_debug():
+    """System configuration debug - no auth required"""
+    debug_info = {
+        'secret_key_configured': bool(app.secret_key),
+        'secret_key_length': len(app.secret_key) if app.secret_key else 0,
+        'secret_key_from_env': bool(os.getenv('SECRET_KEY')),
+        'csrf_available': CSRF_AVAILABLE,
+        'flask_env': os.getenv('FLASK_ENV', 'not_set'),
+        'database_url_set': bool(os.getenv('DATABASE_URL'))
+    }
     return f"<pre>{json.dumps(debug_info, indent=2)}</pre>"
 
 # Legacy route redirect
