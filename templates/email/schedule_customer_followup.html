@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Action Required: Confirm Your Consultation Details</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .email-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #E94B00;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .logo {
+            color: #2E4C92;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #E94B00;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .urgent-notice {
+            background-color: #fff3cd;
+            border-left: 4px solid #E94B00;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .response-options {
+            background-color: #e7f3ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .contact-info {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 10px 5px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .btn-primary {
+            background-color: #2E4C92;
+            color: white;
+        }
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-warning {
+            background-color: #E94B00;
+            color: white;
+        }
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .info-table th {
+            background-color: #2E4C92;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        .info-table td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .footer {
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+            margin-top: 30px;
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="logo">📊 Metabolomics Platform</div>
+            <div class="subtitle">⏰ Action Required - Please Respond</div>
+        </div>
+        
+        <div class="urgent-notice">
+            <h3>🚨 Response Needed Within 3 Hours</h3>
+            <p>Hi <strong>{{ request.full_name }}</strong>,</p>
+            <p>We received your consultation request and need to confirm some details to schedule your appointment efficiently.</p>
+        </div>
+        
+        <div class="content">
+            <h3>📋 Your Submitted Information:</h3>
+            
+            <table class="info-table">
+                <tr>
+                    <th>Detail</th>
+                    <th>Your Information</th>
+                </tr>
+                <tr>
+                    <td><strong>Request Type:</strong></td>
+                    <td>{{ request.request_type.replace('_', ' ').title() }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Preferred Date:</strong></td>
+                    <td>{{ request.preferred_date.strftime('%A, %B %d, %Y') if request.preferred_date else 'Flexible' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Preferred Time:</strong></td>
+                    <td>{{ request.preferred_time or 'Flexible' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Your Message:</strong></td>
+                    <td>{{ request.message }}</td>
+                </tr>
+            </table>
+            
+            <div class="response-options">
+                <h3>📞 Please Respond Using Any Method:</h3>
+                
+                <h4>Option 1: Email Response (Recommended)</h4>
+                <a href="mailto:loc22100302@gmail.com?subject=Re: Consultation Confirmation - {{ request.full_name }}&body=Hi,%0D%0A%0D%0AI confirm my consultation request details are correct.%0D%0A%0D%0AAdditional notes:%0D%0A[Add any changes or additional information here]%0D%0A%0D%0AThank you!" class="btn btn-primary">
+                    📧 Reply via Email
+                </a>
+                
+                <h4>Option 2: Phone Call</h4>
+                <div class="contact-info">
+                    <p><strong>📱 Call us at:</strong> <a href="tel:+84766770488">+84 766 770 488</a></p>
+                    <p><strong>⏰ Available:</strong> Monday-Friday, 8:00 AM - 6:00 PM (Vietnam Time)</p>
+                </div>
+                
+                <h4>Option 3: Quick Actions</h4>
+                <a href="mailto:loc22100302@gmail.com?subject=CONFIRM - {{ request.full_name }} Consultation&body=I confirm my consultation details are correct. Please proceed with scheduling." class="btn btn-success">
+                    ✅ Confirm Details
+                </a>
+                <a href="mailto:loc22100302@gmail.com?subject=RESCHEDULE - {{ request.full_name }} Consultation&body=I need to reschedule my consultation.%0D%0A%0D%0ANew preferred date/time:%0D%0A[Please specify]" class="btn btn-warning">
+                    📅 Request Reschedule
+                </a>
+            </div>
+            
+            <div class="urgent-notice">
+                <h4>⏰ Important Timeline:</h4>
+                <ul>
+                    <li><strong>Response Required:</strong> Within 3 hours of receiving this email</li>
+                    <li><strong>Confirmation:</strong> We will confirm your final appointment within 24 hours</li>
+                    <li><strong>No Response:</strong> We will try calling you once, then send a final reminder</li>
+                </ul>
+            </div>
+            
+            <div class="contact-info">
+                <h4>📋 Need Changes? Tell Us:</h4>
+                <ul>
+                    <li>Different date or time preference</li>
+                    <li>Additional research questions</li>
+                    <li>Specific equipment or analysis needs</li>
+                    <li>Team members who should join the consultation</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p><strong>Metabolomics Research Platform</strong><br>
+            Phenikaa University - Advanced Analytics</p>
+            
+            <p style="font-size: 12px; margin-top: 20px;">
+                📧 Email: <a href="mailto:loc22100302@gmail.com">loc22100302@gmail.com</a><br>
+                📱 Phone: <a href="tel:+84766770488">+84 766 770 488</a><br>
+                Request ID: #{{ request.request_id }}
+            </p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1227,6 +1227,11 @@ def schedule_form():
                         print("✅ Admin notification sent successfully.")
                     else:
                         print("⚠️ Failed to send admin notification.")
+                    
+                    if email_results.get('followup_sent'):
+                        print(f"✅ Follow-up email sent to {schedule_request.email}")
+                    else:
+                        print(f"⚠️ Failed to send follow-up email to {schedule_request.email}")
                         
                 except ImportError:
                     print("Email notification failed: Could not import 'send_schedule_notification' from email_service.")

@@ -101,17 +101,18 @@ def send_email(subject, recipients, template, context):
 
 def send_schedule_notification(schedule_request):
     """
-    Send both admin notification and user confirmation for schedule requests
+    Send admin notification, user confirmation, and follow-up request for schedule requests
     
     Args:
         schedule_request: ScheduleRequest model instance
     
     Returns:
-        dict: Results of both email attempts
+        dict: Results of all email attempts
     """
     results = {
         'admin_sent': False,
-        'user_sent': False
+        'user_sent': False,
+        'followup_sent': False
     }
     
     # 1. Send notification to admin
@@ -129,6 +130,14 @@ def send_schedule_notification(schedule_request):
         subject="Consultation Request Received - Metabolomics Platform",
         recipients=[schedule_request.email],
         template='email/schedule_user_confirmation.html',
+        context={'request': schedule_request}
+    )
+    
+    # 3. Send follow-up request to user (asking for response within 3 hours)
+    results['followup_sent'] = send_email(
+        subject=f"⏰ Action Required: Confirm Your Consultation Details - {schedule_request.full_name}",
+        recipients=[schedule_request.email],
+        template='email/schedule_customer_followup.html',
         context={'request': schedule_request}
     )
     

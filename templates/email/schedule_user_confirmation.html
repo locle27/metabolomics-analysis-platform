@@ -122,15 +122,11 @@
                 </tr>
                 <tr>
                     <td><strong>Request ID:</strong></td>
-                    <td>#{{ request.id }}</td>
+                    <td>#{{ request.request_id }}</td>
                 </tr>
                 <tr>
                     <td><strong>Request Type:</strong></td>
                     <td>{{ request.request_type.replace('_', ' ').title() }}</td>
-                </tr>
-                <tr>
-                    <td><strong>Priority Level:</strong></td>
-                    <td>{{ request.priority.title() }}</td>
                 </tr>
                 <tr>
                     <td><strong>Preferred Date:</strong></td>
@@ -180,7 +176,7 @@
                 <ul style="margin: 10px 0; padding-left: 20px;">
                     <li>📧 Email: Reply to this message</li>
                     <li>🌐 Platform: <a href="https://httpsphenikaa-lipidomics-analysis.xyz">https://httpsphenikaa-lipidomics-analysis.xyz</a></li>
-                    <li>🆔 Reference: Request #{{ request.id }}</li>
+                    <li>🆔 Reference: Request #{{ request.request_id }}</li>
                 </ul>
             </div>
             
