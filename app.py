@@ -22,11 +22,15 @@ try:
 except ImportError:
     print("ℹ️ python-dotenv not available, using system environment variables")
 
+import time
+startup_time = time.time()
+
 print("🚀 BULLETPROOF METABOLOMICS PLATFORM STARTING")
 print(f"🐍 Python: {sys.version}")
 print(f"📁 Directory: {os.getcwd()}")
 print(f"🔑 SECRET_KEY loaded: {'Yes' if os.getenv('SECRET_KEY') else 'No (using default)'}")
 print(f"📡 Port: {os.getenv('PORT', '5000')}")
+print(f"⏱️ Startup time: {time.time()}")
 print("=" * 60)
 
 # === BULLETPROOF IMPORTS ===
@@ -560,37 +564,27 @@ if PROXY_FIX_AVAILABLE:
 @app.before_request
 def fix_session_persistence():
     """Fix session persistence issues in production"""
+    # Skip all debugging for health check routes to avoid performance issues
+    if request.endpoint in ['ping', 'health', 'status']:
+        return
+    
     # Make sessions permanent to prevent loss
     session.permanent = True
     
-    # Debug empty sessions - comprehensive logging
-    if request.endpoint and ('auth' in str(request.endpoint) or len(session.keys()) == 0):
-        print(f"⚠️ Session debug for {request.endpoint}")
-        print(f"⚠️ Session keys: {list(session.keys())}")
-        print(f"⚠️ Session data: {dict(session)}")
-        print(f"⚠️ Request cookies: {list(request.cookies.keys())}")
-        print(f"⚠️ Session permanent: {session.permanent}")
-        
-        if 'session' in request.cookies or 'metabolomics_session' in request.cookies:
-            cookie_name = 'metabolomics_session' if 'metabolomics_session' in request.cookies else 'session'
-            session_cookie = request.cookies.get(cookie_name, 'none')
-            print(f"⚠️ Cookie '{cookie_name}' length: {len(session_cookie)}")
-            print(f"⚠️ Cookie starts: {session_cookie[:50]}...")
-        
-        # Test secret key
-        print(f"⚠️ SECRET_KEY loaded from env: {bool(os.getenv('SECRET_KEY'))}")
-        print(f"⚠️ App secret key length: {len(app.secret_key) if app.secret_key else 0}")
-        print("⚠️ " + "="*50)
+    # Minimal debugging - only for critical auth issues
+    if (request.endpoint and 'auth.' in str(request.endpoint) and 
+        not session.get('user_authenticated') and len(session.keys()) == 0):
+        print(f"⚠️ Empty session on critical auth route: {request.endpoint}")
+        return
 
 @app.after_request
 def after_request(response):
     """Ensure session cookies are set properly"""
-    # Force session cookie to be set
-    if session and session.get('user_authenticated'):
-        # Ensure session cookie is set with proper domain
-        response.headers['X-Session-Status'] = 'authenticated'
+    # Skip processing for health check routes
+    if request.endpoint in ['ping', 'health', 'status']:
+        return response
     
-    # Add cache control for auth pages
+    # Add cache control only for auth pages
     if request.endpoint and 'auth' in str(request.endpoint):
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
@@ -3044,6 +3038,7 @@ def stop_change_tracking():
 # APPLICATION STARTUP
 # =====================================================
 
+print(f"⏱️ App initialization complete at {time.time() - startup_time:.2f}s")
 print("🎯 ORIGINAL INTERFACE METABOLOMICS PLATFORM READY")
 print("   All original features, navigation, and styling preserved")
 print("   SQLAlchemy initialization fixed for bulletproof deployment")
@@ -3140,16 +3135,10 @@ if __name__ == '__main__':
         traceback.print_exc()
         sys.exit(1)
 else:
-    try:
-        port = int(os.getenv('PORT', 8080))
-        print(f"🚀 Gunicorn deployment on port {port}")
-        print(f"🌐 Health check: /health, /ping, /status")
-        print("✅ App successfully initialized for gunicorn")
-    except Exception as e:
-        print(f"❌ Gunicorn initialization failed: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
+    port = int(os.getenv('PORT', 8080))
+    print(f"🚀 Gunicorn deployment on port {port} (startup: {time.time() - startup_time:.2f}s)")
+    print(f"🌐 Health check: /health, /ping, /status") 
+    print("✅ App successfully initialized for gunicorn")
 
 # For gunicorn
 application = app
