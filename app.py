@@ -1463,6 +1463,19 @@ def update_password():
     user_email = session.get('user_email', '')
     error = None
     
+    # Check if user has existing password and set session variable for template
+    user_has_password = False
+    if db and User:
+        try:
+            user = User.query.filter_by(email=user_email).first()
+            if user and hasattr(user, 'password_hash') and user.password_hash:
+                user_has_password = True
+        except Exception:
+            pass
+    
+    # Update session for template consistency
+    session['user_password_exists'] = user_has_password
+    
     # Debug CSRF token on GET requests
     if request.method == 'GET':
         if CSRF_AVAILABLE:
@@ -1485,12 +1498,12 @@ def update_password():
                 user = User.query.filter_by(email=user_email).first()
                 
                 if user:
-                    # Check current password if user has one
-                    if user.password_hash and current_password:
-                        if not user.check_password(current_password):
+                    # Check current password only if user has one AND current_password was provided
+                    if user.password_hash:
+                        if not current_password:
+                            error = 'Current password is required to change your existing password.'
+                        elif not user.check_password(current_password):
                             error = 'Current password is incorrect.'
-                    elif user.password_hash and not current_password:
-                        error = 'Current password is required.'
                     
                     if error is None:
                         # Update password

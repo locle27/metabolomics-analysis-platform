@@ -121,64 +121,69 @@
                             <div class="auth-header">
                                 <h3 class="mb-3">
                                     <i class="fas fa-key text-warning me-2"></i>
-                                    Set Local Password
+                                    Password Settings
                                 </h3>
-                                <p class="text-muted">Set a password to enable direct login to this platform without OAuth.</p>
+                                <p class="text-muted">Manage your password for secure access to this platform.</p>
                             </div>
                             
-                            <form method="POST" action="{{ url_for('auth.update_password') }}" class="auth-form">
-                                {% if csrf_token %}
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
-                                {% endif %}
-                                
-                                <!-- New Password Field -->
-                                <div class="form-group mb-3">
-                                    <label for="new_password" class="form-label">
-                                        <i class="fas fa-lock me-2"></i>
-                                        New Password
-                                    </label>
-                                    <input type="password" 
-                                           class="form-control" 
-                                           id="new_password" 
-                                           name="new_password" 
-                                           required
-                                           minlength="8"
-                                           placeholder="Enter your new password">
-                                    <small class="form-text text-muted">
-                                        Password must be at least 8 characters long
-                                    </small>
+                            <div class="password-status-info">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="password-status-icon me-3">
+                                                {% if current_user.password_hash %}
+                                                <i class="fas fa-check-circle text-success" style="font-size: 24px;"></i>
+                                                {% else %}
+                                                <i class="fas fa-times-circle text-warning" style="font-size: 24px;"></i>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <h5 class="mb-1">
+                                                    {% if current_user.password_hash %}
+                                                    <span class="text-success">Password Set</span>
+                                                    {% else %}
+                                                    <span class="text-warning">No Password</span>
+                                                    {% endif %}
+                                                </h5>
+                                                <p class="text-muted mb-0">
+                                                    {% if current_user.password_hash %}
+                                                    You can login with your email and password, or continue using {{ current_user.auth_method.title() }} authentication.
+                                                    {% else %}
+                                                    You currently rely on {{ current_user.auth_method.title() }} for authentication. Setting a password provides an additional login method.
+                                                    {% endif %}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        
+                                        {% if current_user.password_hash %}
+                                        <div class="password-details">
+                                            <small class="text-muted">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                <strong>Password Strength:</strong> Strong (meets all requirements)<br>
+                                                <strong>Last Updated:</strong> {{ current_user.last_password_change.strftime('%B %d, %Y') if current_user.last_password_change else 'Unknown' }}
+                                            </small>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-4 text-md-end">
+                                        {% if current_user.password_hash %}
+                                        <a href="{{ url_for('auth.update_password') }}" class="btn btn-warning btn-lg d-block mb-2">
+                                            <i class="fas fa-edit me-2"></i>
+                                            Change Password
+                                        </a>
+                                        {% else %}
+                                        <a href="{{ url_for('auth.update_password') }}" class="btn btn-success btn-lg d-block mb-2">
+                                            <i class="fas fa-plus me-2"></i>
+                                            Create Password
+                                        </a>
+                                        {% endif %}
+                                        <a href="{{ url_for('auth.password_settings') }}" class="btn btn-outline-primary btn-sm d-block">
+                                            <i class="fas fa-cog me-2"></i>
+                                            Advanced Settings
+                                        </a>
+                                    </div>
                                 </div>
-                                
-                                <!-- Confirm Password Field -->
-                                <div class="form-group mb-4">
-                                    <label for="confirm_password" class="form-label">
-                                        <i class="fas fa-lock me-2"></i>
-                                        Confirm Password
-                                    </label>
-                                    <input type="password" 
-                                           class="form-control" 
-                                           id="confirm_password" 
-                                           name="confirm_password" 
-                                           required
-                                           minlength="8"
-                                           placeholder="Confirm your new password">
-                                </div>
-                                
-                                <!-- Submit Button -->
-                                <div class="d-grid">
-                                    {% if current_user.password_hash %}
-                                    <button type="submit" class="btn btn-warning btn-lg">
-                                        <i class="fas fa-key me-2"></i>
-                                        Update Password
-                                    </button>
-                                    {% else %}
-                                    <button type="submit" class="btn btn-success btn-lg">
-                                        <i class="fas fa-plus me-2"></i>
-                                        Set Password
-                                    </button>
-                                    {% endif %}
-                                </div>
-                            </form>
+                            </div>
                         </div>
                         {% else %}
                         <!-- Local User Profile Form -->
@@ -217,6 +222,55 @@
                                 </button>
                             </div>
                         </form>
+                        
+                        <!-- Password Setting Section for Local Users -->
+                        <div class="auth-card mt-4">
+                            <div class="auth-header">
+                                <h3 class="mb-3">
+                                    <i class="fas fa-key text-warning me-2"></i>
+                                    Password Settings
+                                </h3>
+                                <p class="text-muted">Manage your account password for secure access.</p>
+                            </div>
+                            
+                            <div class="password-status-info">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="password-status-icon me-3">
+                                                <i class="fas fa-check-circle text-success" style="font-size: 24px;"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="mb-1">
+                                                    <span class="text-success">Password Active</span>
+                                                </h5>
+                                                <p class="text-muted mb-0">
+                                                    Your account uses local password authentication for secure access.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="password-details">
+                                            <small class="text-muted">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                <strong>Password Strength:</strong> Strong (meets all requirements)<br>
+                                                <strong>Last Updated:</strong> {{ current_user.last_password_change.strftime('%B %d, %Y') if current_user.last_password_change else 'Unknown' }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 text-md-end">
+                                        <a href="{{ url_for('auth.update_password') }}" class="btn btn-warning btn-lg d-block mb-2">
+                                            <i class="fas fa-edit me-2"></i>
+                                            Change Password
+                                        </a>
+                                        <a href="{{ url_for('auth.password_settings') }}" class="btn btn-outline-primary btn-sm d-block">
+                                            <i class="fas fa-cog me-2"></i>
+                                            Advanced Settings
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         {% endif %}
                     </div>
                 </div>
