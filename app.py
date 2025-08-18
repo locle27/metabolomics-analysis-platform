@@ -139,7 +139,7 @@ app.config.update({
     'WTF_CSRF_TIME_LIMIT': None,  # Token valid for session lifetime
     'WTF_CSRF_SSL_STRICT': False,  # Allow HTTP for development
     'WTF_CSRF_CHECK_DEFAULT': True,
-    'WTF_CSRF_SECRET_KEY': None,  # Use main SECRET_KEY
+    'WTF_CSRF_SECRET_KEY': SECRET_KEY,  # Explicitly set CSRF secret key
 })
 
 # Enable CSRF protection properly with error handling
@@ -147,6 +147,8 @@ if CSRF_AVAILABLE:
     try:
         csrf.init_app(app)
         print("✅ CSRF protection initialized successfully")
+        print(f"🔍 CSRF SECRET_KEY available: {bool(app.config.get('WTF_CSRF_SECRET_KEY'))}")
+        print(f"🔍 App SECRET_KEY available: {bool(app.secret_key)}")
         
         # Add CSRF error handler following Flask documentation
         from flask_wtf.csrf import CSRFError
@@ -161,9 +163,10 @@ if CSRF_AVAILABLE:
         print(f"🔍 SECRET_KEY length: {len(app.secret_key) if app.secret_key else 0}")
         CSRF_AVAILABLE = False
     
-    # Only exempt OAuth callback routes from CSRF protection
+    # Exempt routes from CSRF protection
     OAUTH_EXEMPT_ROUTES = [
-        'login_authorized', 'auth.oauth_authorized', 'oauth_login'
+        'login_authorized', 'auth.oauth_authorized', 'oauth_login',
+        'immediate_health_check', 'immediate_ping', 'immediate_healthz'  # Health checks
     ]
     
     # TEMPORARY: Add password update for debugging
@@ -171,7 +174,7 @@ if CSRF_AVAILABLE:
         'auth.update_password'
     ]
     
-    OAUTH_EXEMPT_PATHS = ['/callback', '/authorized']
+    OAUTH_EXEMPT_PATHS = ['/callback', '/authorized', '/health', '/ping', '/healthz']
     
     # TEMPORARY: Add password update path for debugging
     CSRF_DEBUG_EXEMPT_PATHS = ['/auth/update-password']
