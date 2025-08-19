@@ -3326,6 +3326,158 @@ def manage_lipids():
 # API ENDPOINTS
 # =====================================================
 
+@app.route('/api/zoom-settings', methods=['GET'])
+def api_get_zoom_settings():
+    """Get all zoom settings from database"""
+    try:
+        from models_postgresql_optimized import ChartZoomSettings
+        settings = ChartZoomSettings.get_all_zoom_settings()
+        return jsonify({
+            "status": "success",
+            "settings": settings
+        })
+    except Exception as e:
+        print(f"❌ Error loading zoom settings: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e),
+            "settings": {}
+        })
+
+@app.route('/api/zoom-settings', methods=['POST'])
+def api_save_zoom_settings():
+    """Save zoom settings to database"""
+    try:
+        from models_postgresql_optimized import ChartZoomSettings
+        
+        data = request.get_json()
+        lipid_id = data.get('lipid_id')
+        chart_type = data.get('chart_type')
+        zoom_start = data.get('zoom_start')
+        zoom_end = data.get('zoom_end')
+        
+        # Validate input
+        if not all([lipid_id, chart_type, zoom_start is not None, zoom_end is not None]):
+            return jsonify({
+                "status": "error",
+                "message": "Missing required fields"
+            }), 400
+        
+        # Get current user ID if logged in
+        user_id = current_user.id if current_user and current_user.is_authenticated else None
+        
+        # Save to database
+        setting = ChartZoomSettings.save_zoom_setting(
+            lipid_id=lipid_id,
+            chart_type=chart_type,
+            zoom_start=float(zoom_start),
+            zoom_end=float(zoom_end),
+            user_id=user_id
+        )
+        
+        return jsonify({
+            "status": "success",
+            "message": "Zoom settings saved",
+            "setting": setting.to_dict()
+        })
+        
+    except Exception as e:
+        print(f"❌ Error saving zoom settings: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@app.route('/api/zoom-settings/<int:lipid_id>', methods=['DELETE'])
+def api_delete_zoom_settings(lipid_id):
+    """Delete all zoom settings for a lipid"""
+    try:
+        from models_postgresql_optimized import ChartZoomSettings
+        
+        ChartZoomSettings.delete_zoom_settings(lipid_id)
+        
+        return jsonify({
+            "status": "success",
+            "message": f"Zoom settings deleted for lipid {lipid_id}"
+        })
+        
+    except Exception as e:
+        print(f"❌ Error deleting zoom settings: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@app.route('/api/admin/zoom-defaults', methods=['POST'])
+@login_required
+def api_set_admin_zoom_defaults():
+    """Set admin default zoom settings - ADMIN ONLY"""
+    try:
+        # Check if user is admin
+        if not current_user.is_admin():
+            return jsonify({
+                "status": "error",
+                "message": "Admin access required"
+            }), 403
+        
+        from models_postgresql_optimized import ChartZoomSettings
+        
+        data = request.get_json()
+        lipid_id = data.get('lipid_id')
+        chart_type = data.get('chart_type')
+        zoom_start = data.get('zoom_start')
+        zoom_end = data.get('zoom_end')
+        
+        # Validate input
+        if not all([lipid_id, chart_type, zoom_start is not None, zoom_end is not None]):
+            return jsonify({
+                "status": "error",
+                "message": "Missing required fields"
+            }), 400
+        
+        # Save admin default
+        setting = ChartZoomSettings.save_admin_default(
+            lipid_id=lipid_id,
+            chart_type=chart_type,
+            zoom_start=float(zoom_start),
+            zoom_end=float(zoom_end),
+            admin_user_id=current_user.id
+        )
+        
+        return jsonify({
+            "status": "success",
+            "message": "Admin default zoom settings saved",
+            "setting": setting.to_dict()
+        })
+        
+    except Exception as e:
+        print(f"❌ Error saving admin zoom defaults: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+@app.route('/api/admin/zoom-defaults', methods=['GET'])
+def api_get_admin_zoom_defaults():
+    """Get admin default zoom settings"""
+    try:
+        from models_postgresql_optimized import ChartZoomSettings
+        
+        defaults = ChartZoomSettings.get_admin_defaults()
+        
+        return jsonify({
+            "status": "success",
+            "defaults": defaults
+        })
+        
+    except Exception as e:
+        print(f"❌ Error loading admin zoom defaults: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e),
+            "defaults": {}
+        })
+
 @app.route('/api/dual-chart-data/<int:lipid_id>')
 def api_dual_chart_data(lipid_id):
     """Chart data for visualizations"""

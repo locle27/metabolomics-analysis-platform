@@ -528,6 +528,11 @@
                 <button class="zoom-settings-btn" onclick="restoreDefaults({{ lipid.lipid_id }})" id="restore-btn-{{ lipid.lipid_id }}" style="background: #dc3545;">
                     <i class="fas fa-undo"></i> Restore Defaults
                 </button>
+                {% if current_user.is_authenticated and current_user.is_admin() %}
+                <button class="zoom-settings-btn" onclick="setAdminDefault({{ lipid.lipid_id }})" id="admin-default-btn-{{ lipid.lipid_id }}" style="background: #28a745;">
+                    <i class="fas fa-crown"></i> Set as Admin Default
+                </button>
+                {% endif %}
             </div>
         </div>
         
@@ -636,53 +641,88 @@ const chartData = {};
 
 // Register Chart.js zoom plugin - Fixed CDN compatibility
 try {
-    // Check if zoom plugin is available
-    if (typeof window.ChartZoom !== 'undefined') {
+    // Check if zoom plugin is available (multiple possible global names)
+    if (typeof window.chartjsPluginZoom !== 'undefined') {
+        Chart.register(window.chartjsPluginZoom);
+        console.log('✅ Chart.js zoom plugin registered successfully via chartjsPluginZoom');
+    } else if (typeof window.ChartZoom !== 'undefined') {
         Chart.register(window.ChartZoom);
-        console.log('✅ Chart.js zoom plugin registered successfully');
+        console.log('✅ Chart.js zoom plugin registered successfully via ChartZoom');
     } else if (typeof ChartZoom !== 'undefined') {
         Chart.register(ChartZoom);
-        console.log('✅ Chart.js zoom plugin registered successfully');
+        console.log('✅ Chart.js zoom plugin registered successfully via global ChartZoom');
     } else {
         console.warn('⚠️ Chart.js zoom plugin not found - zoom features will be disabled');
+        console.log('Available globals:', Object.keys(window).filter(key => key.toLowerCase().includes('zoom')));
     }
 } catch (error) {
     console.warn('⚠️ Failed to register Chart.js zoom plugin:', error);
 }
 
-// Individual zoom settings storage with localStorage persistence
+// Individual zoom settings storage with database persistence
 let individualZoomSettings = {};
+let adminDefaultSettings = {};
 let currentZoomLipidId = null;
 let currentZoomChart = null;
+let isAdmin = {{ 'true' if current_user.is_authenticated and current_user.is_admin() else 'false' }};
 
-// Load zoom settings from localStorage
-function loadZoomSettings() {
+// Load zoom settings from database
+async function loadZoomSettings() {
     try {
-        const saved = localStorage.getItem('metabolomics_zoom_settings');
-        if (saved) {
-            individualZoomSettings = JSON.parse(saved);
-            console.log('🔄 Loaded zoom settings from localStorage:', individualZoomSettings);
+        const response = await fetch('/api/zoom-settings');
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            individualZoomSettings = result.settings || {};
+            console.log('🔄 Loaded zoom settings from database:', individualZoomSettings);
+        } else {
+            console.warn('Failed to load zoom settings:', result.message);
+            individualZoomSettings = {};
         }
     } catch (error) {
-        console.warn('Failed to load zoom settings from localStorage:', error);
+        console.warn('Failed to load zoom settings from database:', error);
         individualZoomSettings = {};
     }
 }
 
-// Save zoom settings to localStorage
-function saveZoomSettings() {
+// Save zoom settings to database
+async function saveZoomSettings(lipidId, chartType, zoomStart, zoomEnd) {
     try {
-        localStorage.setItem('metabolomics_zoom_settings', JSON.stringify(individualZoomSettings));
-        console.log('💾 Saved zoom settings to localStorage:', individualZoomSettings);
+        const response = await fetch('/api/zoom-settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                lipid_id: lipidId,
+                chart_type: chartType,
+                zoom_start: zoomStart,
+                zoom_end: zoomEnd
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            console.log('💾 Saved zoom settings to database:', result.setting);
+            // Update local cache
+            const settingsKey = `${lipidId}_${chartType}`;
+            individualZoomSettings[settingsKey] = {
+                start: zoomStart,
+                end: zoomEnd
+            };
+        } else {
+            console.error('Failed to save zoom settings:', result.message);
+        }
     } catch (error) {
-        console.warn('Failed to save zoom settings to localStorage:', error);
+        console.error('Failed to save zoom settings to database:', error);
     }
 }
 
 // Initialize all charts when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Load saved zoom settings first
-    loadZoomSettings();
+document.addEventListener('DOMContentLoaded', async function() {
+    // Load saved zoom settings from database first
+    await loadZoomSettings();
     
     {% for lipid in selected_lipids %}
         initializeDualCharts({{ lipid.lipid_id }});
@@ -722,7 +762,7 @@ function closeZoomModal() {
     currentZoomChart = null;
 }
 
-function saveZoomModalSettings() {
+async function saveZoomModalSettings() {
     if (!currentZoomLipidId || !currentZoomChart) return;
     
     const startValue = parseFloat(document.getElementById('zoom-start').value);
@@ -733,15 +773,8 @@ function saveZoomModalSettings() {
         return;
     }
     
-    // Save individual zoom settings with chart type
-    const settingsKey = `${currentZoomLipidId}_${currentZoomChart}`;
-    individualZoomSettings[settingsKey] = {
-        start: startValue,
-        end: endValue
-    };
-    
-    // Save to localStorage
-    saveZoomSettings();
+    // Save to database
+    await saveZoomSettings(currentZoomLipidId, currentZoomChart, startValue, endValue);
     
     // Apply zoom immediately
     applyIndividualZoom(currentZoomLipidId, currentZoomChart);
@@ -760,34 +793,42 @@ function applyIndividualZoom(lipidId, chartType) {
         if (chart) {
             console.log(`🎯 Applying individual zoom to ${lipidId} ${chartType}: ${settings.start.toFixed(2)} - ${settings.end.toFixed(2)} minutes`);
             
-            // Apply zoom using Chart.js v3.9.1 zoom plugin API with safe formatting
-            if (chart.zoom) {
-                // Completely disable automatic tick generation during zoom
-                const originalXTicks = chart.options.scales.x.ticks;
-                const originalYTicks = chart.options.scales.y.ticks;
-                
-                // Set safe, simple tick configurations
-                chart.options.scales.x.ticks = {
-                    maxTicksLimit: 10,
-                    callback: function(value) { return value.toFixed(1); }
-                };
-                chart.options.scales.y.ticks = {
-                    maxTicksLimit: 6,
-                    callback: function(value) { return Math.round(value).toString(); }
-                };
-                
-                chart.zoom({
-                    x: {
-                        min: settings.start,
-                        max: settings.end
-                    }
-                });
-                
-                // Restore original tick configurations
-                chart.options.scales.x.ticks = originalXTicks;
-                chart.options.scales.y.ticks = originalYTicks;
-            } else {
-                console.warn('Zoom function not available on chart');
+            // Apply zoom using Chart.js v3.9.1 zoom plugin API
+            try {
+                // Method 1: Direct zoom API (Chart.js v3 with zoom plugin)
+                if (typeof chart.zoom === 'function') {
+                    console.log('📊 Using chart.zoom() method');
+                    chart.zoom({
+                        x: {
+                            min: settings.start,
+                            max: settings.end
+                        }
+                    });
+                }
+                // Method 2: Manual scale update (fallback)
+                else if (chart.options && chart.options.scales && chart.options.scales.x) {
+                    console.log('📊 Using manual scale update method');
+                    chart.options.scales.x.min = settings.start;
+                    chart.options.scales.x.max = settings.end;
+                    chart.update('none');
+                }
+                else {
+                    console.warn('⚠️ No zoom method available, trying scale update');
+                    // Fallback: Direct scale manipulation
+                    chart.scales.x.options.min = settings.start;
+                    chart.scales.x.options.max = settings.end;
+                    chart.update('none');
+                }
+            } catch (zoomError) {
+                console.error('Zoom application failed:', zoomError);
+                // Final fallback: Try updating chart data range
+                try {
+                    chart.options.scales.x.min = settings.start;
+                    chart.options.scales.x.max = settings.end;
+                    chart.update();
+                } catch (fallbackError) {
+                    console.error('All zoom methods failed:', fallbackError);
+                }
             }
             
             // Add visual indicator
@@ -827,22 +868,27 @@ function addIndividualZoomBadge(lipidId, chartType) {
         // Create individual zoom badge
         const badge = document.createElement('div');
         badge.className = 'individual-zoom-badge';
+        
+        // Check if this is an admin default
+        const isAdminDefault = settings.is_admin_default || false;
+        
         badge.innerHTML = `
-            <i class="fas fa-user-cog"></i> 
+            <i class="fas ${isAdminDefault ? 'fa-crown' : 'fa-user-cog'}"></i> 
             ${chartType.toUpperCase()}: ${settings.start.toFixed(1)}-${settings.end.toFixed(1)}min
+            ${isAdminDefault ? ' (Admin)' : ''}
         `;
         badge.style.cssText = `
             position: absolute;
             top: 5px;
             right: 5px;
-            background: linear-gradient(135deg, #007bff, #0056b3);
+            background: linear-gradient(135deg, ${isAdminDefault ? '#28a745, #218838' : '#007bff, #0056b3'});
             color: white;
             padding: 4px 8px;
             border-radius: 12px;
             font-size: 10px;
             font-weight: 600;
             z-index: 1000;
-            box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+            box-shadow: 0 2px 8px rgba(${isAdminDefault ? '40, 167, 69' : '0, 123, 255'}, 0.3);
             pointer-events: none;
         `;
         
@@ -854,14 +900,20 @@ function addIndividualZoomBadge(lipidId, chartType) {
 }
 
 // Restore defaults function
-function restoreDefaults(lipidId) {
+async function restoreDefaults(lipidId) {
     try {
-        // Remove zoom settings for both charts
+        // Delete from database
+        const response = await fetch(`/api/zoom-settings/${lipidId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            console.log(`✅ Deleted zoom settings from database for lipid ${lipidId}`);
+        }
+        
+        // Remove zoom settings for both charts from local cache
         delete individualZoomSettings[`${lipidId}_chart1`];
         delete individualZoomSettings[`${lipidId}_chart2`];
-        
-        // Save updated settings to localStorage
-        saveZoomSettings();
         
         // Reset both charts to default zoom
         if (chartInstances[lipidId]) {
@@ -896,9 +948,95 @@ function restoreDefaults(lipidId) {
             if (badge2) badge2.remove();
         }
         
-        console.log(`🔄 Restored defaults for lipid ${lipidId} and saved to localStorage`);
+        console.log(`🔄 Restored defaults for lipid ${lipidId} and removed from database`);
     } catch (error) {
         console.warn('Error restoring defaults:', error);
+    }
+}
+
+// Set admin default for a lipid
+async function setAdminDefault(lipidId) {
+    if (!isAdmin) {
+        alert('Admin access required');
+        return;
+    }
+    
+    // Check if there are current zoom settings for this lipid
+    const chart1Setting = individualZoomSettings[`${lipidId}_chart1`];
+    const chart2Setting = individualZoomSettings[`${lipidId}_chart2`];
+    
+    if (!chart1Setting && !chart2Setting) {
+        alert('Please set zoom levels first before saving as admin default');
+        return;
+    }
+    
+    try {
+        // Save Chart 1 as admin default if it has settings
+        if (chart1Setting) {
+            const response1 = await fetch('/api/admin/zoom-defaults', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    lipid_id: lipidId,
+                    chart_type: 'chart1',
+                    zoom_start: chart1Setting.start,
+                    zoom_end: chart1Setting.end
+                })
+            });
+            
+            if (response1.ok) {
+                console.log('✅ Set Chart 1 as admin default');
+            }
+        }
+        
+        // Save Chart 2 as admin default if it has settings
+        if (chart2Setting) {
+            const response2 = await fetch('/api/admin/zoom-defaults', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    lipid_id: lipidId,
+                    chart_type: 'chart2',
+                    zoom_start: chart2Setting.start,
+                    zoom_end: chart2Setting.end
+                })
+            });
+            
+            if (response2.ok) {
+                console.log('✅ Set Chart 2 as admin default');
+            }
+        }
+        
+        alert('Successfully set current zoom levels as admin defaults');
+        
+        // Mark settings as admin defaults in local cache
+        if (chart1Setting) {
+            individualZoomSettings[`${lipidId}_chart1`].is_admin_default = true;
+        }
+        if (chart2Setting) {
+            individualZoomSettings[`${lipidId}_chart2`].is_admin_default = true;
+        }
+        
+        // Update badges to show admin default
+        updateZoomBadges(lipidId);
+        
+    } catch (error) {
+        console.error('Error setting admin defaults:', error);
+        alert('Failed to set admin defaults');
+    }
+}
+
+// Update zoom badges for a lipid
+function updateZoomBadges(lipidId) {
+    if (individualZoomSettings[`${lipidId}_chart1`]) {
+        addIndividualZoomBadge(lipidId, 'chart1');
+    }
+    if (individualZoomSettings[`${lipidId}_chart2`]) {
+        addIndividualZoomBadge(lipidId, 'chart2');
     }
 }
 

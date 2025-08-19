@@ -574,6 +574,131 @@ class ScheduleRequest(db.Model):
             'notes': self.notes
         }
 
+class ChartZoomSettings(db.Model):
+    """Individual chart zoom settings for lipids - persisted globally"""
+    __tablename__ = 'chart_zoom_settings'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    lipid_id = db.Column(db.Integer, db.ForeignKey('main_lipids.lipid_id'), nullable=False)
+    chart_type = db.Column(db.String(20), nullable=False)  # 'chart1' or 'chart2'
+    zoom_start = db.Column(db.Float, nullable=False)
+    zoom_end = db.Column(db.Float, nullable=False)
+    is_admin_default = db.Column(db.Boolean, default=False, nullable=False)  # Admin-set defaults
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    
+    # Unique constraint for lipid_id + chart_type
+    __table_args__ = (
+        db.UniqueConstraint('lipid_id', 'chart_type', name='unique_lipid_chart_zoom'),
+    )
+    
+    # Relationships
+    lipid = db.relationship('MainLipid', backref='zoom_settings')
+    creator = db.relationship('User', backref='created_zoom_settings')
+    
+    def __repr__(self):
+        return f'<ChartZoomSettings {self.lipid_id} {self.chart_type}: {self.zoom_start}-{self.zoom_end}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'lipid_id': self.lipid_id,
+            'chart_type': self.chart_type,
+            'zoom_start': self.zoom_start,
+            'zoom_end': self.zoom_end,
+            'created_by': self.created_by,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+    
+    @staticmethod
+    def get_all_zoom_settings():
+        """Get all zoom settings as a dictionary, admin defaults take precedence"""
+        settings = ChartZoomSettings.query.order_by(ChartZoomSettings.is_admin_default.desc()).all()
+        result = {}
+        for setting in settings:
+            key = f"{setting.lipid_id}_{setting.chart_type}"
+            # Only add if not already present (admin defaults come first due to ordering)
+            if key not in result:
+                result[key] = {
+                    'start': setting.zoom_start,
+                    'end': setting.zoom_end,
+                    'is_admin_default': setting.is_admin_default
+                }
+        return result
+    
+    @staticmethod
+    def save_zoom_setting(lipid_id, chart_type, zoom_start, zoom_end, user_id=None):
+        """Save or update a zoom setting"""
+        setting = ChartZoomSettings.query.filter_by(
+            lipid_id=lipid_id,
+            chart_type=chart_type
+        ).first()
+        
+        if setting:
+            # Update existing
+            setting.zoom_start = zoom_start
+            setting.zoom_end = zoom_end
+            setting.updated_at = db.func.current_timestamp()
+        else:
+            # Create new
+            setting = ChartZoomSettings(
+                lipid_id=lipid_id,
+                chart_type=chart_type,
+                zoom_start=zoom_start,
+                zoom_end=zoom_end,
+                created_by=user_id
+            )
+            db.session.add(setting)
+        
+        db.session.commit()
+        return setting
+    
+    @staticmethod
+    def delete_zoom_settings(lipid_id):
+        """Delete all zoom settings for a lipid"""
+        ChartZoomSettings.query.filter_by(lipid_id=lipid_id).delete()
+        db.session.commit()
+    
+    @staticmethod
+    def save_admin_default(lipid_id, chart_type, zoom_start, zoom_end, admin_user_id):
+        """Save admin default zoom setting - only admins can call this"""
+        # Remove any existing admin default for this lipid/chart combo
+        ChartZoomSettings.query.filter_by(
+            lipid_id=lipid_id,
+            chart_type=chart_type,
+            is_admin_default=True
+        ).delete()
+        
+        # Create new admin default
+        setting = ChartZoomSettings(
+            lipid_id=lipid_id,
+            chart_type=chart_type,
+            zoom_start=zoom_start,
+            zoom_end=zoom_end,
+            is_admin_default=True,
+            created_by=admin_user_id
+        )
+        db.session.add(setting)
+        db.session.commit()
+        return setting
+    
+    @staticmethod
+    def get_admin_defaults():
+        """Get only admin default settings"""
+        settings = ChartZoomSettings.query.filter_by(is_admin_default=True).all()
+        result = {}
+        for setting in settings:
+            key = f"{setting.lipid_id}_{setting.chart_type}"
+            result[key] = {
+                'start': setting.zoom_start,
+                'end': setting.zoom_end,
+                'lipid_id': setting.lipid_id,
+                'chart_type': setting.chart_type
+            }
+        return result
+
 class AdminSettings(db.Model):
     """Admin settings for chart zoom ranges and other configurations"""
     __tablename__ = 'admin_settings'
