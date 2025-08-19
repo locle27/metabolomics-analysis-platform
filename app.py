@@ -3354,6 +3354,7 @@ def api_get_zoom_settings():
         })
 
 @app.route('/api/zoom-settings', methods=['POST'])
+@csrf.exempt
 def api_save_zoom_settings():
     """Save zoom settings to database"""
     try:
@@ -3418,6 +3419,7 @@ def api_delete_zoom_settings(lipid_id):
         }), 500
 
 @app.route('/api/admin/zoom-defaults', methods=['POST'])
+@csrf.exempt
 @login_required
 def api_set_admin_zoom_defaults():
     """Set admin default zoom settings - ADMIN ONLY"""
