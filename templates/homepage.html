@@ -8,6 +8,342 @@
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&family=Exo+2:wght@300;400;600;800&family=Russo+One&display=swap');
     
     
+    /* Redesigned Hero Section - Balanced Layout */
+    .hero-section {
+        background: linear-gradient(135deg, 
+            var(--primary-blue) 0%, 
+            var(--dark-blue) 50%, 
+            #1a365d 100%);
+        position: relative;
+        overflow: hidden;
+        min-height: 100vh;
+    }
+
+    .hero-content-left {
+        background: rgba(0, 0, 0, 0.1);
+        padding: 80px 60px;
+        display: flex;
+        align-items: center;
+        min-height: 100vh;
+    }
+
+    .hero-visual-right {
+        background: linear-gradient(135deg, 
+            rgba(233, 75, 0, 0.1) 0%, 
+            rgba(46, 76, 146, 0.2) 100%);
+        position: relative;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .hero-text-container {
+        max-width: 600px;
+        color: white;
+    }
+
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        background: rgba(233, 75, 0, 0.9);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 4px 15px rgba(233, 75, 0, 0.3);
+    }
+
+    .hero-main-title {
+        font-size: 3.2rem;
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 20px;
+        color: white;
+    }
+
+    .highlight-text {
+        color: var(--primary-orange);
+        background: linear-gradient(45deg, #E94B00, #FF6B1A);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .hero-subtitle {
+        font-size: 1.8rem;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 25px;
+        display: flex;
+        align-items: center;
+    }
+
+    .hero-subtitle i {
+        color: var(--primary-orange);
+    }
+
+    .hero-description {
+        font-size: 1.1rem;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.85);
+        margin-bottom: 30px;
+    }
+
+    .hero-stats {
+        display: flex;
+        gap: 30px;
+        margin-bottom: 40px;
+        flex-wrap: wrap;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--primary-orange);
+        line-height: 1;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.7);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-top: 5px;
+    }
+
+    .hero-actions {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .btn-primary-hero {
+        display: inline-flex;
+        align-items: center;
+        background: linear-gradient(135deg, var(--primary-orange) 0%, #ff6b1a 100%);
+        color: white;
+        padding: 15px 30px;
+        border-radius: 12px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 25px rgba(233, 75, 0, 0.3);
+        border: none;
+    }
+
+    .btn-primary-hero:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 35px rgba(233, 75, 0, 0.4);
+        color: white;
+        background: linear-gradient(135deg, #ff6b1a 0%, var(--primary-orange) 100%);
+    }
+
+    .btn-secondary-hero {
+        display: inline-flex;
+        align-items: center;
+        background: transparent;
+        color: white;
+        padding: 15px 30px;
+        border-radius: 12px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        border: 2px solid rgba(255, 255, 255, 0.8);
+    }
+
+    .btn-secondary-hero:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border-color: white;
+        transform: translateY(-2px);
+    }
+
+    /* Molecular Showcase */
+    .molecular-showcase {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 40px;
+    }
+
+    .showcase-background {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 400px;
+        height: 400px;
+        margin: -200px 0 0 -200px;
+        background: radial-gradient(circle, 
+            rgba(233, 75, 0, 0.1) 0%, 
+            rgba(46, 76, 146, 0.1) 50%, 
+            transparent 100%);
+        border-radius: 50%;
+        animation: showcaseGlow 8s ease-in-out infinite alternate;
+    }
+
+    @keyframes showcaseGlow {
+        0% { transform: scale(1) rotate(0deg); opacity: 0.6; }
+        100% { transform: scale(1.1) rotate(360deg); opacity: 0.9; }
+    }
+
+    .molecular-animation-container {
+        position: relative;
+        z-index: 10;
+        margin-bottom: 40px;
+    }
+
+    .hero-molecular-gif {
+        width: 300px;
+        height: 300px;
+        object-fit: cover;
+        border-radius: 20px;
+        box-shadow: 
+            0 20px 60px rgba(0, 0, 0, 0.3),
+            0 0 40px rgba(233, 75, 0, 0.2);
+        border: 4px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .hero-molecular-gif:hover {
+        transform: scale(1.05);
+        box-shadow: 
+            0 25px 80px rgba(0, 0, 0, 0.4),
+            0 0 60px rgba(233, 75, 0, 0.3);
+    }
+
+    .molecular-details {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        justify-content: center;
+        max-width: 500px;
+    }
+
+    .detail-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        padding: 20px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        min-width: 200px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .detail-card:hover {
+        background: rgba(255, 255, 255, 0.15);
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .detail-icon {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, var(--primary-orange), #ff6b1a);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .detail-content h4 {
+        color: white;
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+    .detail-content p {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 13px;
+        margin: 0;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 991px) {
+        .hero-content-left, .hero-visual-right {
+            min-height: auto;
+            padding: 60px 30px;
+        }
+
+        .hero-main-title {
+            font-size: 2.5rem;
+        }
+
+        .hero-stats {
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .molecular-details {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .detail-card {
+            min-width: 250px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .hero-content-left {
+            padding: 40px 20px;
+        }
+
+        .hero-main-title {
+            font-size: 2rem;
+        }
+
+        .hero-subtitle {
+            font-size: 1.4rem;
+        }
+
+        .hero-actions {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .btn-primary-hero, .btn-secondary-hero {
+            width: 100%;
+            justify-content: center;
+            max-width: 280px;
+        }
+
+        .hero-molecular-gif {
+            width: 250px;
+            height: 250px;
+        }
+
+        .molecular-details {
+            gap: 15px;
+        }
+
+        .detail-card {
+            min-width: 200px;
+            padding: 15px;
+        }
+    }
+
     /* 3D Molecular Background */
     .homepage-3d-background {
         position: fixed;
@@ -1202,33 +1538,102 @@
 {% block hero %}
 <!-- Custom hero for homepage -->
 <section class="hero-section">
-    <div class="container">
-        <div class="hero-content">
-            <div class="row align-items-center">
-                <div class="col-lg-8">
-                    <h1 class="display-4 fw-bold mb-4">
-                        Center for Research on Applied Molecular Biology in Medicine
+    <div class="container-fluid">
+        <div class="row g-0 min-vh-100 align-items-center">
+            <!-- Left Content Panel -->
+            <div class="col-lg-6 hero-content-left">
+                <div class="hero-text-container">
+                    <div class="hero-badge">
+                        <i class="fas fa-university me-2"></i>
+                        Vietnam's Top 6 Research University
+                    </div>
+                    
+                    <h1 class="hero-main-title">
+                        Center for Research on 
+                        <span class="highlight-text">Applied Molecular Biology</span>
+                        in Medicine
                     </h1>
-                    <h2 class="h3 mb-3" style="color: rgba(255,255,255,0.9); font-weight: 500;">
+                    
+                    <h2 class="hero-subtitle">
+                        <i class="fas fa-dna me-3"></i>
                         Phenikaa University
                     </h2>
-                    <p class="lead mb-4">
-                        Join Vietnam's Top 6 leading university in pioneering molecular biology research. 
+                    
+                    <p class="hero-description">
                         Experience cutting-edge facilities, world-class faculty, and the innovative 
-                        "Institute-University-Hospital" model that transforms research into real-world medical solutions.
+                        <strong>"Institute-University-Hospital"</strong> model that transforms research 
+                        into real-world medical solutions.
                     </p>
-                    <div class="d-flex gap-3 flex-wrap">
-                        <a href="{{ url_for('clean_dashboard') }}" class="btn btn-phenikaa btn-lg">
-                            <i class="fas fa-dna me-2"></i>Explore Research
+                    
+                    <div class="hero-stats">
+                        <div class="stat-item">
+                            <div class="stat-number">800+</div>
+                            <div class="stat-label">Research Samples</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">50+</div>
+                            <div class="stat-label">Research Projects</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">15+</div>
+                            <div class="stat-label">Publications</div>
+                        </div>
+                    </div>
+                    
+                    <div class="hero-actions">
+                        <a href="{{ url_for('clean_dashboard') }}" class="btn-primary-hero">
+                            <i class="fas fa-dna me-2"></i>
+                            <span>Explore Research</span>
                         </a>
-                        <a href="{{ url_for('browse_lipids') }}" class="btn btn-outline-light btn-lg" style="border: 2px solid white; color: white; font-weight: 600;">
-                            <i class="fas fa-microscope me-2"></i>Discover Platform
+                        <a href="{{ url_for('browse_lipids') }}" class="btn-secondary-hero">
+                            <i class="fas fa-microscope me-2"></i>
+                            <span>Discover Platform</span>
                         </a>
                     </div>
                 </div>
-                <div class="col-lg-4 text-center">
-                    <div class="animated-dna-container">
-                        <img src="/static/tumblr_n06e86tlLF1qbpwkro1_250.gif" alt="Animated Molecular Structure" class="animated-dna-gif" style="width: 100%; max-width: 550px; height: auto; min-height: 400px; border-radius: 20px; box-shadow: 0 15px 50px rgba(0,0,0,0.4); border: 4px solid rgba(255,255,255,0.2);">
+            </div>
+            
+            <!-- Right Visual Panel -->
+            <div class="col-lg-6 hero-visual-right">
+                <div class="molecular-showcase">
+                    <div class="showcase-background"></div>
+                    
+                    <div class="molecular-animation-container">
+                        <img src="/static/tumblr_n06e86tlLF1qbpwkro1_250.gif" 
+                             alt="Animated Molecular Structure" 
+                             class="hero-molecular-gif">
+                    </div>
+                    
+                    <div class="molecular-details">
+                        <div class="detail-card">
+                            <div class="detail-icon">
+                                <i class="fas fa-atom"></i>
+                            </div>
+                            <div class="detail-content">
+                                <h4>Advanced Analysis</h4>
+                                <p>Molecular structure visualization</p>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-card">
+                            <div class="detail-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="detail-content">
+                                <h4>Real-time Data</h4>
+                                <p>Interactive research platform</p>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-card">
+                            <div class="detail-icon">
+                                <i class="fas fa-microscope"></i>
+                            </div>
+                            <div class="detail-content">
+                                <h4>Precision Tools</h4>
+                                <p>Cutting-edge laboratory</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
