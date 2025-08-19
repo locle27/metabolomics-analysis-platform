@@ -861,7 +861,7 @@ async function saveZoomModalSettings() {
     const endValue = parseFloat(document.getElementById('zoom-end').value);
     
     if (isNaN(startValue) || isNaN(endValue) || startValue >= endValue) {
-        alert('Please enter valid start and end times (start must be less than end)');
+        showErrorNotification('Please enter valid start and end times (start must be less than end)', 4000);
         return;
     }
     
@@ -870,6 +870,10 @@ async function saveZoomModalSettings() {
     
     // Apply zoom immediately
     applyIndividualZoom(currentZoomLipidId, currentZoomChart);
+    
+    // SUCCESS NOTIFICATION - Let user know zoom was applied
+    const chartName = currentZoomChart === 'chart1' ? 'Chart 1' : 'Chart 2';
+    showSuccessNotification(`Zoom applied to ${chartName}: ${startValue.toFixed(2)} - ${endValue.toFixed(2)} minutes`, 3000);
     
     closeZoomModal();
 }
@@ -1080,20 +1084,60 @@ async function restoreDefaults(lipidId) {
         delete individualZoomSettings[`${lipidId}_chart1`];
         delete individualZoomSettings[`${lipidId}_chart2`];
         
-        // Reset both charts to default zoom
+        // Reset both charts to their original default zoom levels
         if (chartInstances[lipidId]) {
+            // Chart 1: Reset to its original focused range (RT ± 0.6)  
             if (chartInstances[lipidId].chart1) {
-                if (chartInstances[lipidId].chart1.resetZoom) {
-                    chartInstances[lipidId].chart1.resetZoom();
+                try {
+                    // Get chart data to determine original range
+                    const chartData = window.chartData && window.chartData[lipidId];
+                    if (chartData && chartData.datasets && chartData.datasets[0] && chartData.datasets[0].data) {
+                        // Find the retention time range from the main chromatogram data
+                        const dataPoints = chartData.datasets[0].data;
+                        const minTime = Math.min(...dataPoints.map(point => point.x));
+                        const maxTime = Math.max(...dataPoints.map(point => point.x));
+                        
+                        // Reset to original default range
+                        chartInstances[lipidId].chart1.scales.x.options.min = minTime;
+                        chartInstances[lipidId].chart1.scales.x.options.max = maxTime;
+                        chartInstances[lipidId].chart1.update('none');
+                        console.log(`📊 Chart 1 reset to original range: ${minTime.toFixed(2)} - ${maxTime.toFixed(2)}`);
+                    } else {
+                        // Fallback: Try resetZoom if available
+                        if (chartInstances[lipidId].chart1.resetZoom) {
+                            chartInstances[lipidId].chart1.resetZoom();
+                        }
+                        console.log(`📊 Chart 1 reset via resetZoom fallback`);
+                    }
+                } catch (resetError) {
+                    console.warn('Chart 1 reset failed, trying resetZoom:', resetError);
+                    if (chartInstances[lipidId].chart1.resetZoom) {
+                        chartInstances[lipidId].chart1.resetZoom();
+                    }
                 }
+                
+                // Remove visual indicators
                 chartInstances[lipidId].chart1.canvas.style.borderTop = '';
                 chartInstances[lipidId].chart1.canvas.style.borderLeft = '';
                 chartInstances[lipidId].chart1.canvas.title = '';
             }
+            
+            // Chart 2: Reset to full range (0-16 minutes)
             if (chartInstances[lipidId].chart2) {
-                if (chartInstances[lipidId].chart2.resetZoom) {
-                    chartInstances[lipidId].chart2.resetZoom();
+                try {
+                    // Chart 2 should reset to full 0-16 minute range
+                    chartInstances[lipidId].chart2.scales.x.options.min = 0;
+                    chartInstances[lipidId].chart2.scales.x.options.max = 16;
+                    chartInstances[lipidId].chart2.update('none');
+                    console.log(`📊 Chart 2 reset to full range: 0.00 - 16.00`);
+                } catch (resetError) {
+                    console.warn('Chart 2 reset failed, trying resetZoom:', resetError);
+                    if (chartInstances[lipidId].chart2.resetZoom) {
+                        chartInstances[lipidId].chart2.resetZoom();
+                    }
                 }
+                
+                // Remove visual indicators
                 chartInstances[lipidId].chart2.canvas.style.borderTop = '';
                 chartInstances[lipidId].chart2.canvas.style.borderLeft = '';
                 chartInstances[lipidId].chart2.canvas.title = '';
@@ -1113,9 +1157,27 @@ async function restoreDefaults(lipidId) {
             if (badge2) badge2.remove();
         }
         
-        console.log(`🔄 Restored defaults for lipid ${lipidId} and removed from database`);
+        // SUCCESS NOTIFICATION - Let user know restore worked
+        showSuccessNotification(`Zoom settings restored to defaults for lipid ${lipidId}`, 3000);
+        
+        // Visual feedback: Brief highlight of the chart container
+        const lipidContainer = document.getElementById(`lipid-container-${lipidId}`);
+        if (lipidContainer) {
+            lipidContainer.style.transition = 'all 0.3s ease';
+            lipidContainer.style.backgroundColor = '#d4edda';
+            lipidContainer.style.borderColor = '#28a745';
+            
+            // Remove highlight after 1 second
+            setTimeout(() => {
+                lipidContainer.style.backgroundColor = '';
+                lipidContainer.style.borderColor = '';
+            }, 1000);
+        }
+        
+        console.log(`✅ Successfully restored defaults for lipid ${lipidId} - charts updated and database cleared`);
     } catch (error) {
-        console.warn('Error restoring defaults:', error);
+        console.error('❌ Error restoring defaults:', error);
+        showErrorNotification(`Failed to restore defaults for lipid ${lipidId}: ${error.message}`, 5000);
     }
 }
 
@@ -1143,6 +1205,107 @@ document.addEventListener('click', function(event) {
         });
     }
 });
+
+// Professional notification system
+function showSuccessNotification(message, duration = 3000) {
+    createNotification(message, 'success', duration);
+}
+
+function showErrorNotification(message, duration = 5000) {
+    createNotification(message, 'error', duration);
+}
+
+function createNotification(message, type, duration) {
+    // Remove any existing notifications
+    const existingNotifications = document.querySelectorAll('.zoom-notification');
+    existingNotifications.forEach(notification => notification.remove());
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `zoom-notification zoom-notification-${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'}"></i>
+            <span>${message}</span>
+            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    // Add styles
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        background: ${type === 'success' ? '#d4edda' : '#f8d7da'};
+        color: ${type === 'success' ? '#155724' : '#721c24'};
+        border: 1px solid ${type === 'success' ? '#c3e6cb' : '#f5c6cb'};
+        border-radius: 8px;
+        padding: 12px 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        font-family: 'Inter', sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        min-width: 300px;
+        max-width: 500px;
+        animation: slideInRight 0.3s ease-out;
+        backdrop-filter: blur(10px);
+    `;
+    
+    // Add CSS animation if not already added
+    if (!document.getElementById('notification-styles')) {
+        const style = document.createElement('style');
+        style.id = 'notification-styles';
+        style.textContent = `
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOutRight {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+            .notification-content {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .notification-close {
+                background: none;
+                border: none;
+                color: inherit;
+                cursor: pointer;
+                padding: 4px;
+                margin-left: auto;
+                border-radius: 4px;
+                opacity: 0.7;
+                transition: opacity 0.2s ease;
+            }
+            .notification-close:hover {
+                opacity: 1;
+                background: rgba(0, 0, 0, 0.1);
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Auto-remove after duration
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.style.animation = 'slideOutRight 0.3s ease-in';
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 300);
+        }
+    }, duration);
+}
 
 async function initializeDualCharts(lipidId) {
     try {
