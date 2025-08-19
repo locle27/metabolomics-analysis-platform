@@ -179,6 +179,9 @@ if CSRF_AVAILABLE:
     # TEMPORARY: Add password update path for debugging
     CSRF_DEBUG_EXEMPT_PATHS = ['/auth/update-password']
     
+    # API endpoints that need CSRF exemption
+    API_EXEMPT_PATHS = ['/api/zoom-settings', '/api/admin/zoom-defaults']
+    
     @app.before_request
     def disable_csrf_for_oauth_routes():
         """Disable CSRF only for OAuth callback routes"""
@@ -203,6 +206,12 @@ if CSRF_AVAILABLE:
             for path in CSRF_DEBUG_EXEMPT_PATHS:
                 if path in request.path:
                     print(f"🔓 CSRF TEMPORARILY disabled for debugging path: {request.path}")
+                    return None
+            
+            # Check API exempt paths
+            for path in API_EXEMPT_PATHS:
+                if path in request.path:
+                    print(f"🔓 CSRF disabled for API endpoint: {request.path}")
                     return None
                     
         except Exception as e:
