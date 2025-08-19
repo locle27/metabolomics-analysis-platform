@@ -243,6 +243,247 @@
         font-size: 18px;
         line-height: 1.6;
     }
+    
+    /* === MODERN 3D HOMEPAGE STYLES === */
+    :root {
+        --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        --gradient-5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        --gradient-6: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    /* Modern 3D Section Background */
+    .modern-3d-section {
+        position: relative;
+        padding: 80px 0;
+        background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+        overflow: hidden;
+    }
+
+    .modern-3d-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: 
+            radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+            radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.3) 0%, transparent 50%);
+        animation: modernBackgroundMove 20s ease-in-out infinite;
+        z-index: 0;
+    }
+
+    @keyframes modernBackgroundMove {
+        0%, 100% { transform: translateX(0) translateY(0); }
+        33% { transform: translateX(-30px) translateY(-30px); }
+        66% { transform: translateX(30px) translateY(-30px); }
+    }
+
+    /* Glass Container */
+    .modern-glass-container {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 60px 40px;
+        margin: 0 20px;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Modern Section Titles */
+    .modern-section-title {
+        text-align: center;
+        margin-bottom: 60px;
+        color: white;
+    }
+
+    .modern-section-title h2 {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 20px;
+        background: linear-gradient(135deg, #fff 0%, #f0f8ff 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: modernTitleGlow 3s ease-in-out infinite alternate;
+    }
+
+    @keyframes modernTitleGlow {
+        from { filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.3)); }
+        to { filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.6)); }
+    }
+
+    .modern-section-title p {
+        font-size: 1.2rem;
+        opacity: 0.9;
+        font-weight: 300;
+    }
+
+    /* 3D Cards with Enhanced Effects */
+    .modern-3d-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        padding: 40px 30px;
+        height: 100%;
+        border: none;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        cursor: pointer;
+        box-shadow: 
+            0 15px 35px rgba(0, 0, 0, 0.1),
+            0 5px 15px rgba(0, 0, 0, 0.07);
+        opacity: 0;
+        transform: translateY(50px);
+        animation: modernSlideInUp 0.8s ease forwards;
+    }
+
+    /* Staggered animation delays */
+    .modern-3d-card:nth-child(1) { animation-delay: 0.1s; }
+    .modern-3d-card:nth-child(2) { animation-delay: 0.2s; }
+    .modern-3d-card:nth-child(3) { animation-delay: 0.3s; }
+    .modern-3d-card:nth-child(4) { animation-delay: 0.4s; }
+    .modern-3d-card:nth-child(5) { animation-delay: 0.5s; }
+    .modern-3d-card:nth-child(6) { animation-delay: 0.6s; }
+
+    @keyframes modernSlideInUp {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Shine effect on cards */
+    .modern-3d-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+        transition: left 0.5s;
+    }
+
+    .modern-3d-card:hover::before {
+        left: 100%;
+    }
+
+    /* 3D Hover Effect */
+    .modern-3d-card:hover {
+        transform: translateY(-15px) rotateX(5deg);
+        box-shadow: 
+            0 25px 50px rgba(0, 0, 0, 0.15),
+            0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Floating Icons */
+    .modern-floating-icon-container {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 30px;
+        position: relative;
+        perspective: 1000px;
+    }
+
+    .modern-floating-icon {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: white;
+        position: relative;
+        animation: modernFloat 6s ease-in-out infinite;
+        transition: all 0.3s ease;
+    }
+
+    .modern-floating-icon::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        z-index: -1;
+    }
+
+    /* Icon Background Gradients */
+    .modern-icon-gradient-1::before { background: var(--gradient-1); }
+    .modern-icon-gradient-2::before { background: var(--gradient-2); }
+    .modern-icon-gradient-3::before { background: var(--gradient-3); }
+    .modern-icon-gradient-4::before { background: var(--gradient-4); }
+    .modern-icon-gradient-5::before { background: var(--gradient-5); }
+    .modern-icon-gradient-6::before { background: var(--gradient-6); }
+
+    @keyframes modernFloat {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        33% { transform: translateY(-10px) rotate(5deg); }
+        66% { transform: translateY(5px) rotate(-5deg); }
+    }
+
+    .modern-3d-card:hover .modern-floating-icon {
+        transform: scale(1.1) rotateY(180deg);
+        animation-play-state: paused;
+    }
+
+    /* Modern Typography */
+    .modern-3d-card h4 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #2c3e50;
+        text-align: center;
+        transition: color 0.3s ease;
+    }
+
+    .modern-3d-card:hover h4 {
+        color: var(--primary-blue);
+    }
+
+    .modern-3d-card p {
+        color: #5a6c7d;
+        line-height: 1.6;
+        font-weight: 400;
+        text-align: center;
+        margin: 0;
+        transition: all 0.3s ease;
+    }
+
+    .modern-3d-card:hover p {
+        color: #4a5568;
+        transform: translateY(-2px);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .modern-section-title h2 {
+            font-size: 2.5rem;
+        }
+        
+        .modern-floating-icon {
+            font-size: 1.5rem;
+        }
+        
+        .modern-floating-icon-container {
+            width: 60px;
+            height: 60px;
+        }
+        
+        .modern-glass-container {
+            padding: 40px 20px;
+            margin: 0 10px;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -288,90 +529,104 @@
 {% endblock %}
 
 {% block content %}
-<!-- Phenikaa University Excellence Section -->
-<section class="project-overview">
+<!-- Modern 3D Phenikaa University Excellence Section -->
+<section class="modern-3d-section">
     <div class="container">
-        <div class="section-title">
-            <h2>Why Choose Phenikaa University for Molecular Biology Research?</h2>
-            <p>Join Vietnam's leading research institution with world-class facilities and opportunities</p>
-        </div>
-        
-        <div class="row">
-            <div class="col-lg-4 col-md-6 mb-4">
-                <div class="overview-card">
-                    <div class="icon">
-                        <i class="fas fa-trophy"></i>
-                    </div>
-                    <h4>Top 6 University in Vietnam</h4>
-                    <p>
-                        Recognized among Vietnam's Top 6 leading universities according to SCImago Institutions Rankings 2025. 
-                        Join an institution that sets the standard for academic excellence and research innovation.
-                    </p>
-                </div>
+        <div class="modern-glass-container">
+            <div class="modern-section-title">
+                <h2>Why Choose Phenikaa University for Molecular Biology Research?</h2>
+                <p>Join Vietnam's leading research institution with world-class facilities and opportunities</p>
             </div>
             
-            <div class="col-lg-4 col-md-6 mb-4">
-                <div class="overview-card">
-                    <div class="icon">
-                        <i class="fas fa-lightbulb"></i>
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="modern-3d-card">
+                        <div class="modern-floating-icon-container">
+                            <div class="modern-floating-icon modern-icon-gradient-1">
+                                <i class="fas fa-trophy"></i>
+                            </div>
+                        </div>
+                        <h4>Top 6 University in Vietnam</h4>
+                        <p>
+                            Recognized among Vietnam's Top 6 leading universities according to SCImago Institutions Rankings 2025. 
+                            Join an institution that sets the standard for academic excellence and research innovation.
+                        </p>
                     </div>
-                    <h4>Innovation & Patents</h4>
-                    <p>
-                        Be part of groundbreaking research with 56 accepted applications, 3 granted patents, 
-                        and 5 utility solutions. Work with cutting-edge technologies and contribute to real-world medical innovations.
-                    </p>
                 </div>
-            </div>
-            
-            <div class="col-lg-4 col-md-6 mb-4">
-                <div class="overview-card">
-                    <div class="icon">
-                        <i class="fas fa-hospital"></i>
+                
+                <div class="col-lg-4 col-md-6">
+                    <div class="modern-3d-card">
+                        <div class="modern-floating-icon-container">
+                            <div class="modern-floating-icon modern-icon-gradient-2">
+                                <i class="fas fa-lightbulb"></i>
+                            </div>
+                        </div>
+                        <h4>Innovation &amp; Patents</h4>
+                        <p>
+                            Be part of groundbreaking research with 56 accepted applications, 3 granted patents, 
+                            and 5 utility solutions. Work with cutting-edge technologies and contribute to real-world medical innovations.
+                        </p>
                     </div>
-                    <h4>Institute-University-Hospital Model</h4>
-                    <p>
-                        Experience unique "bench-to-bedside" research opportunities with our 700-bed hospital. 
-                        Participate in clinical trials, collect large-scale data, and develop personalized medicine solutions.
-                    </p>
                 </div>
-            </div>
-            
-            <div class="col-lg-4 col-md-6 mb-4">
-                <div class="overview-card">
-                    <div class="icon">
-                        <i class="fas fa-users"></i>
+                
+                <div class="col-lg-4 col-md-6">
+                    <div class="modern-3d-card">
+                        <div class="modern-floating-icon-container">
+                            <div class="modern-floating-icon modern-icon-gradient-3">
+                                <i class="fas fa-hospital"></i>
+                            </div>
+                        </div>
+                        <h4>Institute-University-Hospital Model</h4>
+                        <p>
+                            Experience unique "bench-to-bedside" research opportunities with our 700-bed hospital. 
+                            Participate in clinical trials, collect large-scale data, and develop personalized medicine solutions.
+                        </p>
                     </div>
-                    <h4>World-Class Faculty</h4>
-                    <p>
-                        Learn from internationally recognized scientists and young faculty members who have achieved 
-                        professor and associate professor titles. Join 8 strong research groups specializing in biomedicine.
-                    </p>
                 </div>
-            </div>
-            
-            <div class="col-lg-4 col-md-6 mb-4">
-                <div class="overview-card">
-                    <div class="icon">
-                        <i class="fas fa-dollar-sign"></i>
+                
+                <div class="col-lg-4 col-md-6">
+                    <div class="modern-3d-card">
+                        <div class="modern-floating-icon-container">
+                            <div class="modern-floating-icon modern-icon-gradient-4">
+                                <i class="fas fa-users"></i>
+                            </div>
+                        </div>
+                        <h4>World-Class Faculty</h4>
+                        <p>
+                            Learn from internationally recognized scientists and young faculty members who have achieved 
+                            professor and associate professor titles. Join 8 strong research groups specializing in biomedicine.
+                        </p>
                     </div>
-                    <h4>Strong Financial Backing</h4>
-                    <p>
-                        Benefit from Phenikaa Group's robust financial support enabling significant investments in 
-                        modern facilities, R&D equipment, and talent acquisition for your research success.
-                    </p>
                 </div>
-            </div>
-            
-            <div class="col-lg-4 col-md-6 mb-4">
-                <div class="overview-card">
-                    <div class="icon">
-                        <i class="fas fa-rocket"></i>
+                
+                <div class="col-lg-4 col-md-6">
+                    <div class="modern-3d-card">
+                        <div class="modern-floating-icon-container">
+                            <div class="modern-floating-icon modern-icon-gradient-5">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                        </div>
+                        <h4>Strong Financial Backing</h4>
+                        <p>
+                            Benefit from Phenikaa Group's robust financial support enabling significant investments in 
+                            modern facilities, R&D equipment, and talent acquisition for your research success.
+                        </p>
                     </div>
-                    <h4>Career Opportunities</h4>
-                    <p>
-                        Launch your career in a dynamic environment with high demand for experts in biomedicine, 
-                        clinical practice, and research. Graduate into Vietnam's pioneering academic-corporate ecosystem.
-                    </p>
+                </div>
+                
+                <div class="col-lg-4 col-md-6">
+                    <div class="modern-3d-card">
+                        <div class="modern-floating-icon-container">
+                            <div class="modern-floating-icon modern-icon-gradient-6">
+                                <i class="fas fa-rocket"></i>
+                            </div>
+                        </div>
+                        <h4>Career Opportunities</h4>
+                        <p>
+                            Launch your career in a dynamic environment with high demand for experts in biomedicine, 
+                            clinical practice, and research. Graduate into Vietnam's pioneering academic-corporate ecosystem.
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -492,50 +747,121 @@
     </div>
 </section>
 
-<!-- Future Plans Section -->
+<!-- Modern 3D Future Plans Section -->
+<section class="modern-3d-section">
+    <div class="container">
+        <div class="modern-glass-container">
+            <div class="modern-section-title">
+                <h2>Future Development Plans</h2>
+                <p>Upcoming features and platform enhancements</p>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="modern-3d-card">
+                        <div class="modern-floating-icon-container">
+                            <div class="modern-floating-icon modern-icon-gradient-1">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                        </div>
+                        <h4>AI-Powered Analysis</h4>
+                        <p>
+                            Integration of machine learning algorithms for automated lipid identification 
+                            and pattern recognition in chromatography data.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6">
+                    <div class="modern-3d-card">
+                        <div class="modern-floating-icon-container">
+                            <div class="modern-floating-icon modern-icon-gradient-2">
+                                <i class="fas fa-cloud"></i>
+                            </div>
+                        </div>
+                        <h4>Cloud Integration</h4>
+                        <p>
+                            Enhanced cloud-based data storage and processing capabilities for 
+                            large-scale metabolomics studies and collaborative research.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6">
+                    <div class="modern-3d-card">
+                        <div class="modern-floating-icon-container">
+                            <div class="modern-floating-icon modern-icon-gradient-3">
+                                <i class="fas fa-mobile-alt"></i>
+                            </div>
+                        </div>
+                        <h4>Mobile Platform</h4>
+                        <p>
+                            Development of mobile application for on-the-go access to metabolomics data 
+                            and real-time analysis capabilities.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Research Excellence Showcase with Images -->
 <section class="project-overview">
     <div class="container">
         <div class="section-title">
-            <h2>Future Development Plans</h2>
-            <p>Upcoming features and platform enhancements</p>
+            <h2>Research Excellence & Recognition</h2>
+            <p>Showcasing our achievements, innovations, and cutting-edge research facilities</p>
         </div>
         
-        <div class="row">
+        <div class="row align-items-center">
+            <!-- Awards Section -->
             <div class="col-lg-4 col-md-6 mb-4">
-                <div class="overview-card">
-                    <div class="icon">
-                        <i class="fas fa-robot"></i>
+                <div class="overview-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                    <div class="text-center mb-3">
+                        <img src="{{ url_for('static', filename='award2.jpg') }}" 
+                             alt="Research Awards and Recognition" 
+                             class="img-fluid" 
+                             style="max-width: 100%; height: 200px; object-fit: cover; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.3);">
                     </div>
-                    <h4>AI-Powered Analysis</h4>
-                    <p>
-                        Integration of machine learning algorithms for automated lipid identification 
-                        and pattern recognition in chromatography data.
+                    <h4 style="color: white;">International Recognition</h4>
+                    <p style="color: rgba(255,255,255,0.9);">
+                        Our research excellence has been recognized globally with prestigious awards 
+                        and acknowledgments from leading scientific institutions and organizations.
                     </p>
                 </div>
             </div>
             
+            <!-- Awards Collection -->
             <div class="col-lg-4 col-md-6 mb-4">
-                <div class="overview-card">
-                    <div class="icon">
-                        <i class="fas fa-cloud"></i>
+                <div class="overview-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border: none;">
+                    <div class="text-center mb-3">
+                        <img src="{{ url_for('static', filename='awards.png') }}" 
+                             alt="Awards Collection" 
+                             class="img-fluid" 
+                             style="max-width: 100%; height: 200px; object-fit: cover; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.3);">
                     </div>
-                    <h4>Cloud Integration</h4>
-                    <p>
-                        Enhanced cloud-based data storage and processing capabilities for 
-                        large-scale metabolomics studies and collaborative research.
+                    <h4 style="color: white;">Achievement Portfolio</h4>
+                    <p style="color: rgba(255,255,255,0.9);">
+                        A comprehensive collection of awards and recognitions highlighting our 
+                        commitment to scientific excellence and innovation in molecular biology research.
                     </p>
                 </div>
             </div>
             
+            <!-- Research Facility View -->
             <div class="col-lg-4 col-md-6 mb-4">
-                <div class="overview-card">
-                    <div class="icon">
-                        <i class="fas fa-mobile-alt"></i>
+                <div class="overview-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border: none;">
+                    <div class="text-center mb-3">
+                        <img src="{{ url_for('static', filename='view.png') }}" 
+                             alt="Research Facility and Laboratory View" 
+                             class="img-fluid" 
+                             style="max-width: 100%; height: 200px; object-fit: cover; border-radius: 12px; box-shadow: 0 8px 25px rgba(0,0,0,0.3);">
                     </div>
-                    <h4>Mobile Platform</h4>
-                    <p>
-                        Development of mobile application for on-the-go access to metabolomics data 
-                        and real-time analysis capabilities.
+                    <h4 style="color: white;">State-of-the-Art Facilities</h4>
+                    <p style="color: rgba(255,255,255,0.9);">
+                        Experience our world-class research laboratories equipped with cutting-edge 
+                        technology and instrumentation for advanced metabolomics research.
                     </p>
                 </div>
             </div>
@@ -563,4 +889,85 @@
         </div>
     </div>
 </section>
+
+<!-- Enhanced JavaScript for Modern 3D Effects -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add scroll-triggered animations for modern 3D cards
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.animationPlayState = 'running';
+                
+                // Add a subtle bounce effect when cards come into view
+                setTimeout(() => {
+                    entry.target.style.transform = 'translateY(0) scale(1.02)';
+                    setTimeout(() => {
+                        entry.target.style.transform = 'translateY(0) scale(1)';
+                    }, 150);
+                }, 300);
+            }
+        });
+    }, observerOptions);
+    
+    // Observe all modern 3D cards
+    document.querySelectorAll('.modern-3d-card').forEach(card => {
+        observer.observe(card);
+        
+        // Add hover tilt effect based on mouse position
+        card.addEventListener('mousemove', function(e) {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            
+            const rotateX = (y - centerY) / 10;
+            const rotateY = (centerX - x) / 10;
+            
+            card.style.transform = `translateY(-15px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        });
+        
+        // Reset transform on mouse leave
+        card.addEventListener('mouseleave', function() {
+            card.style.transform = 'translateY(0) rotateX(0deg) rotateY(0deg)';
+        });
+    });
+    
+    // Enhanced floating animation for icons
+    document.querySelectorAll('.modern-floating-icon').forEach((icon, index) => {
+        // Add random delay to make floating more organic
+        icon.style.animationDelay = `${Math.random() * 2}s`;
+        
+        // Add mouse interaction for icons
+        icon.parentElement.addEventListener('mouseenter', function() {
+            icon.style.animationPlayState = 'paused';
+            icon.style.transform = 'scale(1.2) rotateY(180deg)';
+        });
+        
+        icon.parentElement.addEventListener('mouseleave', function() {
+            icon.style.animationPlayState = 'running';
+            icon.style.transform = 'scale(1) rotateY(0deg)';
+        });
+    });
+    
+    // Add subtle zoom effect to images on hover
+    document.querySelectorAll('.overview-card img').forEach(img => {
+        img.addEventListener('mouseenter', function() {
+            img.style.transform = 'scale(1.05)';
+            img.style.transition = 'transform 0.3s ease';
+        });
+        
+        img.addEventListener('mouseleave', function() {
+            img.style.transform = 'scale(1)';
+        });
+    });
+});
+</script>
 {% endblock %}
