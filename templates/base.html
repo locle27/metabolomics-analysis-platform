@@ -149,39 +149,43 @@
             position: relative;
         }
         
-        /* CLEAN TEXT-ONLY NAVIGATION */
+        /* PHENIKAA STYLE NAVIGATION */
         .navbar-nav .nav-link,
         .main-navbar_nav .nav-link,
         ul.navbar-nav li.nav-item a.nav-link {
             color: #2E4C92 !important;
-            font-size: 15px !important;
-            font-family: Inter !important;
-            font-weight: 600 !important;
+            font-size: 14px !important;
+            font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+            font-weight: 500 !important;
             text-transform: uppercase !important;
-            padding: 10px 15px !important;
+            padding: 12px 18px !important;
             text-decoration: none !important;
-            transition: color 0.3s ease !important;
+            transition: all 0.3s ease !important;
             background: none !important;
             border: none !important;
             border-radius: 0 !important;
-            margin: 0 10px !important;
+            margin: 0 !important;
             opacity: 1 !important;
             visibility: visible !important;
-            display: inline-block !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            white-space: nowrap !important;
+            letter-spacing: 0.02em !important;
         }
         
         .navbar-nav .nav-link:hover,
-        .navbar-nav .nav-link.active,
         .main-navbar_nav .nav-link:hover,
+        ul.navbar-nav li.nav-item a.nav-link:hover {
+            color: #E94B00 !important;
+            background: rgba(46, 76, 146, 0.05) !important;
+        }
+        
+        .navbar-nav .nav-link.active,
         .main-navbar_nav .nav-link.active,
-        ul.navbar-nav li.nav-item a.nav-link:hover,
         ul.navbar-nav li.nav-item a.nav-link.active {
             color: #E94B00 !important;
-            background: none !important;
-            border: none !important;
-            transform: none !important;
-            box-shadow: none !important;
-            text-decoration: underline !important;
+            background: rgba(46, 76, 146, 0.1) !important;
+            font-weight: 600 !important;
         }
         
         /* Dropdown Menus */
@@ -189,30 +193,47 @@
             position: relative;
         }
         
-        .sub-nav-toggler {
-            width: 0;
-            height: 0;
-            border-left: 4px solid transparent;
-            border-right: 4px solid transparent;
-            border-top: 4px solid currentColor;
-            margin-left: 8px;
+        .nav-link .sub-nav-toggler {
+            display: none;
+        }
+        
+        button.sub-nav-toggler {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            padding: 0;
+            margin-left: 4px;
+            cursor: pointer;
+            vertical-align: middle;
+        }
+        
+        button.sub-nav-toggler svg {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.3s ease;
+        }
+        
+        .has-submenu:hover button.sub-nav-toggler svg {
+            transform: rotate(90deg);
         }
         
         .sub-menu {
             position: absolute;
             top: 100%;
             left: 0;
-            min-width: 250px;
+            min-width: 800px;
             background: var(--white);
-            box-shadow: 0 8px 25px rgba(46, 76, 146, 0.2);
-            border-radius: 12px;
-            padding: 20px 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            padding: 30px 0;
             opacity: 0;
             visibility: hidden;
             transform: translateY(-10px);
             transition: all 0.3s ease;
             z-index: 1000;
-            border: 2px solid var(--light-blue);
+            border: 1px solid rgba(0, 0, 0, 0.08);
         }
         
         .has-submenu:hover .sub-menu {
@@ -222,7 +243,24 @@
         }
         
         .sub-menu-content {
-            padding: 0 20px;
+            padding: 0 30px;
+        }
+        
+        .sub-menu-content .row {
+            margin: 0 -15px;
+        }
+        
+        .sub-menu-content .col-lg-4 {
+            padding: 0 15px;
+        }
+        
+        .sub-links {
+            border-right: 1px solid #e0e0e0;
+            padding-right: 20px;
+        }
+        
+        .sub-links.no-border {
+            border-right: none;
         }
         
         .sub-links ul {
@@ -232,25 +270,31 @@
         }
         
         .sub-links li {
-            margin: 8px 0;
+            margin: 0 0 12px 0;
         }
         
         .sub-links a {
-            color: var(--dark-text);
+            color: #333;
             font-size: 14px;
-            font-family: Inter;
+            font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-weight: 400;
             text-decoration: none;
-            padding: 8px 0;
+            padding: 6px 0;
             display: block;
             transition: all 0.3s ease;
-            border-radius: 6px;
+            line-height: 1.5;
         }
         
         .sub-links a:hover {
             color: var(--primary-orange);
-            padding-left: 10px;
-            background: rgba(233, 75, 0, 0.1);
+            padding-left: 8px;
+        }
+        
+        .sub-links a i {
+            margin-right: 8px;
+            width: 16px;
+            text-align: center;
+            color: var(--primary-blue);
         }
         
         /* Hero Section - Blue/Orange Theme */
@@ -585,16 +629,38 @@
                                             LIPIDOMICS
                                             <span class="sub-nav-toggler"></span>
                                         </a>
+                                        <button class="sub-nav-toggler">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255, 255, 255, 0.6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right" aria-hidden="true">
+                                                <path d="m9 18 6-6-6-6"></path>
+                                            </svg>
+                                        </button>
                                         <div class="sub-menu">
                                             <div class="sub-menu-content">
-                                                <div class="sub-links">
-                                                    <ul>
-                                                        <li><a href="{{ url_for('clean_dashboard') }}"><i class="fas fa-search"></i> Lipid Selection</a></li>
-                                                        <li><a href="{{ url_for('manage_lipids') }}"><i class="fas fa-database"></i> Database Management</a></li>
-                                                        <li><a href="{{ url_for('excel_generator') }}"><i class="fas fa-file-excel"></i> Analysis Tools</a></li>
-                                                        <li><a href="{{ url_for('lcms_tools') }}"><i class="fas fa-microscope"></i> LC-MS/MS Tools</a></li>
-                                                        <li><a href="{{ url_for('protocols') }}"><i class="fas fa-file-alt"></i> Protocols</a></li>
-                                                    </ul>
+                                                <div class="row row-eq-height">
+                                                    <div class="col-lg-4">
+                                                        <div class="sub-links">
+                                                            <ul>
+                                                                <li><a href="{{ url_for('clean_dashboard') }}"><i class="fas fa-search"></i> Lipid Selection</a></li>
+                                                                <li><a href="{{ url_for('manage_lipids') }}"><i class="fas fa-database"></i> Database Management</a></li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-lg-4">
+                                                        <div class="sub-links">
+                                                            <ul>
+                                                                <li><a href="{{ url_for('excel_generator') }}"><i class="fas fa-file-excel"></i> Analysis Tools</a></li>
+                                                                <li><a href="{{ url_for('lcms_tools') }}"><i class="fas fa-microscope"></i> LC-MS/MS Tools</a></li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-lg-4">
+                                                        <div class="sub-links no-border">
+                                                            <ul>
+                                                                <li><a href="{{ url_for('protocols') }}"><i class="fas fa-file-alt"></i> Protocols</a></li>
+                                                                <li><a href="{{ url_for('browse_lipids') }}"><i class="fas fa-list"></i> Browse Lipids</a></li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -613,18 +679,40 @@
                                             MANAGEMENT
                                             <span class="sub-nav-toggler"></span>
                                         </a>
+                                        <button class="sub-nav-toggler">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255, 255, 255, 0.6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right" aria-hidden="true">
+                                                <path d="m9 18 6-6-6-6"></path>
+                                            </svg>
+                                        </button>
                                         <div class="sub-menu">
                                             <div class="sub-menu-content">
-                                                <div class="sub-links">
-                                                    <ul>
-                                                        <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                                                        {% if session.get('user_role') in ['admin', 'manager'] %}
-                                                        <li><a href="{{ url_for('manage_users') }}"><i class="fas fa-users-cog"></i> User Management</a></li>
-                                                        {% endif %}
-                                                        <li><a href="{{ url_for('patient_management') }}"><i class="fas fa-users"></i> Patient Management</a></li>
-                                                        <li><a href="{{ url_for('equipment_management') }}"><i class="fas fa-cogs"></i> Equipment Management</a></li>
-                                                        <li><hr class="dropdown-divider"></li>
-                                                    </ul>
+                                                <div class="row row-eq-height">
+                                                    <div class="col-lg-4">
+                                                        <div class="sub-links">
+                                                            <ul>
+                                                                <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                                                                {% if session.get('user_role') in ['admin', 'manager'] %}
+                                                                <li><a href="{{ url_for('manage_users') }}"><i class="fas fa-users-cog"></i> User Management</a></li>
+                                                                {% endif %}
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-lg-4">
+                                                        <div class="sub-links">
+                                                            <ul>
+                                                                <li><a href="{{ url_for('patient_management') }}"><i class="fas fa-users"></i> Patient Management</a></li>
+                                                                <li><a href="{{ url_for('equipment_management') }}"><i class="fas fa-cogs"></i> Equipment Management</a></li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-lg-4">
+                                                        <div class="sub-links no-border">
+                                                            <ul>
+                                                                <li><a href="{{ url_for('admin_stats') }}"><i class="fas fa-chart-bar"></i> System Statistics</a></li>
+                                                                <li><a href="{{ url_for('backup_management') }}"><i class="fas fa-database"></i> Backup Management</a></li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -651,17 +739,26 @@
                                             {% endif %}
                                             <span class="sub-nav-toggler"></span>
                                         </a>
+                                        <button class="sub-nav-toggler">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255, 255, 255, 0.6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right" aria-hidden="true">
+                                                <path d="m9 18 6-6-6-6"></path>
+                                            </svg>
+                                        </button>
                                         <div class="sub-menu">
                                             <div class="sub-menu-content">
-                                                <div class="sub-links">
-                                                    <ul>
-                                                        <li><a href="{{ url_for('auth.profile') }}"><i class="fas fa-user-circle"></i> Profile</a></li>
-                                                        {% if session.get('user_email') == 'loc22100302@gmail.com' %}
-                                                        <li><a href="{{ url_for('backup_management') }}"><i class="fas fa-database"></i> System Backup</a></li>
-                                                        {% endif %}
-                                                        <li><hr class="dropdown-divider"></li>
-                                                        <li><a href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                                                    </ul>
+                                                <div class="row row-eq-height">
+                                                    <div class="col-lg-12">
+                                                        <div class="sub-links no-border">
+                                                            <ul>
+                                                                <li><a href="{{ url_for('auth.profile') }}"><i class="fas fa-user-circle"></i> Profile</a></li>
+                                                                {% if session.get('user_email') == 'loc22100302@gmail.com' %}
+                                                                <li><a href="{{ url_for('backup_management') }}"><i class="fas fa-database"></i> System Backup</a></li>
+                                                                {% endif %}
+                                                                <li><hr class="dropdown-divider"></li>
+                                                                <li><a href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

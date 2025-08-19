@@ -152,30 +152,75 @@
     
     .news-card {
         background: var(--white);
-        border-radius: var(--dl-layout-radius-cardradius);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         overflow: hidden;
-        transition: transform 0.3s ease;
+        transition: all 0.3s ease;
         height: 100%;
+        border: 1px solid rgba(0, 0, 0, 0.05);
     }
     
     .news-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
     }
     
-    .news-card .news-image {
-        height: 200px;
-        background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-orange) 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 48px;
-        color: var(--white);
+    .news-card .news-image,
+    .news-card .position-relative.news-item_img {
+        height: 321px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .news-card .news-image img,
+    .news-card .position-relative.news-item_img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+    
+    .news-card:hover .news-image img,
+    .news-card:hover .position-relative.news-item_img img {
+        transform: scale(1.05);
+    }
+    
+    .date_group {
+        position: absolute;
+        background-color: rgb(54, 180, 255);
+        bottom: 0;
+        right: 0;
+        color: rgb(255, 255, 255);
+        text-align: center;
+        padding: 10px;
+        min-width: 70px;
+    }
+    
+    .date_group .day {
+        font-weight: 700;
+        font-size: 1.3rem;
+        line-height: 1;
+    }
+    
+    .date_group .line {
+        width: 60px;
+        height: 1px;
+        background-color: rgb(255, 255, 255);
+        margin: 5px auto;
+    }
+    
+    .date_group .month {
+        font-size: 0.9rem;
+        text-transform: capitalize;
+        font-weight: 500;
     }
     
     .news-card .news-content {
         padding: 25px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: calc(100% - 321px);
     }
     
     .news-card .news-date {
@@ -186,18 +231,58 @@
         margin-bottom: 10px;
     }
     
-    .news-card h5 {
-        color: var(--primary-blue);
-        font-family: Inter;
+    .news-card h5, .news-card .news-item_title {
+        color: rgb(0, 0, 0);
+        font-size: 20px;
         font-weight: 600;
-        margin-bottom: 15px;
+        line-height: 1.2;
+        margin-bottom: 10px;
+        padding-right: 20px;
+        text-decoration: none;
+        display: block;
     }
     
-    .news-card p {
-        color: var(--dark-text);
-        font-family: Inter;
+    .news-card h5:hover, .news-card .news-item_title:hover {
+        color: var(--primary-orange);
+    }
+    
+    .news-card p, .news-card .news-item_desc {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 10px;
         font-size: 14px;
+        color: rgb(94, 94, 94);
         line-height: 1.6;
+    }
+    
+    .see-more_link {
+        color: rgb(94, 94, 94);
+        font-size: 13px;
+        text-decoration: none;
+        position: relative;
+        display: inline-block;
+        margin-top: 15px;
+        transition: all 0.3s ease;
+    }
+    
+    .see-more_link:hover {
+        color: var(--primary-orange);
+    }
+    
+    .see-more_link .icon-arrow-right {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        left: 75px;
+        width: 15px;
+        transition: left 0.3s ease;
+    }
+    
+    .see-more_link:hover .icon-arrow-right {
+        left: 85px;
     }
     
     /* Statistics Section */
@@ -462,14 +547,31 @@
             </div>
             {% for news_item in data.news %}
             <div class="col-lg-4 mb-4">
-                <div class="news-card update-card">
-                    <div class="news-image update-icon" style="background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-orange) 100%); height: 120px;">
-                        <i class="fas fa-rocket" style="font-size: 36px; color: white;"></i>
+                <div class="news-card update-card" style="height: 100%;">
+                    <div class="position-relative news-item_img" style="height: 321px;">
+                        <a href="#" title="{{ news_item.title }}">
+                            <div style="background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-orange) 100%); width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                                <i class="fas fa-rocket" style="font-size: 48px; color: white;"></i>
+                            </div>
+                        </a>
+                        <div class="position-absolute date_group" style="background-color: rgb(54, 180, 255); bottom: 0px; right: 0px; color: rgb(255, 255, 255); text-align: center; padding: 10px;">
+                            <div class="day" style="font-weight: 700; font-size: 1.3rem;">{{ news_item.date.split()[0] }}</div>
+                            <div class="line" style="width: 60px; height: 1px; background-color: rgb(255, 255, 255); margin: 5px 0px;"></div>
+                            <div class="month" style="font-size: 0.9rem; text-transform: capitalize; font-weight: 500;">{{ news_item.date.split()[1] }}</div>
+                        </div>
                     </div>
-                    <div class="news-content">
-                        <div class="news-date">{{ news_item.date }}</div>
-                        <h6>{{ news_item.title }}</h6>
-                        <p style="font-size: 14px;">{{ news_item.summary }}</p>
+                    <div class="p-4 d-flex justify-content-between flex-column" style="height: calc(100% - 321px);">
+                        <div>
+                            <a class="news-item_title" href="#" style="padding-right: 20px; color: rgb(0, 0, 0); font-size: 20px; font-weight: 600; line-height: 1.2; margin-bottom: 10px;">{{ news_item.title }}</a>
+                            <p class="news-item_desc" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; margin-top: 10px; font-size: 14px; color: rgb(94, 94, 94);">{{ news_item.summary }}</p>
+                        </div>
+                        <a href="#" class="position-relative see-more_link" style="color: rgb(94, 94, 94); font-size: 13px;">
+                            See more
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgb(94, 94, 94)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right icon-arrow-right ml-3 position-absolute" aria-hidden="true" style="top: 55%; transform: translateY(-55%); left: 47px; width: 15px;">
+                                <path d="M5 12h14"></path>
+                                <path d="m12 5 7 7-7 7"></path>
+                            </svg>
+                        </a>
                     </div>
                 </div>
             </div>
