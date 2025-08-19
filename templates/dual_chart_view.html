@@ -95,20 +95,99 @@
         background: #c82333;
     }
     
-    .zoom-settings-btn {
-        background: #007bff;
+    /* Professional Zoom Controls Dropdown */
+    .zoom-controls-btn {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
         color: white;
         border: none;
-        padding: 8px 12px;
-        border-radius: 6px;
-        font-size: 12px;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
         cursor: pointer;
-        transition: background 0.2s ease;
-        margin-left: 8px;
+        transition: all 0.3s ease;
+        margin-left: 15px;
+        box-shadow: 0 3px 12px rgba(0, 123, 255, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
     
-    .zoom-settings-btn:hover {
-        background: #0056b3;
+    .zoom-controls-btn:hover {
+        background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(0, 123, 255, 0.4);
+    }
+    
+    .zoom-dropdown-menu {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        border: 1px solid #e9ecef;
+        min-width: 280px;
+        z-index: 1000;
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+    }
+    
+    .zoom-dropdown-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 12px 16px;
+        font-weight: 600;
+        font-size: 13px;
+        color: #495057;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .zoom-dropdown-item {
+        width: 100%;
+        background: none;
+        border: none;
+        padding: 12px 16px;
+        text-align: left;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 13px;
+        color: #495057;
+    }
+    
+    .zoom-dropdown-item:hover {
+        background: #f8f9fa;
+        color: #007bff;
+    }
+    
+    .zoom-dropdown-item.reset {
+        color: #dc3545;
+    }
+    
+    .zoom-dropdown-item.reset:hover {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .zoom-dropdown-item.admin {
+        color: #28a745;
+        font-weight: 500;
+    }
+    
+    .zoom-dropdown-item.admin:hover {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .zoom-dropdown-divider {
+        height: 1px;
+        background: #dee2e6;
+        margin: 4px 0;
     }
     
     .zoom-modal {
@@ -519,20 +598,34 @@
                 <button class="info-toggle-btn-friendly" onclick="toggleDetailedInfo({{ lipid.lipid_id }})" id="toggle-btn-{{ lipid.lipid_id }}">
                     <i class="fas fa-info-circle"></i> View Details
                 </button>
-                <button class="zoom-settings-btn" onclick="showZoomSettings({{ lipid.lipid_id }}, 'chart1')" id="zoom-btn-chart1-{{ lipid.lipid_id }}">
-                    <i class="fas fa-search-plus"></i> Set Zoom Chart 1
-                </button>
-                <button class="zoom-settings-btn" onclick="showZoomSettings({{ lipid.lipid_id }}, 'chart2')" id="zoom-btn-chart2-{{ lipid.lipid_id }}">
-                    <i class="fas fa-search-plus"></i> Set Zoom Chart 2
-                </button>
-                <button class="zoom-settings-btn" onclick="restoreDefaults({{ lipid.lipid_id }})" id="restore-btn-{{ lipid.lipid_id }}" style="background: #dc3545;">
-                    <i class="fas fa-undo"></i> Restore Defaults
-                </button>
-                {% if current_user.is_authenticated and current_user.is_admin() %}
-                <button class="zoom-settings-btn" onclick="setAdminDefault({{ lipid.lipid_id }})" id="admin-default-btn-{{ lipid.lipid_id }}" style="background: #28a745;">
-                    <i class="fas fa-crown"></i> Set as Admin Default
-                </button>
-                {% endif %}
+                
+                <!-- Professional Zoom Controls Dropdown -->
+                <div class="zoom-controls-dropdown" style="position: relative; display: inline-block;">
+                    <button class="zoom-controls-btn" onclick="toggleZoomDropdown({{ lipid.lipid_id }})" id="zoom-dropdown-btn-{{ lipid.lipid_id }}">
+                        <i class="fas fa-search-plus"></i> Zoom Controls <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="zoom-dropdown-menu" id="zoom-dropdown-{{ lipid.lipid_id }}" style="display: none;">
+                        <div class="zoom-dropdown-header">
+                            <i class="fas fa-chart-line"></i> Chart Zoom Settings
+                        </div>
+                        <button class="zoom-dropdown-item" onclick="showZoomSettings({{ lipid.lipid_id }}, 'chart1')">
+                            <i class="fas fa-expand-arrows-alt"></i> Set Chart 1 Zoom
+                        </button>
+                        <button class="zoom-dropdown-item" onclick="showZoomSettings({{ lipid.lipid_id }}, 'chart2')">
+                            <i class="fas fa-expand-arrows-alt"></i> Set Chart 2 Zoom
+                        </button>
+                        <div class="zoom-dropdown-divider"></div>
+                        <button class="zoom-dropdown-item reset" onclick="restoreDefaults({{ lipid.lipid_id }})">
+                            <i class="fas fa-undo"></i> Reset to Defaults
+                        </button>
+                        {% if current_user.is_authenticated and current_user.is_admin() %}
+                        <div class="zoom-dropdown-divider"></div>
+                        <button class="zoom-dropdown-item admin" onclick="setAdminDefault({{ lipid.lipid_id }})">
+                            <i class="fas fa-crown"></i> Save as Global Default
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -731,6 +824,11 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 // Individual zoom modal functions
 function showZoomSettings(lipidId, chartType) {
+    // Close dropdown
+    document.querySelectorAll('.zoom-dropdown-menu').forEach(menu => {
+        menu.style.display = 'none';
+    });
+    
     currentZoomLipidId = lipidId;
     currentZoomChart = chartType;
     const modal = document.getElementById('zoom-modal');
@@ -901,6 +999,11 @@ function addIndividualZoomBadge(lipidId, chartType) {
 
 // Restore defaults function
 async function restoreDefaults(lipidId) {
+    // Close dropdown
+    document.querySelectorAll('.zoom-dropdown-menu').forEach(menu => {
+        menu.style.display = 'none';
+    });
+    
     try {
         // Delete from database
         const response = await fetch(`/api/zoom-settings/${lipidId}`, {
@@ -956,6 +1059,11 @@ async function restoreDefaults(lipidId) {
 
 // Set admin default for a lipid
 async function setAdminDefault(lipidId) {
+    // Close dropdown
+    document.querySelectorAll('.zoom-dropdown-menu').forEach(menu => {
+        menu.style.display = 'none';
+    });
+    
     if (!isAdmin) {
         alert('Admin access required');
         return;
@@ -1040,6 +1148,29 @@ function updateZoomBadges(lipidId) {
     }
 }
 
+// Professional dropdown functionality
+function toggleZoomDropdown(lipidId) {
+    const dropdown = document.getElementById(`zoom-dropdown-${lipidId}`);
+    const isVisible = dropdown.style.display !== 'none';
+    
+    // Close all other dropdowns first
+    document.querySelectorAll('.zoom-dropdown-menu').forEach(menu => {
+        menu.style.display = 'none';
+    });
+    
+    // Toggle current dropdown
+    dropdown.style.display = isVisible ? 'none' : 'block';
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.zoom-controls-dropdown')) {
+        document.querySelectorAll('.zoom-dropdown-menu').forEach(menu => {
+            menu.style.display = 'none';
+        });
+    }
+});
+
 async function initializeDualCharts(lipidId) {
     try {
         // Show loading state
@@ -1082,15 +1213,13 @@ async function initializeDualCharts(lipidId) {
         addDoubleClickReset(lipidId, 'chart1');
         addDoubleClickReset(lipidId, 'chart2');
         
-        // Apply individual zoom settings if any exist
-        setTimeout(() => {
-            if (individualZoomSettings[`${lipidId}_chart1`]) {
-                applyIndividualZoom(lipidId, 'chart1');
-            }
-            if (individualZoomSettings[`${lipidId}_chart2`]) {
-                applyIndividualZoom(lipidId, 'chart2');
-            }
-        }, 500);
+        // Apply individual zoom settings immediately after chart creation
+        if (individualZoomSettings[`${lipidId}_chart1`]) {
+            applyIndividualZoom(lipidId, 'chart1');
+        }
+        if (individualZoomSettings[`${lipidId}_chart2`]) {
+            applyIndividualZoom(lipidId, 'chart2');
+        }
         
         // Store data for detailed info panel
         window.chartData = window.chartData || {};
