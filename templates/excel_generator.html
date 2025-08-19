@@ -948,7 +948,7 @@ function copyToClipboard() {
 }
 
 // Show notification
-function showNotification(message, type = 'info') {
+function showNotification(message, type = 'info', duration = 3000) {
     // Remove existing notification
     const existing = document.querySelector('.notification-toast');
     if (existing) {
@@ -974,13 +974,13 @@ function showNotification(message, type = 'info') {
     
     document.body.appendChild(notification);
     
-    // Auto-remove after 3 seconds
+    // Auto-remove after specified duration
     setTimeout(() => {
         if (notification.parentElement) {
             notification.style.animation = 'slideOutRight 0.3s ease-in';
             setTimeout(() => notification.remove(), 300);
         }
-    }, 3000);
+    }, duration);
 }
 
 // Load global defaults and update pattern preview
@@ -992,6 +992,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const inputs = document.querySelectorAll('.config-item input, .config-item select');
     inputs.forEach(input => {
         input.addEventListener('change', updatePatternPreview);
+        
+        // Auto-save for admin/manager users
+        {% if current_user and current_user.is_authenticated and (current_user.is_admin() or current_user.is_manager()) %}
+        input.addEventListener('change', function() {
+            // Debounce auto-save to avoid excessive requests
+            clearTimeout(window.autoSaveTimeout);
+            window.autoSaveTimeout = setTimeout(() => {
+                autoSaveDefaults();
+            }, 1000); // Save 1 second after last change
+        });
+        {% endif %}
     });
     
     // Initial pattern preview
@@ -1003,11 +1014,15 @@ function updatePatternPreview() {
     const nistInterval = document.getElementById('nist-interval').value;
     
     const patternItems = document.querySelector('.pattern-items');
-    patternItems.innerHTML = `
-        <div class="pattern-item">🧪 Every ${carryoverInterval} steps → Carryover</div>
-        <div class="pattern-item">📊 Every ${nistInterval} steps → NIST Standard</div>
-        <div class="pattern-item">🔬 Automated position calculation</div>
-    `;
+    if (patternItems) {
+        patternItems.innerHTML = `
+            <div class="pattern-item">🧪 Every ${carryoverInterval} steps → Carryover</div>
+            <div class="pattern-item">📊 Every ${nistInterval} steps → NIST Standard</div>
+            <div class="pattern-item">🔬 Automated position calculation</div>
+        `;
+    } else {
+        console.log('Pattern preview element not found - this is normal if pattern preview is not visible');
+    }
 }
 
 // Load global defaults from server
@@ -1091,7 +1106,57 @@ function loadGlobalDefaults() {
         });
 }
 
-// Removed saveAsGlobalDefaults function - defaults now save automatically on input change for admin/manager users
+// Auto-save defaults when admin/manager users change inputs
+function autoSaveDefaults() {
+    // Get all current form values
+    const settings = {};
+    const fields = [
+        'project-name', 'sample-prefix', 'sample-start', 'sample-count',
+        'starting-position', 'sample-method', 'carryover-interval',
+        'carryover-sample-name', 'carryover-method', 'nist-interval',
+        'nist-name', 'nist-method', 'datafile-path', 'path-format'
+    ];
+    
+    fields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            settings[fieldId] = field.value;
+        }
+    });
+    
+    console.log('🔄 Auto-saving defaults:', settings);
+    
+    // Send to server silently
+    fetch('/api/excel-defaults', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            settings: settings
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            console.log('✅ Auto-save successful:', data.message);
+            // Optional: Show brief success indicator
+            showNotification('Settings auto-saved globally', 'success', 2000);
+        } else {
+            console.error('❌ Auto-save failed:', data.message);
+            showNotification('Auto-save failed: ' + (data.message || 'Unknown error'), 'error');
+        }
+    })
+    .catch(error => {
+        console.error('❌ Auto-save error:', error);
+        // Don't show error notification for auto-save failures to avoid annoying users
+    });
+}
 
 // Add CSS animations
 const style = document.createElement('style');
