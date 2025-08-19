@@ -4,10 +4,286 @@
 
 {% block extra_css %}
 <style>
-    /* Global Background - Consistent throughout homepage */
+    /* Import Premium Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&family=Exo+2:wght@300;400;600;800&family=Russo+One&display=swap');
+    
+    /* Moving Phenikaa Text Banner - Top of Page */
+    .phenikaa-moving-text-section {
+        position: relative;
+        width: 100%;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        padding: 15px 0;
+        overflow: hidden;
+        border-bottom: 3px solid var(--primary-orange);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+    }
+    
+    .moving-text-container {
+        width: 100%;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .moving-text-container::before,
+    .moving-text-container::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 80px;
+        z-index: 2;
+        pointer-events: none;
+    }
+    
+    .moving-text-container::before {
+        left: 0;
+        background: linear-gradient(to right, #1a1a2e, transparent);
+    }
+    
+    .moving-text-container::after {
+        right: 0;
+        background: linear-gradient(to left, #1a1a2e, transparent);
+    }
+    
+    .moving-text-track {
+        display: flex;
+        align-items: center;
+        animation: scrollText 30s linear infinite;
+        width: fit-content;
+        gap: 50px;
+    }
+    
+    @keyframes scrollText {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+    }
+    
+    .moving-text-item {
+        font-size: 14px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        white-space: nowrap;
+        margin: 0 25px;
+        position: relative;
+        cursor: default;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+    }
+    
+    .phenikaa-primary {
+        font-family: 'Russo One', 'Orbitron', sans-serif;
+        background: linear-gradient(45deg, #E94B00, #FF6B1A, #FFA500, #E94B00);
+        background-size: 300% 300%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: gradientShift 3s ease-in-out infinite;
+        font-size: 16px;
+        font-weight: 900;
+        letter-spacing: 3px;
+    }
+    
+    .phenikaa-secondary {
+        font-family: 'Exo 2', 'Rajdhani', sans-serif;
+        background: linear-gradient(45deg, #2E4C92, #4A6FA5, #6B8BC7, #2E4C92);
+        background-size: 300% 300%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: gradientShift 4s ease-in-out infinite reverse;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 2px;
+    }
+    
+    .phenikaa-tertiary {
+        font-family: 'Orbitron', 'Rajdhani', sans-serif;
+        background: linear-gradient(45deg, #C0C0C0, #FFD700, #FFFFFF, #FFA500);
+        background-size: 300% 300%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: gradientShift 5s ease-in-out infinite;
+        font-size: 12px;
+        font-weight: 400;
+        letter-spacing: 1px;
+        opacity: 0.9;
+    }
+    
+    @keyframes gradientShift {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+    }
+    
+    /* 3D Molecular Background */
+    .homepage-3d-background {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        overflow: hidden;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #dbeafe 100%);
+    }
+    
+    .dna-helix {
+        position: absolute;
+        width: 300px;
+        height: 800px;
+        left: 10%;
+        top: -100px;
+        transform-style: preserve-3d;
+        animation: rotate3d 20s linear infinite;
+        opacity: 0.1;
+    }
+    
+    .dna-strand {
+        position: absolute;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(to bottom, var(--primary-blue), var(--primary-orange));
+        border-radius: 2px;
+        transform-origin: 50% 50%;
+    }
+    
+    .dna-strand:nth-child(1) { transform: rotateY(0deg) translateZ(50px); }
+    .dna-strand:nth-child(2) { transform: rotateY(180deg) translateZ(50px); }
+    
+    .dna-base {
+        position: absolute;
+        width: 100px;
+        height: 3px;
+        background: rgba(46, 76, 146, 0.3);
+        border-radius: 2px;
+        left: -48px;
+        animation: pulse 3s ease-in-out infinite;
+    }
+    
+    .molecular-structure {
+        position: absolute;
+        width: 200px;
+        height: 200px;
+        right: 15%;
+        top: 20%;
+        transform-style: preserve-3d;
+        animation: float3d 15s ease-in-out infinite;
+        opacity: 0.08;
+    }
+    
+    .molecule {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: radial-gradient(circle, var(--primary-orange), rgba(233, 75, 0, 0.5));
+        transform-style: preserve-3d;
+    }
+    
+    .molecule:nth-child(1) { transform: translateZ(0px) translateX(0px) translateY(0px); }
+    .molecule:nth-child(2) { transform: translateZ(50px) translateX(50px) translateY(20px); }
+    .molecule:nth-child(3) { transform: translateZ(-30px) translateX(-40px) translateY(40px); }
+    .molecule:nth-child(4) { transform: translateZ(80px) translateX(20px) translateY(-30px); }
+    .molecule:nth-child(5) { transform: translateZ(-60px) translateX(-20px) translateY(-50px); }
+    
+    .molecular-bond {
+        position: absolute;
+        width: 2px;
+        height: 60px;
+        background: linear-gradient(to bottom, rgba(46, 76, 146, 0.2), transparent);
+        transform-origin: 50% 0%;
+    }
+    
+    .floating-particles {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+    
+    .particle {
+        position: absolute;
+        width: 6px;
+        height: 6px;
+        background: radial-gradient(circle, rgba(46, 76, 146, 0.3), transparent);
+        border-radius: 50%;
+        animation: floatParticle 25s linear infinite;
+    }
+    
+    .lipid-chain {
+        position: absolute;
+        width: 400px;
+        height: 150px;
+        right: 5%;
+        bottom: 10%;
+        transform-style: preserve-3d;
+        animation: sway3d 18s ease-in-out infinite;
+        opacity: 0.06;
+    }
+    
+    .chain-segment {
+        position: absolute;
+        width: 30px;
+        height: 8px;
+        background: linear-gradient(90deg, rgba(233, 75, 0, 0.4), rgba(255, 107, 26, 0.2));
+        border-radius: 4px;
+        transform-style: preserve-3d;
+    }
+    
+    /* Animation Keyframes */
+    @keyframes rotate3d {
+        0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+        100% { transform: rotateX(360deg) rotateY(360deg) rotateZ(180deg); }
+    }
+    
+    @keyframes float3d {
+        0%, 100% { transform: translateY(0px) rotateX(0deg) rotateY(0deg); }
+        25% { transform: translateY(-20px) rotateX(10deg) rotateY(90deg); }
+        50% { transform: translateY(10px) rotateX(-5deg) rotateY(180deg); }
+        75% { transform: translateY(-10px) rotateX(15deg) rotateY(270deg); }
+    }
+    
+    @keyframes sway3d {
+        0%, 100% { transform: translateY(0px) rotateZ(0deg) rotateX(0deg); }
+        50% { transform: translateY(-15px) rotateZ(10deg) rotateX(20deg); }
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 0.3; transform: scaleY(1); }
+        50% { opacity: 0.6; transform: scaleY(1.2); }
+    }
+    
+    @keyframes floatParticle {
+        0% {
+            transform: translateY(100vh) translateX(0px) rotateZ(0deg);
+            opacity: 0;
+        }
+        10% { opacity: 1; }
+        90% { opacity: 1; }
+        100% {
+            transform: translateY(-100px) translateX(50px) rotateZ(360deg);
+            opacity: 0;
+        }
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .phenikaa-moving-text-section { padding: 10px 0; }
+        .moving-text-item { font-size: 10px; letter-spacing: 1px; margin: 0 15px; }
+        .phenikaa-primary { font-size: 12px; }
+        .phenikaa-secondary { font-size: 10px; }
+        .phenikaa-tertiary { font-size: 9px; }
+        .dna-helix { width: 200px; height: 600px; }
+        .molecular-structure { width: 150px; height: 150px; }
+        .lipid-chain { width: 300px; height: 120px; }
+    }
+
+    /* Global Background - Now with 3D elements */
     .homepage-body {
-        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        background: transparent;
         min-height: 100vh;
+        position: relative;
     }
     
     /* Hero Section - Clean and Professional */
@@ -468,6 +744,94 @@
 
 {% block content %}
 <div class="homepage-body">
+
+<!-- Moving Phenikaa Text Banner - Top of Page -->
+<section class="phenikaa-moving-text-section">
+    <div class="moving-text-container">
+        <div class="moving-text-track">
+            <!-- Primary moving text -->
+            <div class="moving-text-item phenikaa-primary">PHENIKAA UNIVERSITY</div>
+            <div class="moving-text-item phenikaa-secondary">ĐẠI HỌC PHENIKAA</div>
+            <div class="moving-text-item phenikaa-tertiary">EXCELLENCE IN EDUCATION</div>
+            <div class="moving-text-item phenikaa-primary">PHENIKAA UNIVERSITY</div>
+            <div class="moving-text-item phenikaa-secondary">ĐẠI HỌC PHENIKAA</div>
+            <div class="moving-text-item phenikaa-tertiary">INNOVATION • RESEARCH • DISCOVERY</div>
+            <div class="moving-text-item phenikaa-primary">PHENIKAA UNIVERSITY</div>
+            <div class="moving-text-item phenikaa-secondary">ĐẠI HỌC PHENIKAA</div>
+            <div class="moving-text-item phenikaa-tertiary">LEADING THE FUTURE</div>
+            
+            <!-- Duplicate set for seamless loop -->
+            <div class="moving-text-item phenikaa-primary">PHENIKAA UNIVERSITY</div>
+            <div class="moving-text-item phenikaa-secondary">ĐẠI HỌC PHENIKAA</div>
+            <div class="moving-text-item phenikaa-tertiary">EXCELLENCE IN EDUCATION</div>
+            <div class="moving-text-item phenikaa-primary">PHENIKAA UNIVERSITY</div>
+            <div class="moving-text-item phenikaa-secondary">ĐẠI HỌC PHENIKAA</div>
+            <div class="moving-text-item phenikaa-tertiary">INNOVATION • RESEARCH • DISCOVERY</div>
+            <div class="moving-text-item phenikaa-primary">PHENIKAA UNIVERSITY</div>
+            <div class="moving-text-item phenikaa-secondary">ĐẠI HỌC PHENIKAA</div>
+            <div class="moving-text-item phenikaa-tertiary">LEADING THE FUTURE</div>
+        </div>
+    </div>
+</section>
+
+<!-- 3D Molecular Background -->
+<div class="homepage-3d-background" id="molecular-background">
+    <!-- DNA Helix Structure -->
+    <div class="dna-helix" id="dna-helix">
+        <div class="dna-strand"></div>
+        <div class="dna-strand"></div>
+        <!-- DNA base pairs -->
+        <div class="dna-base" style="top: 10%;"></div>
+        <div class="dna-base" style="top: 20%;"></div>
+        <div class="dna-base" style="top: 30%;"></div>
+        <div class="dna-base" style="top: 40%;"></div>
+        <div class="dna-base" style="top: 50%;"></div>
+        <div class="dna-base" style="top: 60%;"></div>
+        <div class="dna-base" style="top: 70%;"></div>
+        <div class="dna-base" style="top: 80%;"></div>
+    </div>
+    
+    <!-- Molecular Structure -->
+    <div class="molecular-structure" id="molecular-structure">
+        <div class="molecule"></div>
+        <div class="molecule"></div>
+        <div class="molecule"></div>
+        <div class="molecule"></div>
+        <div class="molecule"></div>
+        <!-- Molecular bonds -->
+        <div class="molecular-bond" style="transform: rotateZ(45deg) translateX(30px);"></div>
+        <div class="molecular-bond" style="transform: rotateZ(-30deg) translateX(-20px);"></div>
+        <div class="molecular-bond" style="transform: rotateZ(90deg) translateY(40px);"></div>
+    </div>
+    
+    <!-- Lipid Chain Structure -->
+    <div class="lipid-chain" id="lipid-chain">
+        <div class="chain-segment" style="transform: translateX(0px) rotateZ(5deg);"></div>
+        <div class="chain-segment" style="transform: translateX(35px) rotateZ(-3deg);"></div>
+        <div class="chain-segment" style="transform: translateX(70px) rotateZ(8deg);"></div>
+        <div class="chain-segment" style="transform: translateX(105px) rotateZ(-5deg);"></div>
+        <div class="chain-segment" style="transform: translateX(140px) rotateZ(10deg);"></div>
+        <div class="chain-segment" style="transform: translateX(175px) rotateZ(-2deg);"></div>
+        <div class="chain-segment" style="transform: translateX(210px) rotateZ(6deg);"></div>
+        <div class="chain-segment" style="transform: translateX(245px) rotateZ(-8deg);"></div>
+        <div class="chain-segment" style="transform: translateX(280px) rotateZ(4deg);"></div>
+        <div class="chain-segment" style="transform: translateX(315px) rotateZ(-6deg);"></div>
+    </div>
+    
+    <!-- Floating Particles -->
+    <div class="floating-particles" id="floating-particles">
+        <div class="particle" style="left: 10%; animation-delay: 0s;"></div>
+        <div class="particle" style="left: 20%; animation-delay: 3s;"></div>
+        <div class="particle" style="left: 30%; animation-delay: 6s;"></div>
+        <div class="particle" style="left: 40%; animation-delay: 9s;"></div>
+        <div class="particle" style="left: 50%; animation-delay: 12s;"></div>
+        <div class="particle" style="left: 60%; animation-delay: 15s;"></div>
+        <div class="particle" style="left: 70%; animation-delay: 18s;"></div>
+        <div class="particle" style="left: 80%; animation-delay: 21s;"></div>
+        <div class="particle" style="left: 90%; animation-delay: 24s;"></div>
+    </div>
+</div>
+
 <!-- Why Choose Phenikaa University Section -->
 <section class="project-overview">
     <div class="container">
@@ -866,284 +1230,99 @@ document.addEventListener('DOMContentLoaded', function() {
             img.style.transform = 'scale(1)';
         });
     });
+    
+    // 3D Background Scroll Interactivity
+    const dnaHelix = document.getElementById('dna-helix');
+    const molecularStructure = document.getElementById('molecular-structure');
+    const lipidChain = document.getElementById('lipid-chain');
+    const floatingParticles = document.getElementById('floating-particles');
+    
+    function update3DBackground() {
+        const scrollPercent = window.pageYOffset / (document.documentElement.scrollHeight - window.innerHeight);
+        const scrollY = window.pageYOffset;
+        
+        if (dnaHelix) {
+            // DNA Helix rotates based on scroll with 3D depth
+            const rotationX = scrollPercent * 720; // 2 full rotations
+            const rotationY = scrollPercent * 360; // 1 full rotation
+            const translateZ = Math.sin(scrollPercent * Math.PI * 2) * 30;
+            
+            dnaHelix.style.transform = `
+                rotateX(${rotationX}deg) 
+                rotateY(${rotationY}deg) 
+                translateZ(${translateZ}px)
+                scale(${1 + scrollPercent * 0.3})
+            `;
+        }
+        
+        if (molecularStructure) {
+            // Molecular structure floats and rotates in 3D space
+            const rotationX = scrollPercent * 180;
+            const rotationY = scrollPercent * 360;
+            const translateY = Math.sin(scrollPercent * Math.PI * 4) * 20;
+            const translateZ = Math.cos(scrollPercent * Math.PI * 3) * 40;
+            
+            molecularStructure.style.transform = `
+                translateY(${translateY}px)
+                translateZ(${translateZ}px)
+                rotateX(${rotationX}deg)
+                rotateY(${rotationY}deg)
+                scale(${1 + scrollPercent * 0.4})
+            `;
+        }
+        
+        if (lipidChain) {
+            // Lipid chain sways with scroll
+            const rotationZ = Math.sin(scrollPercent * Math.PI * 3) * 15;
+            const translateY = scrollPercent * -50;
+            const rotationX = scrollPercent * 90;
+            
+            lipidChain.style.transform = `
+                translateY(${translateY}px)
+                rotateZ(${rotationZ}deg)
+                rotateX(${rotationX}deg)
+                scale(${1 + scrollPercent * 0.2})
+            `;
+        }
+        
+        // Individual particle movement
+        const particles = document.querySelectorAll('.particle');
+        particles.forEach((particle, index) => {
+            const speed = 1 + (index * 0.1);
+            const translateY = (scrollY * speed) % (window.innerHeight + 100);
+            const rotateZ = (scrollPercent * 360 * speed) % 360;
+            
+            particle.style.transform = `
+                translateY(${translateY - 100}px)
+                rotateZ(${rotateZ}deg)
+                scale(${1 + Math.sin(scrollPercent * Math.PI * 4) * 0.3})
+            `;
+        });
+        
+        // Background parallax effect
+        const molecularBg = document.getElementById('molecular-background');
+        if (molecularBg) {
+            const bgOffset = scrollY * 0.5;
+            molecularBg.style.transform = `translateY(${bgOffset}px)`;
+        }
+    }
+    
+    // Smooth scroll listener with throttling
+    let ticking = false;
+    function requestTick() {
+        if (!ticking) {
+            requestAnimationFrame(update3DBackground);
+            ticking = true;
+            setTimeout(() => { ticking = false; }, 16); // ~60fps
+        }
+    }
+    
+    window.addEventListener('scroll', requestTick);
+    
+    // Initial call
+    update3DBackground();
 });
 </script>
 </div>
-
-<!-- Moving Phenikaa Text Banner -->
-<section class="phenikaa-moving-text-section">
-    <div class="moving-text-container">
-        <div class="moving-text-track">
-            <!-- Primary moving text -->
-            <div class="moving-text-item phenikaa-primary">PHENIKAA UNIVERSITY</div>
-            <div class="moving-text-item phenikaa-secondary">ĐẠI HỌC PHENIKAA</div>
-            <div class="moving-text-item phenikaa-tertiary">EXCELLENCE IN EDUCATION</div>
-            <div class="moving-text-item phenikaa-primary">PHENIKAA UNIVERSITY</div>
-            <div class="moving-text-item phenikaa-secondary">ĐẠI HỌC PHENIKAA</div>
-            <div class="moving-text-item phenikaa-tertiary">INNOVATION • RESEARCH • DISCOVERY</div>
-            <div class="moving-text-item phenikaa-primary">PHENIKAA UNIVERSITY</div>
-            <div class="moving-text-item phenikaa-secondary">ĐẠI HỌC PHENIKAA</div>
-            <div class="moving-text-item phenikaa-tertiary">LEADING THE FUTURE</div>
-            
-            <!-- Duplicate set for seamless loop -->
-            <div class="moving-text-item phenikaa-primary">PHENIKAA UNIVERSITY</div>
-            <div class="moving-text-item phenikaa-secondary">ĐẠI HỌC PHENIKAA</div>
-            <div class="moving-text-item phenikaa-tertiary">EXCELLENCE IN EDUCATION</div>
-            <div class="moving-text-item phenikaa-primary">PHENIKAA UNIVERSITY</div>
-            <div class="moving-text-item phenikaa-secondary">ĐẠI HỌC PHENIKAA</div>
-            <div class="moving-text-item phenikaa-tertiary">INNOVATION • RESEARCH • DISCOVERY</div>
-            <div class="moving-text-item phenikaa-primary">PHENIKAA UNIVERSITY</div>
-            <div class="moving-text-item phenikaa-secondary">ĐẠI HỌC PHENIKAA</div>
-            <div class="moving-text-item phenikaa-tertiary">LEADING THE FUTURE</div>
-        </div>
-    </div>
-</section>
-
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&family=Exo+2:wght@300;400;600;800&family=Russo+One&display=swap');
-
-.phenikaa-moving-text-section {
-    position: relative;
-    width: 100%;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-    padding: 20px 0;
-    overflow: hidden;
-    border-top: 3px solid var(--primary-orange);
-    box-shadow: inset 0 4px 15px rgba(0, 0, 0, 0.3);
-}
-
-.phenikaa-moving-text-section::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: 
-        radial-gradient(circle at 20% 50%, rgba(233, 75, 0, 0.1) 0%, transparent 50%),
-        radial-gradient(circle at 80% 50%, rgba(46, 76, 146, 0.1) 0%, transparent 50%),
-        linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.02) 50%, transparent 100%);
-    animation: backgroundShift 8s ease-in-out infinite;
-}
-
-@keyframes backgroundShift {
-    0%, 100% { transform: translateX(-10px); }
-    50% { transform: translateX(10px); }
-}
-
-.moving-text-container {
-    width: 100%;
-    overflow: hidden;
-    position: relative;
-}
-
-.moving-text-container::before,
-.moving-text-container::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 100px;
-    z-index: 2;
-    pointer-events: none;
-}
-
-.moving-text-container::before {
-    left: 0;
-    background: linear-gradient(to right, #1a1a2e, transparent);
-}
-
-.moving-text-container::after {
-    right: 0;
-    background: linear-gradient(to left, #1a1a2e, transparent);
-}
-
-.moving-text-track {
-    display: flex;
-    align-items: center;
-    animation: scrollText 40s linear infinite;
-    width: fit-content;
-    gap: 60px;
-}
-
-.moving-text-track:hover {
-    animation-play-state: paused;
-}
-
-@keyframes scrollText {
-    0% {
-        transform: translateX(0);
-    }
-    100% {
-        transform: translateX(-50%);
-    }
-}
-
-.moving-text-item {
-    font-size: 16px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    white-space: nowrap;
-    margin: 0 30px;
-    position: relative;
-    transition: all 0.3s ease;
-    cursor: default;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-}
-
-.moving-text-item:hover {
-    transform: scale(1.1);
-    filter: brightness(1.3);
-}
-
-/* Primary Phenikaa Text - Bold Orange Gradient */
-.phenikaa-primary {
-    font-family: 'Russo One', 'Orbitron', sans-serif;
-    background: linear-gradient(45deg, #E94B00, #FF6B1A, #FFA500, #E94B00);
-    background-size: 300% 300%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: gradientShift 3s ease-in-out infinite;
-    font-size: 18px;
-    font-weight: 900;
-    letter-spacing: 4px;
-}
-
-/* Secondary Vietnamese Text - Blue Gradient */
-.phenikaa-secondary {
-    font-family: 'Exo 2', 'Rajdhani', sans-serif;
-    background: linear-gradient(45deg, #2E4C92, #4A6FA5, #6B8BC7, #2E4C92);
-    background-size: 300% 300%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: gradientShift 4s ease-in-out infinite reverse;
-    font-size: 15px;
-    font-weight: 600;
-    letter-spacing: 2px;
-}
-
-/* Tertiary Descriptive Text - Silver/Gold Gradient */
-.phenikaa-tertiary {
-    font-family: 'Orbitron', 'Rajdhani', sans-serif;
-    background: linear-gradient(45deg, #C0C0C0, #FFD700, #FFFFFF, #FFA500);
-    background-size: 300% 300%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: gradientShift 5s ease-in-out infinite;
-    font-size: 14px;
-    font-weight: 400;
-    letter-spacing: 2px;
-    opacity: 0.9;
-}
-
-@keyframes gradientShift {
-    0%, 100% {
-        background-position: 0% 50%;
-    }
-    50% {
-        background-position: 100% 50%;
-    }
-}
-
-/* Special Effects */
-.phenikaa-primary::before {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
-    background: linear-gradient(45deg, rgba(233, 75, 0, 0.3), transparent);
-    border-radius: 4px;
-    z-index: -1;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.phenikaa-primary:hover::before {
-    opacity: 1;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .moving-text-item {
-        font-size: 12px;
-        letter-spacing: 2px;
-        margin: 0 20px;
-    }
-    
-    .phenikaa-primary {
-        font-size: 14px;
-        letter-spacing: 3px;
-    }
-    
-    .phenikaa-secondary {
-        font-size: 12px;
-        letter-spacing: 1px;
-    }
-    
-    .phenikaa-tertiary {
-        font-size: 11px;
-        letter-spacing: 1px;
-    }
-    
-    .moving-text-track {
-        gap: 40px;
-    }
-    
-    .phenikaa-moving-text-section {
-        padding: 15px 0;
-    }
-}
-
-@media (max-width: 480px) {
-    .moving-text-item {
-        font-size: 10px;
-        letter-spacing: 1px;
-        margin: 0 15px;
-    }
-    
-    .phenikaa-primary {
-        font-size: 12px;
-        letter-spacing: 2px;
-    }
-    
-    .phenikaa-secondary {
-        font-size: 10px;
-    }
-    
-    .phenikaa-tertiary {
-        font-size: 9px;
-    }
-}
-
-/* Additional Creative Enhancement - Floating Particles */
-.phenikaa-moving-text-section::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: 
-        radial-gradient(2px 2px at 20px 30px, rgba(255, 255, 255, 0.1), transparent),
-        radial-gradient(2px 2px at 40px 70px, rgba(233, 75, 0, 0.1), transparent),
-        radial-gradient(1px 1px at 90px 40px, rgba(46, 76, 146, 0.1), transparent),
-        radial-gradient(1px 1px at 130px 80px, rgba(255, 255, 255, 0.05), transparent);
-    background-repeat: repeat;
-    background-size: 200px 100px;
-    animation: particleFloat 20s linear infinite;
-    pointer-events: none;
-}
-
-@keyframes particleFloat {
-    0% { transform: translateX(-200px); }
-    100% { transform: translateX(100vw); }
-}
-</style>
 
 {% endblock %}
