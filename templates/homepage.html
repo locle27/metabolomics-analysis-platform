@@ -403,73 +403,50 @@
 <!-- Research Excellence & News -->
 <section class="news-section">
     <div class="container">
-        <!-- Research Leadership Team -->
-        <div class="row mb-5">
-            <div class="col-12">
-                <h3 class="text-center mb-4" style="color: var(--primary-blue);">Research Leadership Team</h3>
-            </div>
-            
-            <!-- Director Profile with Your PhD Photo -->
+        <!-- Research Excellence Leadership -->
+        <div class="row">
+            <!-- Research Expert Card -->
             <div class="col-lg-6 mb-4">
-                <div class="overview-card leadership-card" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-left: 4px solid var(--primary-blue);">
-                    <div class="row align-items-center">
-                        <div class="col-md-4">
-                            <div class="text-center">
-                                <img src="{{ url_for('static', filename='PhD-Do Van Khanh.png') }}" 
-                                     alt="PhD Do Van Khanh" 
-                                     class="img-fluid" 
-                                     style="width: 150px; height: 150px; object-fit: cover; border-radius: 50%; border: 5px solid var(--primary-blue); box-shadow: 0 12px 35px rgba(46, 76, 146, 0.3);">
-                            </div>
-                        </div>
-                        <div class="col-md-8">
-                            <h5 style="color: var(--primary-blue); font-weight: 600; margin-bottom: 12px;">PhD. Do Van Khanh</h5>
-                            <p style="margin-bottom: 10px; color: #64748b; font-style: italic;">Research Director & Principal Investigator</p>
-                            <p style="margin-bottom: 15px; color: #64748b; font-size: 14px; line-height: 1.6;">
-                                Leading metabolomics research with 15+ years of experience in molecular biology, 
-                                advanced analytical chemistry, and lipid chromatography analysis.
-                            </p>
-                            <div class="director-credentials" style="background: rgba(46, 76, 146, 0.1); padding: 12px; border-radius: 8px;">
-                                <small style="color: var(--primary-blue); font-weight: 600;">
-                                    <i class="fas fa-graduation-cap"></i> PhD Molecular Biology • Advanced Metabolomics Research
-                                </small>
-                            </div>
+                <div class="news-card leadership-card">
+                    <div class="news-image director-image" style="background-image: url('{{ url_for('static', filename='PhD-Do Van Khanh.png') }}'); background-size: cover; background-position: center; height: 300px;">
+                    </div>
+                    <div class="news-content">
+                        <div class="news-date">RESEARCH EXPERT</div>
+                        <h5>Dr. Do Van Khanh, PhD</h5>
+                        <p>Expert in research on molecular biology applications in Medicine at Phenikaa University. Specializing in advanced analytical techniques and metabolomics methodologies for biomedical research and clinical applications.</p>
+                        <div class="director-credentials">
+                            <small class="text-muted">
+                                <i class="fas fa-graduation-cap me-1"></i>PhD in Molecular Biology Applications
+                                <br>
+                                <i class="fas fa-university me-1"></i>Phenikaa University Faculty
+                            </small>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Research Activities with Your Research Photo -->
+            <!-- Research Team Card -->
             <div class="col-lg-6 mb-4">
-                <div class="overview-card research-team-card" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-left: 4px solid var(--primary-orange);">
-                    <div class="row align-items-center">
-                        <div class="col-md-4">
-                            <div class="text-center">
-                                <img src="{{ url_for('static', filename='research.png') }}" 
-                                     alt="Research Activities" 
-                                     class="img-fluid" 
-                                     style="width: 150px; height: 150px; object-fit: cover; border-radius: 20px; border: 4px solid var(--primary-orange); box-shadow: 0 12px 35px rgba(233, 75, 0, 0.3);">
-                            </div>
-                        </div>
-                        <div class="col-md-8">
-                            <h5 style="color: var(--primary-orange); font-weight: 600; margin-bottom: 12px;">Research Excellence</h5>
-                            <p style="margin-bottom: 15px; color: #64748b; font-size: 14px; line-height: 1.6;">
-                                State-of-the-art metabolomics research facility with cutting-edge analytical instrumentation 
-                                and collaborative international research partnerships.
-                            </p>
-                            <div class="team-stats" style="background: rgba(233, 75, 0, 0.1); padding: 15px; border-radius: 10px;">
-                                <div class="row text-center">
-                                    <div class="col-4">
-                                        <strong style="color: var(--primary-orange); font-size: 20px;">800+</strong>
-                                        <br><small style="color: #64748b;">Lipids Analyzed</small>
-                                    </div>
-                                    <div class="col-4">
-                                        <strong style="color: var(--primary-orange); font-size: 20px;">15+</strong>
-                                        <br><small style="color: #64748b;">Publications</small>
-                                    </div>
-                                    <div class="col-4">
-                                        <strong style="color: var(--primary-orange); font-size: 20px;">10+</strong>
-                                        <br><small style="color: #64748b;">Active Projects</small>
-                                    </div>
+                <div class="news-card research-team-card">
+                    <div class="news-image team-image" style="background-image: url('{{ url_for('static', filename='research.png') }}'); background-size: cover; background-position: center; height: 300px;">
+                    </div>
+                    <div class="news-content">
+                        <div class="news-date">RESEARCH TEAM</div>
+                        <h5>Advanced Metabolomics Laboratory</h5>
+                        <p>Our multidisciplinary research team combines expertise in analytical chemistry, bioinformatics, and molecular biology. Working collaboratively to advance lipid analysis techniques and develop innovative solutions for biomedical research.</p>
+                        <div class="team-stats mt-3">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <strong class="text-primary">15+</strong>
+                                    <br><small>Researchers</small>
+                                </div>
+                                <div class="col-4">
+                                    <strong class="text-primary">50+</strong>
+                                    <br><small>Publications</small>
+                                </div>
+                                <div class="col-4">
+                                    <strong class="text-primary">10+</strong>
+                                    <br><small>Projects</small>
                                 </div>
                             </div>
                         </div>
