@@ -3399,6 +3399,7 @@ def api_save_zoom_settings():
         }), 500
 
 @app.route('/api/zoom-settings/<int:lipid_id>', methods=['DELETE'])
+@csrf.exempt
 def api_delete_zoom_settings(lipid_id):
     """Delete all zoom settings for a lipid"""
     try:

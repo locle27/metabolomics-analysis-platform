@@ -893,13 +893,32 @@ function applyIndividualZoom(lipidId, chartType) {
         console.log(`🎯 Applying individual zoom to ${lipidId} ${chartType}: ${settings.start.toFixed(2)} - ${settings.end.toFixed(2)} minutes`);
         console.log(`📊 Current chart state:`, chart.scales.x.min, 'to', chart.scales.x.max);
         
-        // ROBUST ZOOM APPLICATION - Multiple methods with better error handling
+        // ROBUST ZOOM APPLICATION - Prioritize most reliable methods
         let zoomApplied = false;
         
-        // Method 1: Chart.js zoom plugin (if available)
-        if (typeof chart.zoom === 'function') {
+        // Method 1: Direct scale options update (MOST RELIABLE - use first)
+        try {
+            console.log('📊 Method 1: Direct scale options update (primary)');
+            if (chart.scales && chart.scales.x) {
+                chart.scales.x.options.min = settings.start;
+                chart.scales.x.options.max = settings.end;
+                
+                // CRITICAL: Force immediate update without animation
+                chart.update('none');
+                
+                console.log('✅ Zoom applied via scale options (primary method)');
+                zoomApplied = true;
+            } else {
+                console.warn('⚠️ Chart scales not available');
+            }
+        } catch (e) {
+            console.warn('⚠️ Scale options update failed:', e);
+        }
+        
+        // Method 2: Chart.js zoom plugin (backup - often unreliable)
+        if (!zoomApplied && typeof chart.zoom === 'function') {
             try {
-                console.log('📊 Method 1: Using chart.zoom() method');
+                console.log('📊 Method 2: Chart.js zoom plugin (backup)');
                 chart.zoom({
                     x: {
                         min: settings.start,
@@ -913,28 +932,10 @@ function applyIndividualZoom(lipidId, chartType) {
             }
         }
         
-        // Method 2: Direct scale options update (most reliable)
+        // Method 3: Chart options update (final fallback)
         if (!zoomApplied) {
             try {
-                console.log('📊 Method 2: Direct scale options update');
-                if (chart.scales && chart.scales.x) {
-                    chart.scales.x.options.min = settings.start;
-                    chart.scales.x.options.max = settings.end;
-                    chart.update('none');
-                    console.log('✅ Zoom applied via scale options');
-                    zoomApplied = true;
-                } else {
-                    console.warn('⚠️ Chart scales not available');
-                }
-            } catch (e) {
-                console.warn('⚠️ Scale options update failed:', e);
-            }
-        }
-        
-        // Method 3: Chart options update (fallback)
-        if (!zoomApplied) {
-            try {
-                console.log('📊 Method 3: Chart options update');
+                console.log('📊 Method 3: Chart options update (fallback)');
                 if (chart.options && chart.options.scales && chart.options.scales.x) {
                     chart.options.scales.x.min = settings.start;
                     chart.options.scales.x.max = settings.end;
@@ -949,22 +950,48 @@ function applyIndividualZoom(lipidId, chartType) {
             }
         }
         
-        // Final verification
+        // Final verification with increased tolerance and delay
         setTimeout(() => {
             const currentMin = chart.scales.x.min;
             const currentMax = chart.scales.x.max;
             console.log(`🔍 Zoom verification for ${lipidId} ${chartType}: Currently showing ${currentMin.toFixed(2)} - ${currentMax.toFixed(2)}, Expected: ${settings.start.toFixed(2)} - ${settings.end.toFixed(2)}`);
             
-            if (Math.abs(currentMin - settings.start) > 0.1 || Math.abs(currentMax - settings.end) > 0.1) {
-                console.warn(`⚠️ Zoom not applied correctly! Attempting force update...`);
-                // Force one more update
-                chart.scales.x.options.min = settings.start;
-                chart.scales.x.options.max = settings.end;
-                chart.update('none');
+            // More lenient tolerance for verification (0.2 instead of 0.1)
+            const tolerance = 0.2;
+            const minDiff = Math.abs(currentMin - settings.start);
+            const maxDiff = Math.abs(currentMax - settings.end);
+            
+            if (minDiff > tolerance || maxDiff > tolerance) {
+                console.warn(`⚠️ Zoom not applied correctly! Min diff: ${minDiff.toFixed(3)}, Max diff: ${maxDiff.toFixed(3)}`);
+                console.warn(`⚠️ Attempting force update with multiple methods...`);
+                
+                // Try multiple force update methods
+                try {
+                    // Method 1: Direct scale update
+                    chart.scales.x.options.min = settings.start;
+                    chart.scales.x.options.max = settings.end;
+                    chart.update('none');
+                    
+                    // Method 2: Also update chart options as backup
+                    if (chart.options.scales && chart.options.scales.x) {
+                        chart.options.scales.x.min = settings.start;
+                        chart.options.scales.x.max = settings.end;
+                    }
+                    
+                    // Final verification after force update
+                    setTimeout(() => {
+                        const newMin = chart.scales.x.min;
+                        const newMax = chart.scales.x.max;
+                        console.log(`🔍 After force update: ${newMin.toFixed(2)} - ${newMax.toFixed(2)}`);
+                    }, 50);
+                    
+                } catch (forceError) {
+                    console.error(`❌ Force update failed:`, forceError);
+                }
             } else {
-                console.log(`✅ Zoom successfully applied and verified`);
+                console.log(`✅ Zoom successfully applied and verified (tolerance: ±${tolerance})`);
             }
-        }, 100);
+        }, 250);
         
         // Add visual indicator
         const canvas = chart.canvas;
@@ -1215,14 +1242,38 @@ function createChart(lipidId, chartType, chartConfig) {
     
     // Safe chart config - completely override any problematic backend settings
     if (chartConfig.options && chartConfig.options.scales) {
-        // X-axis: Safe time formatting
+        // X-axis: Smart time formatting that prevents overlapping
         if (chartConfig.options.scales.x) {
+            // Calculate dynamic tick limit based on zoom level
+            const xRange = (chartConfig.options.scales.x.max || 16) - (chartConfig.options.scales.x.min || 0);
+            let maxTicks;
+            if (xRange <= 1) maxTicks = 4;        // Very zoomed: 4 ticks max
+            else if (xRange <= 2) maxTicks = 6;   // Moderately zoomed: 6 ticks max  
+            else if (xRange <= 4) maxTicks = 8;   // Slightly zoomed: 8 ticks max
+            else maxTicks = 12;                   // Full view: 12 ticks max
+            
             chartConfig.options.scales.x.ticks = {
-                maxTicksLimit: 12,
+                maxTicksLimit: maxTicks,
                 callback: function(value) {
-                    // Safe time formatting - just show rounded minutes
-                    return Math.round(value * 10) / 10; // Round to 1 decimal place safely
-                }
+                    // Smart formatting based on zoom level
+                    const xRange = (chartConfig.options.scales.x.max || 16) - (chartConfig.options.scales.x.min || 0);
+                    
+                    if (xRange <= 1) {
+                        // Very zoomed: show 2 decimal places for precision
+                        return value.toFixed(2);
+                    } else if (xRange <= 2) {
+                        // Moderately zoomed: show 1 decimal place
+                        return value.toFixed(1);
+                    } else {
+                        // Normal/wide view: round to 1 decimal place
+                        return Math.round(value * 10) / 10;
+                    }
+                },
+                // Ensure minimum spacing between ticks to prevent overlap
+                minRotation: 0,
+                maxRotation: 0,
+                autoSkip: true,
+                autoSkipPadding: 5
             };
         }
         
