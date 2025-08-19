@@ -56,7 +56,8 @@
       "Bash(rg -n -B 5 -A 10 \"def.*login\" app.py)",
       "Bash(find templates -name \"*login*\")",
       "Bash(rg -n -A 5 -B 5 \"<form\" templates/auth/login.html)",
-      "Bash(rg -n \"{{.*}}\" templates/email/password_reset.html)"
+      "Bash(rg -n \"{{.*}}\" templates/email/password_reset.html)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }
