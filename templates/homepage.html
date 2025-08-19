@@ -285,6 +285,66 @@
         left: 85px;
     }
     
+    /* News Grid Specific Styles - Phenikaa Template */
+    .left-grid, .right-grid {
+        height: auto;
+    }
+    
+    .news-item_wrapper {
+        margin-bottom: 20px;
+    }
+    
+    .news-child_item .news-item {
+        display: flex;
+        flex-direction: row;
+        padding: 15px;
+        height: 100%;
+        background-color: rgb(255, 255, 255);
+        box-shadow: rgba(0, 0, 0, 0.3) 0px 4px 8px;
+    }
+    
+    .meta5 {
+        color: rgb(199, 199, 199);
+        font-size: 12px;
+        margin-bottom: 8px;
+    }
+    
+    .module-title h2 {
+        font-size: 28px;
+        color: rgb(17, 17, 17);
+        font-weight: 600;
+        text-transform: uppercase;
+        margin: 0;
+    }
+    
+    .section-description {
+        margin-top: 50px;
+        text-transform: none;
+        color: rgb(94, 94, 94);
+        font-size: 16px;
+        line-height: 1.5;
+    }
+    
+    .see-more_btn {
+        background: var(--primary-blue);
+        color: white;
+        padding: 12px 30px;
+        border-radius: 25px;
+        text-decoration: none;
+        font-weight: 600;
+        display: inline-block;
+        transition: all 0.3s ease;
+        font-size: 14px;
+        text-transform: uppercase;
+    }
+    
+    .see-more_btn:hover {
+        background: var(--primary-orange);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(46, 76, 146, 0.3);
+    }
+    
     /* Statistics Section */
     .stats-section {
         padding: 80px 0;
@@ -485,97 +545,145 @@
 </section>
 
 
-<!-- Research Excellence & News -->
+<!-- Platform Movement News - Phenikaa Style -->
 <section class="news-section">
     <div class="container">
-        <!-- Research Excellence Leadership -->
-        <div class="row">
-            <!-- Research Expert Card -->
-            <div class="col-lg-6 mb-4">
-                <div class="news-card leadership-card">
-                    <div class="news-image director-image" style="background-image: url('{{ url_for('static', filename='PhD-Do Van Khanh.png') }}'); background-size: cover; background-position: center; height: 300px;">
-                    </div>
-                    <div class="news-content">
-                        <div class="news-date">RESEARCH EXPERT</div>
-                        <h5>PhD. Do Van Khanh</h5>
-                        <p>Expert in research on molecular biology applications in Medicine at Phenikaa University. Specializing in advanced analytical techniques and metabolomics methodologies for biomedical research and clinical applications.</p>
-                        <div class="director-credentials">
-                            <small class="text-muted">
-                                <i class="fas fa-graduation-cap me-1"></i>PhD in Molecular Biology Applications
-                                <br>
-                                <i class="fas fa-university me-1"></i>Phenikaa University Faculty
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Research Team Card -->
-            <div class="col-lg-6 mb-4">
-                <div class="news-card research-team-card">
-                    <div class="news-image team-image" style="background-image: url('{{ url_for('static', filename='research.png') }}'); background-size: cover; background-position: center; height: 300px;">
-                    </div>
-                    <div class="news-content">
-                        <div class="news-date">RESEARCH TEAM</div>
-                        <h5>Advanced Metabolomics Laboratory</h5>
-                        <p>Our multidisciplinary research team combines expertise in analytical chemistry, bioinformatics, and molecular biology. Working collaboratively to advance lipid analysis techniques and develop innovative solutions for biomedical research.</p>
-                        <div class="team-stats mt-3">
-                            <div class="row text-center">
-                                <div class="col-4">
-                                    <strong class="text-primary">15+</strong>
-                                    <br><small>Researchers</small>
-                                </div>
-                                <div class="col-4">
-                                    <strong class="text-primary">50+</strong>
-                                    <br><small>Publications</small>
-                                </div>
-                                <div class="col-4">
-                                    <strong class="text-primary">10+</strong>
-                                    <br><small>Projects</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <div class="module-title text-uppercase text-center" style="font-size: 28px; color: rgb(17, 17, 17);">
+            <h2>Platform Movement</h2>
+            <div class="section-description" style="margin-top: 50px; text-transform: none;">
+                Latest news about activities and events of the Metabolomics Research Platform
             </div>
         </div>
         
-        <!-- Latest Updates Row -->
-        <div class="row mt-5">
-            <div class="col-12">
-                <h3 class="text-center mb-4" style="color: var(--primary-blue);">Latest Platform Updates</h3>
-            </div>
-            {% for news_item in data.news %}
-            <div class="col-lg-4 mb-4">
-                <div class="news-card update-card" style="height: 100%;">
-                    <div class="position-relative news-item_img" style="height: 321px;">
-                        <a href="#" title="{{ news_item.title }}">
-                            <div style="background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-orange) 100%); width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-rocket" style="font-size: 48px; color: white;"></i>
+        <div class="section-content mt-5">
+            <div class="row">
+                <!-- Left Grid - Featured Article -->
+                <div class="col-lg-6 mb-3 left-grid">
+                    <div class="col-lg-12" style="padding: 0px; height: 100%; background-color: rgb(255, 255, 255); box-shadow: rgba(0, 0, 0, 0.3) 0px 4px 8px;">
+                        <div class="tuyen-sinh single_post news-item" style="height: 100%;">
+                            <div class="position-relative news-item_img" style="height: 321px;">
+                                <a title="Advanced Metabolomics Platform: Revolutionary lipid analysis capabilities for precision medicine" href="#">
+                                    <img src="{{ url_for('static', filename='research.png') }}" 
+                                         alt="Advanced Metabolomics Platform" 
+                                         style="width: 100%; height: 100%; object-fit: cover;">
+                                </a>
+                                <div class="position-absolute date_group" style="background-color: rgb(54, 180, 255); bottom: 0px; right: 0px; color: rgb(255, 255, 255); text-align: center; padding: 10px;">
+                                    <div class="day" style="font-weight: 700; font-size: 1.3rem;">22</div>
+                                    <div class="line" style="width: 60px; height: 1px; background-color: rgb(255, 255, 255); margin: 5px 0px;"></div>
+                                    <div class="month" style="font-size: 0.9rem; text-transform: capitalize; font-weight: 500;">January</div>
+                                </div>
                             </div>
-                        </a>
-                        <div class="position-absolute date_group" style="background-color: rgb(54, 180, 255); bottom: 0px; right: 0px; color: rgb(255, 255, 255); text-align: center; padding: 10px;">
-                            <div class="day" style="font-weight: 700; font-size: 1.3rem;">{{ news_item.date.split()[0] }}</div>
-                            <div class="line" style="width: 60px; height: 1px; background-color: rgb(255, 255, 255); margin: 5px 0px;"></div>
-                            <div class="month" style="font-size: 0.9rem; text-transform: capitalize; font-weight: 500;">{{ news_item.date.split()[1] }}</div>
+                            <div class="p-4 d-flex justify-content-between flex-column" style="height: calc(100% - 321px);">
+                                <div>
+                                    <a class="news-item_title" href="#" style="padding-right: 20px; color: rgb(0, 0, 0); font-size: 20px; font-weight: 600; line-height: 1.2; margin-bottom: 10px;">
+                                        Advanced Metabolomics Platform: Revolutionary lipid analysis capabilities for precision medicine
+                                    </a>
+                                    <p class="news-item_desc" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; margin-top: 10px; font-size: 14px; color: rgb(94, 94, 94);">
+                                        Our comprehensive metabolomics platform combines cutting-edge LC-MS/MS technology with advanced bioinformatics to deliver unprecedented insights into lipid metabolism and biomarker discovery for clinical applications.&nbsp;
+                                    </p>
+                                </div>
+                                <a href="#" class="position-relative see-more_link" style="color: rgb(94, 94, 94); font-size: 13px;">
+                                    See more
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgb(94, 94, 94)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right icon-arrow-right ml-3 position-absolute" aria-hidden="true" style="top: 55%; transform: translateY(-55%); left: 47px; width: 15px;">
+                                        <path d="M5 12h14"></path>
+                                        <path d="m12 5 7 7-7 7"></path>
+                                    </svg>
+                                </a>
+                            </div>
                         </div>
                     </div>
-                    <div class="p-4 d-flex justify-content-between flex-column" style="height: calc(100% - 321px);">
-                        <div>
-                            <a class="news-item_title" href="#" style="padding-right: 20px; color: rgb(0, 0, 0); font-size: 20px; font-weight: 600; line-height: 1.2; margin-bottom: 10px;">{{ news_item.title }}</a>
-                            <p class="news-item_desc" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; margin-top: 10px; font-size: 14px; color: rgb(94, 94, 94);">{{ news_item.summary }}</p>
+                </div>
+
+                <!-- Right Grid - Three Smaller Articles -->
+                <div class="col-lg-6 mb-3 d-flex flex-column right-grid" style="gap: 30px;">
+                    <!-- Article 1 -->
+                    <div class="news-item_wrapper news-child_item" style="height: 170px;">
+                        <div class="tuyen-sinh single_post d-flex flex-row news-item" style="padding: 15px; height: 100%; background-color: rgb(255, 255, 255); box-shadow: rgba(0, 0, 0, 0.3) 0px 4px 8px;">
+                            <div class="col-6 d-flex align-items-center" style="padding: 0px; height: 100%;">
+                                <a title="Interactive Chart System: Real-time lipid chromatography visualization" href="#" style="height: 100%; width: 100%;">
+                                    <img src="{{ url_for('static', filename='view.png') }}" 
+                                         alt="Interactive Chart System" 
+                                         style="width: 100%; height: 100%; object-fit: cover;">
+                                </a>
+                            </div>
+                            <div class="col-6 d-flex ml-3 flex-column position-relative" style="padding: 0px;">
+                                <div class="meta5 mb-2" style="color: rgb(199, 199, 199);">18, January, 2025</div>
+                                <a class="news-item_title" href="#" style="padding-right: 15px; color: rgb(0, 0, 0); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; cursor: pointer; font-size: 14px; font-weight: 600;">
+                                    Interactive Chart System: Real-time lipid chromatography visualization with advanced filtering
+                                </a>
+                                <a href="#" class="position-relative see-more_link position-absolute" style="color: rgb(94, 94, 94); bottom: 5px;">
+                                    See more
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgb(94, 94, 94)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right icon-arrow-right ml-3 position-absolute" aria-hidden="true" style="top: 55%; transform: translateY(-55%); left: 47px; width: 15px;">
+                                        <path d="M5 12h14"></path>
+                                        <path d="m12 5 7 7-7 7"></path>
+                                    </svg>
+                                </a>
+                            </div>
                         </div>
-                        <a href="#" class="position-relative see-more_link" style="color: rgb(94, 94, 94); font-size: 13px;">
-                            See more
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgb(94, 94, 94)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right icon-arrow-right ml-3 position-absolute" aria-hidden="true" style="top: 55%; transform: translateY(-55%); left: 47px; width: 15px;">
-                                <path d="M5 12h14"></path>
-                                <path d="m12 5 7 7-7 7"></path>
-                            </svg>
-                        </a>
+                    </div>
+
+                    <!-- Article 2 -->
+                    <div class="news-item_wrapper news-child_item" style="height: 170px;">
+                        <div class="tuyen-sinh single_post d-flex flex-row news-item" style="padding: 15px; height: 100%; background-color: rgb(255, 255, 255); box-shadow: rgba(0, 0, 0, 0.3) 0px 4px 8px;">
+                            <div class="col-6 d-flex align-items-center" style="padding: 0px; height: 100%;">
+                                <a title="PhD Research Excellence: Molecular biology applications in precision medicine" href="#" style="height: 100%; width: 100%;">
+                                    <img src="{{ url_for('static', filename='PhD-Do Van Khanh.png') }}" 
+                                         alt="PhD Research Excellence" 
+                                         style="width: 100%; height: 100%; object-fit: cover;">
+                                </a>
+                            </div>
+                            <div class="col-6 d-flex ml-3 flex-column position-relative" style="padding: 0px;">
+                                <div class="meta5 mb-2" style="color: rgb(199, 199, 199);">17, January, 2025</div>
+                                <a class="news-item_title" href="#" style="padding-right: 15px; color: rgb(0, 0, 0); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; cursor: pointer; font-size: 14px; font-weight: 600;">
+                                    PhD Research Excellence: Molecular biology applications in precision medicine and clinical diagnostics
+                                </a>
+                                <a href="#" class="position-relative see-more_link position-absolute" style="color: rgb(94, 94, 94); bottom: 5px;">
+                                    See more
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgb(94, 94, 94)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right icon-arrow-right ml-3 position-absolute" aria-hidden="true" style="top: 55%; transform: translateY(-55%); left: 47px; width: 15px;">
+                                        <path d="M5 12h14"></path>
+                                        <path d="m12 5 7 7-7 7"></path>
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Article 3 -->
+                    <div class="news-item_wrapper news-child_item" style="height: 170px;">
+                        <div class="tuyen-sinh single_post d-flex flex-row news-item" style="padding: 15px; height: 100%; background-color: rgb(255, 255, 255); box-shadow: rgba(0, 0, 0, 0.3) 0px 4px 8px;">
+                            <div class="col-6 d-flex align-items-center" style="padding: 0px; height: 100%;">
+                                <a title="Awards and Recognition: International excellence in metabolomics research" href="#" style="height: 100%; width: 100%;">
+                                    <img src="{{ url_for('static', filename='awards.png') }}" 
+                                         alt="Awards and Recognition" 
+                                         style="width: 100%; height: 100%; object-fit: cover;">
+                                </a>
+                            </div>
+                            <div class="col-6 d-flex ml-3 flex-column position-relative" style="padding: 0px;">
+                                <div class="meta5 mb-2" style="color: rgb(199, 199, 199);">15, January, 2025</div>
+                                <a class="news-item_title" href="#" style="padding-right: 15px; color: rgb(0, 0, 0); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; cursor: pointer; font-size: 14px; font-weight: 600;">
+                                    Awards and Recognition: International excellence in metabolomics research and innovation
+                                </a>
+                                <a href="#" class="position-relative see-more_link position-absolute" style="color: rgb(94, 94, 94); bottom: 5px;">
+                                    See more
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgb(94, 94, 94)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right icon-arrow-right ml-3 position-absolute" aria-hidden="true" style="top: 55%; transform: translateY(-55%); left: 47px; width: 15px;">
+                                        <path d="M5 12h14"></path>
+                                        <path d="m12 5 7 7-7 7"></path>
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            {% endfor %}
+
+            <!-- See More Button -->
+            <div class="row mt-5 see-more_btn__wrapper">
+                <div class="col-12 text-center">
+                    <a class="see-more_btn" href="#" style="background: var(--primary-blue); color: white; padding: 12px 30px; border-radius: 25px; text-decoration: none; font-weight: 600; display: inline-block; transition: all 0.3s ease;">
+                        See More
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </section>
