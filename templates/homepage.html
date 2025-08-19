@@ -412,7 +412,7 @@
                     </div>
                     <div class="news-content">
                         <div class="news-date">RESEARCH EXPERT</div>
-                        <h5>Dr. Do Van Khanh, PhD</h5>
+                        <h5>PhD. Do Van Khanh</h5>
                         <p>Expert in research on molecular biology applications in Medicine at Phenikaa University. Specializing in advanced analytical techniques and metabolomics methodologies for biomedical research and clinical applications.</p>
                         <div class="director-credentials">
                             <small class="text-muted">
@@ -544,10 +544,20 @@
                     <div class="row align-items-center">
                         <div class="col-lg-5 text-center mb-4 mb-lg-0">
                             <div style="background: rgba(255,255,255,0.15); border-radius: 25px; padding: 35px; backdrop-filter: blur(10px);">
-                                <img src="{{ url_for('static', filename='award2.jpg') }}" 
-                                     alt="International Awards" 
-                                     class="img-fluid" 
-                                     style="width: 100%; max-width: 350px; height: 300px; object-fit: cover; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.4); border: 3px solid rgba(255,255,255,0.2);">
+                                <div style="width: 100%; max-width: 350px; height: 300px; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%); border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.4); border: 3px solid rgba(255,255,255,0.2); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden;">
+                                    <!-- Award Trophy Icon -->
+                                    <div style="background: rgba(255,255,255,0.2); border-radius: 50%; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; backdrop-filter: blur(10px);">
+                                        <i class="fas fa-trophy" style="font-size: 60px; color: white; text-shadow: 0 4px 8px rgba(0,0,0,0.3);"></i>
+                                    </div>
+                                    <!-- Award Text -->
+                                    <div style="text-align: center; color: white;">
+                                        <h4 style="color: white; font-weight: 700; margin-bottom: 8px; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">International Awards</h4>
+                                        <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin: 0; text-shadow: 0 1px 3px rgba(0,0,0,0.3);">Excellence Recognition</p>
+                                    </div>
+                                    <!-- Decorative Elements -->
+                                    <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); border-radius: 50%;"></div>
+                                    <div style="position: absolute; bottom: -30px; left: -30px; width: 120px; height: 120px; background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%); border-radius: 50%;"></div>
+                                </div>
                             </div>
                         </div>
                         <div class="col-lg-7">
