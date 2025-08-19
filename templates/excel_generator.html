@@ -543,18 +543,6 @@
         
         <!-- Action Buttons -->
         <div class="text-center my-4">
-            {% if current_user and current_user.is_authenticated and (current_user.is_admin() or current_user.is_manager()) %}
-            <!-- Save as Default Button (Admin/Manager Only) -->
-            <div class="mb-3">
-                <button class="btn btn-warning btn-md px-4 py-2 me-3" onclick="saveAsGlobalDefaults()" style="background: linear-gradient(45deg, #ffc107, #fd7e14); border: none; border-radius: 10px; font-weight: 600; font-size: 16px; color: white; box-shadow: 0 3px 12px rgba(255, 193, 7, 0.3); transition: all 0.3s ease;">
-                    <i class="fas fa-save me-2"></i>Save as Global Defaults
-                </button>
-                <small class="d-block mt-2 text-muted">
-                    <i class="fas fa-info-circle me-1"></i>These settings will be applied as defaults for all users globally
-                </small>
-            </div>
-            {% endif %}
-            
             <!-- Generate Button -->
             <button class="btn btn-success btn-lg px-5 py-3" onclick="generateSequence()" style="background: linear-gradient(45deg, #28a745, #20c997); border: none; border-radius: 12px; font-weight: 600; font-size: 18px; color: white; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3); transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(40, 167, 69, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(40, 167, 69, 0.3)'">
                 <i class="fas fa-flask me-2"></i>
@@ -1103,63 +1091,7 @@ function loadGlobalDefaults() {
         });
 }
 
-// Save current settings as global defaults (Admin/Manager only)
-function saveAsGlobalDefaults() {
-    // Get all current form values
-    const settings = {};
-    const fields = [
-        'project-name', 'sample-prefix', 'sample-start', 'sample-count',
-        'starting-position', 'sample-method', 'carryover-interval',
-        'carryover-sample-name', 'carryover-method', 'nist-interval',
-        'nist-name', 'nist-method', 'datafile-path', 'path-format'
-    ];
-    
-    fields.forEach(fieldId => {
-        const field = document.getElementById(fieldId);
-        if (field) {
-            settings[fieldId] = field.value;
-        }
-    });
-    
-    // Show confirmation dialog
-    if (!confirm(`Are you sure you want to save these settings as global defaults for ALL users?\n\nThis will replace the current global defaults and affect all users who haven't customized their settings.`)) {
-        return;
-    }
-    
-    // Show loading state
-    const button = event.target;
-    const originalText = button.innerHTML;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
-    button.disabled = true;
-    
-    // Send to server
-    fetch('/api/excel-defaults', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            settings: settings
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            showNotification(data.message, 'success');
-        } else {
-            showNotification(data.message || 'Failed to save defaults', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error saving defaults:', error);
-        showNotification('Error saving defaults. Please try again.', 'error');
-    })
-    .finally(() => {
-        // Restore button state
-        button.innerHTML = originalText;
-        button.disabled = false;
-    });
-}
+// Removed saveAsGlobalDefaults function - defaults now save automatically on input change for admin/manager users
 
 // Add CSS animations
 const style = document.createElement('style');
