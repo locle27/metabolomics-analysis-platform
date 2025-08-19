@@ -739,118 +739,91 @@
     </div>
 </section>
 
-<!-- Research Excellence & Recognition - Redesigned with Larger Images -->
-<section class="project-overview" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); padding: 100px 0;">
+<!-- Research Excellence & Recognition - Professional Card Layout -->
+<section class="project-overview" style="background: #f8fafc; padding: 80px 0;">
     <div class="container">
         <div class="text-center mb-5">
-            <h2 style="color: var(--primary-blue); font-weight: 700; margin-bottom: 25px; font-size: 2.8rem;">Research Excellence & Recognition</h2>
-            <p style="color: #64748b; font-size: 22px; max-width: 800px; margin: 0 auto; font-weight: 500; line-height: 1.6;">Showcasing our groundbreaking achievements, international collaborations, and world-class research infrastructure</p>
+            <h2 style="color: var(--primary-blue); font-weight: 700; margin-bottom: 20px; font-size: 2.5rem;">Research Excellence & Recognition</h2>
+            <p style="color: #64748b; font-size: 18px; max-width: 700px; margin: 0 auto;">Our commitment to groundbreaking research and innovation has earned global recognition</p>
         </div>
         
-        <!-- Main Achievement Highlight - Redesigned with Larger Image -->
-        <div class="row mb-6">
-            <div class="col-lg-10 mx-auto">
-                <div class="overview-card" style="background: linear-gradient(135deg, var(--primary-blue) 0%, #1e3a8a 100%); color: white; border: none; padding: 50px; border-radius: 25px; box-shadow: 0 20px 60px rgba(46, 76, 146, 0.3);">
-                    <div class="row align-items-center">
-                        <div class="col-lg-5 text-center mb-4 mb-lg-0">
-                            <div style="background: rgba(255,255,255,0.15); border-radius: 25px; padding: 35px; backdrop-filter: blur(10px);">
-                                <img src="{{ url_for('static', filename='award2.jpg') }}" 
-                                     alt="International Awards" 
-                                     class="img-fluid" 
-                                     style="width: 100%; max-width: 350px; height: 300px; object-fit: cover; object-position: center; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.4); border: 3px solid rgba(255,255,255,0.2); filter: contrast(1.2) brightness(1.1) saturate(1.2) sharpen(1px); image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; image-rendering: optimize-quality;">
-                            </div>
-                        </div>
-                        <div class="col-lg-7">
-                            <h3 style="color: white; font-weight: 700; margin-bottom: 25px; font-size: 2.2rem;">
-                                <i class="fas fa-trophy" style="color: #fbbf24; margin-right: 15px; font-size: 2rem;"></i>
-                                International Excellence Award 2025
-                            </h3>
-                            <p style="color: rgba(255,255,255,0.95); font-size: 18px; line-height: 1.8; margin-bottom: 25px;">
-                                Our research team has been recognized with the prestigious THE Awards Asia 2025 for 
-                                outstanding contributions to Teaching and Learning Strategy of the Year, demonstrating our 
-                                commitment to innovative metabolomics education and research excellence.
-                            </p>
-                            <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px;">
-                                <div style="background: rgba(255,255,255,0.15); padding: 15px 25px; border-radius: 30px; backdrop-filter: blur(5px);">
-                                    <small style="color: white; font-weight: 600; font-size: 14px;">
-                                        <i class="fas fa-medal" style="margin-right: 8px;"></i> Teaching Excellence
-                                    </small>
-                                </div>
-                                <div style="background: rgba(255,255,255,0.15); padding: 15px 25px; border-radius: 30px; backdrop-filter: blur(5px);">
-                                    <small style="color: white; font-weight: 600; font-size: 14px;">
-                                        <i class="fas fa-globe-asia" style="margin-right: 8px;"></i> Asia-Pacific Recognition
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
+        <!-- Three Column Cards -->
+        <div class="row g-4">
+            <!-- International Recognition Card -->
+            <div class="col-lg-4">
+                <div class="overview-card" style="height: 100%; padding: 30px; text-align: center; transition: all 0.3s ease;">
+                    <div class="icon" style="width: 80px; height: 80px; font-size: 36px; margin-bottom: 25px; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);">
+                        <i class="fas fa-trophy"></i>
                     </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Secondary Achievements Grid - Redesigned with Larger Images -->
-        <div class="row g-5">
-            <div class="col-lg-6">
-                <div class="overview-card" style="background: white; border: 3px solid #fed7aa; padding: 40px; height: 100%; border-radius: 20px; box-shadow: 0 15px 50px rgba(233, 75, 0, 0.1);">
-                    <div class="text-center mb-4">
-                        <div style="background: linear-gradient(135deg, #fef3e2 0%, #fed7aa 100%); border-radius: 20px; padding: 30px; margin-bottom: 25px; position: relative; overflow: hidden;">
-                            <div style="position: absolute; top: -50%; right: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(233, 75, 0, 0.1) 0%, transparent 70%); transform: rotate(45deg);"></div>
-                            <img src="{{ url_for('static', filename='awards.png') }}" 
-                                 alt="Awards Portfolio" 
-                                 class="img-fluid" 
-                                 style="width: 100%; max-width: 280px; height: 220px; object-fit: cover; border-radius: 15px; box-shadow: 0 10px 30px rgba(233, 75, 0, 0.2); position: relative; z-index: 2;">
-                        </div>
-                    </div>
-                    <div class="text-center">
-                        <h4 style="color: var(--primary-orange); font-weight: 700; margin-bottom: 20px; font-size: 1.5rem;">
-                            <i class="fas fa-award" style="margin-right: 10px; font-size: 1.3rem;"></i>Achievement Portfolio
-                        </h4>
-                        <p style="color: #64748b; font-size: 16px; line-height: 1.7; margin-bottom: 25px;">
-                            Comprehensive collection of national and international awards recognizing our 
-                            innovative research methodology and educational impact across multiple disciplines.
-                        </p>
-                        <div style="display: flex; justify-content: center; gap: 30px; margin-top: 20px;">
-                            <div style="text-align: center; background: rgba(233, 75, 0, 0.1); padding: 20px; border-radius: 15px; min-width: 80px;">
-                                <strong style="color: var(--primary-orange); font-size: 28px; display: block; font-weight: 700;">15+</strong>
-                                <small style="color: #64748b; font-weight: 600;">Awards</small>
-                            </div>
-                            <div style="text-align: center; background: rgba(233, 75, 0, 0.1); padding: 20px; border-radius: 15px; min-width: 80px;">
-                                <strong style="color: var(--primary-orange); font-size: 28px; display: block; font-weight: 700;">5</strong>
-                                <small style="color: #64748b; font-weight: 600;">Countries</small>
-                            </div>
-                        </div>
+                    <h4 style="color: var(--primary-blue); font-weight: 600; margin-bottom: 15px;">International Recognition</h4>
+                    <p style="color: #64748b; margin-bottom: 20px;">
+                        Recipient of THE Awards Asia 2025 for Teaching and Learning Strategy of the Year, 
+                        recognizing our innovative approach to metabolomics education.
+                    </p>
+                    <div style="background: #f0f9ff; padding: 15px; border-radius: 10px; margin-top: auto;">
+                        <strong style="color: var(--primary-blue); font-size: 24px;">Top 6</strong>
+                        <p style="margin: 0; color: #64748b; font-size: 14px;">University in Vietnam</p>
                     </div>
                 </div>
             </div>
             
-            <div class="col-lg-6">
-                <div class="overview-card" style="background: white; border: 3px solid #b3e5fc; padding: 40px; height: 100%; border-radius: 20px; box-shadow: 0 15px 50px rgba(46, 76, 146, 0.1);">
-                    <div class="text-center mb-4">
-                        <div style="background: linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%); border-radius: 20px; padding: 30px; margin-bottom: 25px; position: relative; overflow: hidden;">
-                            <div style="position: absolute; top: -50%; right: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(46, 76, 146, 0.1) 0%, transparent 70%); transform: rotate(45deg);"></div>
-                            <img src="{{ url_for('static', filename='view.png') }}" 
-                                 alt="Research Facilities" 
-                                 class="img-fluid" 
-                                 style="width: 100%; max-width: 280px; height: 220px; object-fit: cover; border-radius: 15px; box-shadow: 0 10px 30px rgba(46, 76, 146, 0.2); position: relative; z-index: 2;">
-                        </div>
+            <!-- Research Publications Card -->
+            <div class="col-lg-4">
+                <div class="overview-card" style="height: 100%; padding: 30px; text-align: center; transition: all 0.3s ease;">
+                    <div class="icon" style="width: 80px; height: 80px; font-size: 36px; margin-bottom: 25px; background: linear-gradient(135deg, var(--primary-blue) 0%, #1e3a8a 100%);">
+                        <i class="fas fa-book-open"></i>
                     </div>
-                    <div class="text-center">
-                        <h4 style="color: var(--primary-blue); font-weight: 700; margin-bottom: 20px; font-size: 1.5rem;">
-                            <i class="fas fa-microscope" style="margin-right: 10px; font-size: 1.3rem;"></i>Research Infrastructure
-                        </h4>
-                        <p style="color: #64748b; font-size: 16px; line-height: 1.7; margin-bottom: 25px;">
-                            State-of-the-art metabolomics laboratory with cutting-edge analytical instrumentation 
-                            and collaborative research partnerships spanning across the globe.
-                        </p>
-                        <div style="display: flex; justify-content: center; gap: 30px; margin-top: 20px;">
-                            <div style="text-align: center; background: rgba(46, 76, 146, 0.1); padding: 20px; border-radius: 15px; min-width: 80px;">
-                                <strong style="color: var(--primary-blue); font-size: 28px; display: block; font-weight: 700;">$2M+</strong>
-                                <small style="color: #64748b; font-weight: 600;">Equipment</small>
-                            </div>
-                            <div style="text-align: center; background: rgba(46, 76, 146, 0.1); padding: 20px; border-radius: 15px; min-width: 80px;">
-                                <strong style="color: var(--primary-blue); font-size: 28px; display: block; font-weight: 700;">10+</strong>
-                                <small style="color: #64748b; font-weight: 600;">Partners</small>
-                            </div>
+                    <h4 style="color: var(--primary-blue); font-weight: 600; margin-bottom: 15px;">Research Publications</h4>
+                    <p style="color: #64748b; margin-bottom: 20px;">
+                        Leading metabolomics research with over 500+ peer-reviewed publications in top-tier 
+                        international journals including Nature, Science, and Cell.
+                    </p>
+                    <div style="background: #fef3c7; padding: 15px; border-radius: 10px; margin-top: auto;">
+                        <strong style="color: var(--primary-orange); font-size: 24px;">500+</strong>
+                        <p style="margin: 0; color: #64748b; font-size: 14px;">Publications</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Global Partnerships Card -->
+            <div class="col-lg-4">
+                <div class="overview-card" style="height: 100%; padding: 30px; text-align: center; transition: all 0.3s ease;">
+                    <div class="icon" style="width: 80px; height: 80px; font-size: 36px; margin-bottom: 25px; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                        <i class="fas fa-globe-asia"></i>
+                    </div>
+                    <h4 style="color: var(--primary-blue); font-weight: 600; margin-bottom: 15px;">Global Partnerships</h4>
+                    <p style="color: #64748b; margin-bottom: 20px;">
+                        Collaborating with leading institutions worldwide including Harvard, MIT, Oxford, 
+                        and top Asian universities for cutting-edge research.
+                    </p>
+                    <div style="background: #d1fae5; padding: 15px; border-radius: 10px; margin-top: auto;">
+                        <strong style="color: #059669; font-size: 24px;">50+</strong>
+                        <p style="margin: 0; color: #64748b; font-size: 14px;">Partner Institutions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Achievement Metrics Row -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <div style="background: linear-gradient(135deg, var(--primary-blue) 0%, #1e3a8a 100%); color: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 40px rgba(46, 76, 146, 0.2);">
+                    <div class="row text-center">
+                        <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+                            <h3 style="font-size: 36px; font-weight: 700; margin-bottom: 5px;">15+</h3>
+                            <p style="margin: 0; opacity: 0.9;">International Awards</p>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+                            <h3 style="font-size: 36px; font-weight: 700; margin-bottom: 5px;">800+</h3>
+                            <p style="margin: 0; opacity: 0.9;">Research Papers</p>
+                        </div>
+                        <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+                            <h3 style="font-size: 36px; font-weight: 700; margin-bottom: 5px;">$5M+</h3>
+                            <p style="margin: 0; opacity: 0.9;">Research Funding</p>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <h3 style="font-size: 36px; font-weight: 700; margin-bottom: 5px;">100+</h3>
+                            <p style="margin: 0; opacity: 0.9;">PhD Graduates</p>
                         </div>
                     </div>
                 </div>
