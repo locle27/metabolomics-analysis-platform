@@ -442,6 +442,15 @@
                         </div>
                     </div>
                 </div>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-12">
+                        <div class="form-floating">
+                            <input type="text" id="sample-method" class="form-control" value="Phenikaa_LipidMix_v1.m" placeholder="Phenikaa_LipidMix_v1.m" style="border-radius: 10px; border: 2px solid #dee2e6; font-weight: 500; font-family: 'Courier New', monospace;">
+                            <label for="sample-method"><i class="fas fa-file-code me-2"></i>Sample Method File</label>
+                        </div>
+                        <small class="text-muted mt-1 d-block"><i class="fas fa-info-circle me-1"></i>Method file used for all regular samples</small>
+                    </div>
+                </div>
             </div>
             
             <!-- Carryover Configuration -->
@@ -496,7 +505,32 @@
                     </div>
                 </div>
                 <div class="mt-2">
-                    <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Position: Fixed at P2-F1 for all NIST standards</small>
+                    <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Position: Fixed at P2-F1 for all NIST standards. Always followed by 1 carryover.</small>
+                </div>
+            </div>
+
+            <!-- Data File Path Configuration -->
+            <div class="config-subsection" style="background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%); border-left: 4px solid #4caf50;">
+                <h5 style="color: #2e7d32; font-weight: 700;"><i class="fas fa-folder-open"></i> Data File Configuration</h5>
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <div class="form-floating">
+                            <input type="text" id="datafile-path" class="form-control" value="D:\Projects\OQ-2024\Data" placeholder="D:\Projects\OQ-2024\Data" style="border-radius: 10px; border: 2px solid #4caf50; font-weight: 500; font-family: 'Courier New', monospace;">
+                            <label for="datafile-path"><i class="fas fa-folder me-2"></i>Base Data Path</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <select id="path-format" class="form-select" style="border-radius: 10px; border: 2px solid #4caf50; font-weight: 500;">
+                                <option value="windows">Windows (D:\path)</option>
+                                <option value="unix">Unix (/path/to/data)</option>
+                            </select>
+                            <label for="path-format"><i class="fas fa-desktop me-2"></i>Path Format</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Automatic subfolder structure: {Base Path}\{Project}\{Batch Range} ({Date})\{Sample}.d</small>
                 </div>
             </div>
         </div>
@@ -626,12 +660,15 @@ function generateSequence() {
         sampleStart: parseInt(document.getElementById('sample-start').value),
         sampleCount: parseInt(document.getElementById('sample-count').value),
         startingPosition: document.getElementById('starting-position').value,
+        sampleMethod: document.getElementById('sample-method').value,
         carryoverInterval: parseInt(document.getElementById('carryover-interval').value),
         carryoverSampleName: document.getElementById('carryover-sample-name').value,
         carryoverMethod: document.getElementById('carryover-method').value,
         nistInterval: parseInt(document.getElementById('nist-interval').value),
         nistName: document.getElementById('nist-name').value,
-        nistMethod: document.getElementById('nist-method').value
+        nistMethod: document.getElementById('nist-method').value,
+        datafilePath: document.getElementById('datafile-path').value,
+        pathFormat: document.getElementById('path-format').value
     };
     
     // Initialize variables
@@ -647,17 +684,25 @@ function generateSequence() {
         const sampleNumber = config.sampleStart + i;
         const sampleName = config.samplePrefix + sampleNumber.toString().padStart(4, '0');
         
-        // Generate datafile path
+        // Generate datafile path using configurable base path
         const formattedDate = config.batchDate ? config.batchDate.replace(/-/g, '') : '20250101';
-        const batchRange = `${config.sampleStart.toString().padStart(2, '0')}-${(config.sampleStart + config.sampleCount - 1).toString().padStart(3, '0')}`;
-        const datafilePath = `D:\\Projects\\OQ-2024\\Data\\${config.projectName}\\${config.samplePrefix}${batchRange} (${formattedDate})\\${sampleName}.d`;
+        const batchRange = `${config.sampleStart.toString().padStart(4, '0')}-${(config.sampleStart + config.sampleCount - 1).toString().padStart(4, '0')}`;
+        
+        // Format path based on selected format
+        let datafilePath;
+        if (config.pathFormat === 'unix') {
+            const unixPath = config.datafilePath.replace(/\\/g, '/');
+            datafilePath = `${unixPath}/${config.projectName}/${config.samplePrefix}${batchRange} (${formattedDate})/${sampleName}.d`;
+        } else {
+            datafilePath = `${config.datafilePath}\\${config.projectName}\\${config.samplePrefix}${batchRange} (${formattedDate})\\${sampleName}.d`;
+        }
         
         // Add main sample
         generatedSequence.push({
             step: stepNumber++,
             sampleName: sampleName,
             position: currentPosition,
-            method: 'Phenikaa_LipidMix_v1.m', // Default method for main samples
+            method: config.sampleMethod,
             datafile: datafilePath,
             type: 'Sample',
             notes: `Main sample ${i + 1}`,
@@ -667,27 +712,17 @@ function generateSequence() {
         currentPosition = calculateNextPosition(currentPosition);
         mainSampleCount++;
         
-        // Check for carryover insertion (every N samples)
-        if ((i + 1) % config.carryoverInterval === 0) {
-            const carryoverName = config.carryoverSampleName + carryoverCount.toString().padStart(2, '0');
-            const carryoverDatafile = `D:\\Projects\\OQ-2024\\Data\\${config.projectName}\\${config.samplePrefix}${batchRange} (${formattedDate})\\${carryoverName}.d`;
-            generatedSequence.push({
-                step: stepNumber++,
-                sampleName: carryoverName,
-                position: 'P1-A1', // Fixed carryover position
-                method: config.carryoverMethod,
-                datafile: carryoverDatafile,
-                type: 'Carryover',
-                notes: `After ${config.carryoverInterval} samples`,
-                rowClass: 'carryover-row'
-            });
-            carryoverCount++;
-        }
-        
-        // Check for NIST insertion (every N samples) - separate from carryover
+        // Check for NIST insertion first (every N samples)
+        let nistInserted = false;
         if ((i + 1) % config.nistInterval === 0) {
             const nistName = config.nistName.replace('(1)', `(${nistCount})`);
-            const nistDatafile = `D:\\Projects\\OQ-2024\\Data\\${config.projectName}\\${config.samplePrefix}${batchRange} (${formattedDate})\\${nistName}.d`;
+            let nistDatafile;
+            if (config.pathFormat === 'unix') {
+                const unixPath = config.datafilePath.replace(/\\/g, '/');
+                nistDatafile = `${unixPath}/${config.projectName}/${config.samplePrefix}${batchRange} (${formattedDate})/${nistName}.d`;
+            } else {
+                nistDatafile = `${config.datafilePath}\\${config.projectName}\\${config.samplePrefix}${batchRange} (${formattedDate})\\${nistName}.d`;
+            }
             generatedSequence.push({
                 step: stepNumber++,
                 sampleName: nistName,
@@ -699,6 +734,51 @@ function generateSequence() {
                 rowClass: 'nist-row'
             });
             nistCount++;
+            nistInserted = true;
+            
+            // Always add 1 carryover immediately after NIST
+            const carryoverName = config.carryoverSampleName + carryoverCount.toString().padStart(2, '0');
+            let carryoverDatafile;
+            if (config.pathFormat === 'unix') {
+                const unixPath = config.datafilePath.replace(/\\/g, '/');
+                carryoverDatafile = `${unixPath}/${config.projectName}/${config.samplePrefix}${batchRange} (${formattedDate})/${carryoverName}.d`;
+            } else {
+                carryoverDatafile = `${config.datafilePath}\\${config.projectName}\\${config.samplePrefix}${batchRange} (${formattedDate})\\${carryoverName}.d`;
+            }
+            generatedSequence.push({
+                step: stepNumber++,
+                sampleName: carryoverName,
+                position: 'P1-A1', // Fixed carryover position
+                method: config.carryoverMethod,
+                datafile: carryoverDatafile,
+                type: 'Carryover',
+                notes: `Mandatory carryover after NIST`,
+                rowClass: 'carryover-row'
+            });
+            carryoverCount++;
+        }
+        
+        // Check for regular carryover insertion (every N samples) - only if NIST was not inserted
+        if (!nistInserted && (i + 1) % config.carryoverInterval === 0) {
+            const carryoverName = config.carryoverSampleName + carryoverCount.toString().padStart(2, '0');
+            let carryoverDatafile;
+            if (config.pathFormat === 'unix') {
+                const unixPath = config.datafilePath.replace(/\\/g, '/');
+                carryoverDatafile = `${unixPath}/${config.projectName}/${config.samplePrefix}${batchRange} (${formattedDate})/${carryoverName}.d`;
+            } else {
+                carryoverDatafile = `${config.datafilePath}\\${config.projectName}\\${config.samplePrefix}${batchRange} (${formattedDate})\\${carryoverName}.d`;
+            }
+            generatedSequence.push({
+                step: stepNumber++,
+                sampleName: carryoverName,
+                position: 'P1-A1', // Fixed carryover position
+                method: config.carryoverMethod,
+                datafile: carryoverDatafile,
+                type: 'Carryover',
+                notes: `Regular carryover after ${config.carryoverInterval} samples`,
+                rowClass: 'carryover-row'
+            });
+            carryoverCount++;
         }
     }
     
