@@ -869,4 +869,281 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 </div>
+
+<!-- Moving Phenikaa Text Banner -->
+<section class="phenikaa-moving-text-section">
+    <div class="moving-text-container">
+        <div class="moving-text-track">
+            <!-- Primary moving text -->
+            <div class="moving-text-item phenikaa-primary">PHENIKAA UNIVERSITY</div>
+            <div class="moving-text-item phenikaa-secondary">ĐẠI HỌC PHENIKAA</div>
+            <div class="moving-text-item phenikaa-tertiary">EXCELLENCE IN EDUCATION</div>
+            <div class="moving-text-item phenikaa-primary">PHENIKAA UNIVERSITY</div>
+            <div class="moving-text-item phenikaa-secondary">ĐẠI HỌC PHENIKAA</div>
+            <div class="moving-text-item phenikaa-tertiary">INNOVATION • RESEARCH • DISCOVERY</div>
+            <div class="moving-text-item phenikaa-primary">PHENIKAA UNIVERSITY</div>
+            <div class="moving-text-item phenikaa-secondary">ĐẠI HỌC PHENIKAA</div>
+            <div class="moving-text-item phenikaa-tertiary">LEADING THE FUTURE</div>
+            
+            <!-- Duplicate set for seamless loop -->
+            <div class="moving-text-item phenikaa-primary">PHENIKAA UNIVERSITY</div>
+            <div class="moving-text-item phenikaa-secondary">ĐẠI HỌC PHENIKAA</div>
+            <div class="moving-text-item phenikaa-tertiary">EXCELLENCE IN EDUCATION</div>
+            <div class="moving-text-item phenikaa-primary">PHENIKAA UNIVERSITY</div>
+            <div class="moving-text-item phenikaa-secondary">ĐẠI HỌC PHENIKAA</div>
+            <div class="moving-text-item phenikaa-tertiary">INNOVATION • RESEARCH • DISCOVERY</div>
+            <div class="moving-text-item phenikaa-primary">PHENIKAA UNIVERSITY</div>
+            <div class="moving-text-item phenikaa-secondary">ĐẠI HỌC PHENIKAA</div>
+            <div class="moving-text-item phenikaa-tertiary">LEADING THE FUTURE</div>
+        </div>
+    </div>
+</section>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&family=Exo+2:wght@300;400;600;800&family=Russo+One&display=swap');
+
+.phenikaa-moving-text-section {
+    position: relative;
+    width: 100%;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    padding: 20px 0;
+    overflow: hidden;
+    border-top: 3px solid var(--primary-orange);
+    box-shadow: inset 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.phenikaa-moving-text-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 20% 50%, rgba(233, 75, 0, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 50%, rgba(46, 76, 146, 0.1) 0%, transparent 50%),
+        linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.02) 50%, transparent 100%);
+    animation: backgroundShift 8s ease-in-out infinite;
+}
+
+@keyframes backgroundShift {
+    0%, 100% { transform: translateX(-10px); }
+    50% { transform: translateX(10px); }
+}
+
+.moving-text-container {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+.moving-text-container::before,
+.moving-text-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100px;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.moving-text-container::before {
+    left: 0;
+    background: linear-gradient(to right, #1a1a2e, transparent);
+}
+
+.moving-text-container::after {
+    right: 0;
+    background: linear-gradient(to left, #1a1a2e, transparent);
+}
+
+.moving-text-track {
+    display: flex;
+    align-items: center;
+    animation: scrollText 40s linear infinite;
+    width: fit-content;
+    gap: 60px;
+}
+
+.moving-text-track:hover {
+    animation-play-state: paused;
+}
+
+@keyframes scrollText {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+.moving-text-item {
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    white-space: nowrap;
+    margin: 0 30px;
+    position: relative;
+    transition: all 0.3s ease;
+    cursor: default;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.moving-text-item:hover {
+    transform: scale(1.1);
+    filter: brightness(1.3);
+}
+
+/* Primary Phenikaa Text - Bold Orange Gradient */
+.phenikaa-primary {
+    font-family: 'Russo One', 'Orbitron', sans-serif;
+    background: linear-gradient(45deg, #E94B00, #FF6B1A, #FFA500, #E94B00);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientShift 3s ease-in-out infinite;
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 4px;
+}
+
+/* Secondary Vietnamese Text - Blue Gradient */
+.phenikaa-secondary {
+    font-family: 'Exo 2', 'Rajdhani', sans-serif;
+    background: linear-gradient(45deg, #2E4C92, #4A6FA5, #6B8BC7, #2E4C92);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientShift 4s ease-in-out infinite reverse;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 2px;
+}
+
+/* Tertiary Descriptive Text - Silver/Gold Gradient */
+.phenikaa-tertiary {
+    font-family: 'Orbitron', 'Rajdhani', sans-serif;
+    background: linear-gradient(45deg, #C0C0C0, #FFD700, #FFFFFF, #FFA500);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientShift 5s ease-in-out infinite;
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    opacity: 0.9;
+}
+
+@keyframes gradientShift {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+/* Special Effects */
+.phenikaa-primary::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, rgba(233, 75, 0, 0.3), transparent);
+    border-radius: 4px;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.phenikaa-primary:hover::before {
+    opacity: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .moving-text-item {
+        font-size: 12px;
+        letter-spacing: 2px;
+        margin: 0 20px;
+    }
+    
+    .phenikaa-primary {
+        font-size: 14px;
+        letter-spacing: 3px;
+    }
+    
+    .phenikaa-secondary {
+        font-size: 12px;
+        letter-spacing: 1px;
+    }
+    
+    .phenikaa-tertiary {
+        font-size: 11px;
+        letter-spacing: 1px;
+    }
+    
+    .moving-text-track {
+        gap: 40px;
+    }
+    
+    .phenikaa-moving-text-section {
+        padding: 15px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .moving-text-item {
+        font-size: 10px;
+        letter-spacing: 1px;
+        margin: 0 15px;
+    }
+    
+    .phenikaa-primary {
+        font-size: 12px;
+        letter-spacing: 2px;
+    }
+    
+    .phenikaa-secondary {
+        font-size: 10px;
+    }
+    
+    .phenikaa-tertiary {
+        font-size: 9px;
+    }
+}
+
+/* Additional Creative Enhancement - Floating Particles */
+.phenikaa-moving-text-section::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        radial-gradient(2px 2px at 20px 30px, rgba(255, 255, 255, 0.1), transparent),
+        radial-gradient(2px 2px at 40px 70px, rgba(233, 75, 0, 0.1), transparent),
+        radial-gradient(1px 1px at 90px 40px, rgba(46, 76, 146, 0.1), transparent),
+        radial-gradient(1px 1px at 130px 80px, rgba(255, 255, 255, 0.05), transparent);
+    background-repeat: repeat;
+    background-size: 200px 100px;
+    animation: particleFloat 20s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes particleFloat {
+    0% { transform: translateX(-200px); }
+    100% { transform: translateX(100vw); }
+}
+</style>
+
 {% endblock %}
