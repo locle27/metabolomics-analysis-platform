@@ -180,7 +180,7 @@ if CSRF_AVAILABLE:
     CSRF_DEBUG_EXEMPT_PATHS = ['/auth/update-password']
     
     # API endpoints that need CSRF exemption
-    API_EXEMPT_PATHS = ['/api/zoom-settings', '/api/admin/zoom-defaults']
+    API_EXEMPT_PATHS = ['/api/zoom-settings', '/api/admin/zoom-defaults', '/api/excel-defaults']
     
     @app.before_request
     def disable_csrf_for_oauth_routes():
@@ -3616,6 +3616,108 @@ def api_database_view():
             })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# Excel Generator Defaults API Routes
+@app.route('/api/excel-defaults', methods=['GET'])
+def api_get_excel_defaults():
+    """Get Excel Generator default settings for all users"""
+    try:
+        from models_postgresql_optimized import AdminSettings
+        
+        # Define the Excel Generator settings keys
+        excel_keys = [
+            'excel_project_name', 'excel_sample_prefix', 'excel_sample_start',
+            'excel_sample_count', 'excel_starting_position', 'excel_sample_method',
+            'excel_carryover_interval', 'excel_carryover_sample_name', 'excel_carryover_method',
+            'excel_nist_interval', 'excel_nist_name', 'excel_nist_method',
+            'excel_datafile_path', 'excel_path_format'
+        ]
+        
+        defaults = {}
+        for key in excel_keys:
+            defaults[key] = AdminSettings.get_setting(key, default_value=None)
+        
+        return jsonify({
+            "status": "success",
+            "defaults": defaults
+        })
+    except Exception as e:
+        print(f"❌ Error loading Excel defaults: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e),
+            "defaults": {}
+        })
+
+@app.route('/api/excel-defaults', methods=['POST'])
+@csrf.exempt
+@login_required
+def api_save_excel_defaults():
+    """Save Excel Generator default settings - ADMIN/MANAGER ONLY"""
+    try:
+        # Check if user is admin or manager
+        if not (current_user.is_admin() or current_user.is_manager()):
+            return jsonify({
+                "status": "error",
+                "message": "Admin or Manager access required"
+            }), 403
+        
+        from models_postgresql_optimized import AdminSettings
+        
+        data = request.get_json()
+        settings = data.get('settings', {})
+        
+        if not settings:
+            return jsonify({
+                "status": "error",
+                "message": "No settings provided"
+            }), 400
+        
+        # Save each setting with proper prefixing
+        setting_mappings = {
+            'project-name': 'excel_project_name',
+            'sample-prefix': 'excel_sample_prefix',
+            'sample-start': 'excel_sample_start',
+            'sample-count': 'excel_sample_count',
+            'starting-position': 'excel_starting_position',
+            'sample-method': 'excel_sample_method',
+            'carryover-interval': 'excel_carryover_interval',
+            'carryover-sample-name': 'excel_carryover_sample_name',
+            'carryover-method': 'excel_carryover_method',
+            'nist-interval': 'excel_nist_interval',
+            'nist-name': 'excel_nist_name',
+            'nist-method': 'excel_nist_method',
+            'datafile-path': 'excel_datafile_path',
+            'path-format': 'excel_path_format'
+        }
+        
+        saved_count = 0
+        for field_id, setting_key in setting_mappings.items():
+            if field_id in settings:
+                value = settings[field_id]
+                setting_type = 'number' if field_id in ['sample-start', 'sample-count', 'carryover-interval', 'nist-interval'] else 'string'
+                
+                AdminSettings.set_setting(
+                    key=setting_key,
+                    value=value,
+                    setting_type=setting_type,
+                    description=f"Excel Generator default for {field_id.replace('-', ' ')}",
+                    created_by=current_user.id
+                )
+                saved_count += 1
+        
+        return jsonify({
+            "status": "success",
+            "message": f"Saved {saved_count} default settings globally for all users",
+            "saved_count": saved_count
+        })
+        
+    except Exception as e:
+        print(f"❌ Error saving Excel defaults: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
 
 # =====================================================
 # AUTHENTICATION ROUTES (Main app redirects)
