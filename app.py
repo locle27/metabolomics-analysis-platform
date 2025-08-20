@@ -905,7 +905,7 @@ if database_url:
         })
         
         # Import models first to get the shared db instance
-        from models_postgresql_optimized import (
+        from models import (
             db, MainLipid, LipidClass, AnnotatedIon, User, ScheduleRequest, AdminSettings, 
             NotificationSetting, optimized_manager, get_db_stats, get_lipids_by_class, search_lipids,
             BackupHistory, BackupSnapshots, BackupStats
@@ -3339,7 +3339,7 @@ def manage_lipids():
 def api_get_zoom_settings():
     """Get all zoom settings from database"""
     try:
-        from models_postgresql_optimized import ChartZoomSettings
+        from models import ChartZoomSettings
         settings = ChartZoomSettings.get_all_zoom_settings()
         return jsonify({
             "status": "success",
@@ -3358,7 +3358,7 @@ def api_get_zoom_settings():
 def api_save_zoom_settings():
     """Save zoom settings to database"""
     try:
-        from models_postgresql_optimized import ChartZoomSettings
+        from models import ChartZoomSettings
         
         data = request.get_json()
         lipid_id = data.get('lipid_id')
@@ -3403,7 +3403,7 @@ def api_save_zoom_settings():
 def api_delete_zoom_settings(lipid_id):
     """Delete all zoom settings for a lipid"""
     try:
-        from models_postgresql_optimized import ChartZoomSettings
+        from models import ChartZoomSettings
         
         ChartZoomSettings.delete_zoom_settings(lipid_id)
         
@@ -3432,7 +3432,7 @@ def api_set_admin_zoom_defaults():
                 "message": "Admin access required"
             }), 403
         
-        from models_postgresql_optimized import ChartZoomSettings
+        from models import ChartZoomSettings
         
         data = request.get_json()
         lipid_id = data.get('lipid_id')
@@ -3473,7 +3473,7 @@ def api_set_admin_zoom_defaults():
 def api_get_admin_zoom_defaults():
     """Get admin default zoom settings"""
     try:
-        from models_postgresql_optimized import ChartZoomSettings
+        from models import ChartZoomSettings
         
         defaults = ChartZoomSettings.get_admin_defaults()
         
@@ -3622,7 +3622,7 @@ def api_database_view():
 def api_get_excel_defaults():
     """Get Excel Generator default settings for all users"""
     try:
-        from models_postgresql_optimized import AdminSettings
+        from models import AdminSettings
         
         # Define the Excel Generator settings keys
         excel_keys = [
@@ -3662,7 +3662,7 @@ def api_save_excel_defaults():
                 "message": "Admin or Manager access required"
             }), 403
         
-        from models_postgresql_optimized import AdminSettings
+        from models import AdminSettings
         
         data = request.get_json()
         settings = data.get('settings', {})
@@ -4067,7 +4067,7 @@ def init_database():
             
             # Check notification settings table specifically
             try:
-                from models_postgresql_optimized import NotificationSetting
+                from models import NotificationSetting
                 count = NotificationSetting.query.count()
                 results.append(f"✅ notification_settings table ready (count: {count})")
                 
