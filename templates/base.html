@@ -11,26 +11,21 @@
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- Chart.js loaded in specific pages as needed -->
-    <!-- Premium Fonts for Dark Theme -->
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     
     <!-- Exact Phenikaa University CSS (Based on ui-test files) -->
     <style>
         :root {
-            /* Dark Theme Colors Synchronized with Banner */
-            --primary-blue: #2E4C92;
-            --dark-blue: #213671;
-            --darker-blue: #1A2B5C;
-            --primary-orange: #E94B00;
-            --light-orange: #FF6B1A;
-            --dark-bg: #0F1419;           /* Almost black background */
-            --darker-bg: #0A0F16;         /* Even darker sections */
-            --card-bg: #1A2028;           /* Dark card background */
-            --border-dark: #2D3748;       /* Dark borders */
-            --text-light: #E2E8F0;        /* Light text */
-            --text-gray: #94A3B8;         /* Gray text */
-            --accent-cyan: #00B4DB;       /* Cyan accent from banner */
-            --accent-glow: rgba(0, 180, 219, 0.2); /* Subtle glow */
+            /* Updated Blue/Orange Theme Colors */
+            --primary-blue: #2E4C92;            /* Main blue from logo */
+            --dark-blue: #213671;                /* Darker blue for navigation */
+            --primary-orange: #E94B00;           /* Main orange from logo */
+            --light-blue: #4A6FA5;               /* Lighter blue variant */
+            --light-orange: #FF6B1A;             /* Lighter orange variant */
+            --white: #FFFFFF;
+            --light-bg: #F8FAFC;
+            --dark-text: #1E293B;
+            --gray-text: #64748B;
             
             /* Layout variables from Phenikaa */
             --dl-layout-space-unit: 16px;
@@ -47,33 +42,18 @@
             text-transform: none;
             letter-spacing: normal;
             line-height: 1.6;
-            color: var(--text-light);
-            background: var(--dark-bg) !important;
+            color: var(--dark-text);
+            background: var(--light-bg);
             margin: 0;
             padding: 0;
-            border: none;
-            outline: none;
         }
         
-        /* Ensure no white backgrounds anywhere */
-        .container, .container-fluid, .row, .col-* {
-            background: transparent !important;
-        }
-        
-        /* Force dark theme on all major elements */
-        main, section, div, article {
-            background: inherit;
-        }
-        
-        /* Dark Header Section */
+        /* Updated Header - Clean white background */
         .phenikaa-header {
-            background: linear-gradient(135deg, var(--darker-bg), var(--dark-bg)) !important;
+            background: #FFFFFF !important;
             padding: 20px 0;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            border-bottom: 2px solid var(--accent-cyan);
-            backdrop-filter: blur(10px);
-            position: relative;
-            z-index: 5000;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-bottom: 3px solid var(--primary-blue);
         }
         
         /* Logo and Title Section */
@@ -103,7 +83,7 @@
         
         .slogan table td span,
         .science.slogan table td span {
-            color: var(--text-light) !important; /* Light text for dark theme */
+            color: #DC3545 !important; /* Red color for title text */
             font-size: 13px;
             font-family: Inter;
             font-weight: 600;
@@ -112,43 +92,37 @@
         
         .slogan table td span a,
         .science.slogan table td span a {
-            color: var(--text-light) !important; /* Light text for dark theme */
+            color: #DC3545 !important; /* Red color for title text */
             text-decoration: none;
             font-weight: 600;
         }
         
         .slogan table td span a:hover,
         .science.slogan table td span a:hover {
-            color: var(--accent-cyan) !important;
+            color: var(--primary-orange) !important;
         }
         
         .slogan table tr:last-child td span,
         .science.slogan table tr:last-child td span {
             font-weight: 500;
             font-size: 12px;
-            color: var(--text-gray) !important; /* Gray text for dark theme */
+            color: #6C757D !important; /* Gray for subtitle */
         }
         
         /* Navigation Menu - Clean text only */
         .right-main-menu {
             margin-left: auto;
-            position: relative;
-            z-index: 6000;
         }
         
         .main-menu .navbar {
             padding: 0;
             background: none !important;
             border: none !important;
-            position: relative;
-            z-index: 7000;
         }
         
         .navbar {
             background: none !important;
             border: none !important;
-            position: relative;
-            z-index: 7000;
         }
         
         .navbar-toggler {
@@ -175,23 +149,22 @@
             position: relative;
         }
         
-        /* Clean Dark Navigation - No Heavy Boxes */
+        /* PHENIKAA STYLE NAVIGATION */
         .navbar-nav .nav-link,
         .main-navbar_nav .nav-link,
         ul.navbar-nav li.nav-item a.nav-link {
-            color: var(--text-light) !important;
+            color: #2E4C92 !important;
             font-size: 14px !important;
             font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
             font-weight: 500 !important;
             text-transform: uppercase !important;
-            padding: 10px 16px !important;
+            padding: 12px 18px !important;
             text-decoration: none !important;
             transition: all 0.3s ease !important;
-            border-radius: 6px !important;
-            margin: 0 2px !important;
-            background: transparent !important;
+            background: none !important;
             border: none !important;
-            position: relative;
+            border-radius: 0 !important;
+            margin: 0 !important;
             opacity: 1 !important;
             visibility: visible !important;
             display: inline-flex !important;
@@ -203,17 +176,15 @@
         .navbar-nav .nav-link:hover,
         .main-navbar_nav .nav-link:hover,
         ul.navbar-nav li.nav-item a.nav-link:hover {
-            color: var(--accent-cyan) !important;
-            background: rgba(0, 180, 219, 0.1) !important;
-            text-shadow: 0 0 8px rgba(0, 180, 219, 0.3);
-            transform: translateY(-1px);
+            color: #E94B00 !important;
+            background: rgba(46, 76, 146, 0.05) !important;
         }
         
         .navbar-nav .nav-link.active,
         .main-navbar_nav .nav-link.active,
         ul.navbar-nav li.nav-item a.nav-link.active {
-            color: var(--primary-orange) !important;
-            background: rgba(233, 75, 0, 0.1) !important;
+            color: #E94B00 !important;
+            background: rgba(46, 76, 146, 0.1) !important;
             font-weight: 600 !important;
         }
         
@@ -252,42 +223,23 @@
             position: absolute;
             top: 100%;
             left: 0;
-            min-width: 600px;
-            background: linear-gradient(135deg, var(--darker-bg) 0%, var(--dark-bg) 100%);
-            box-shadow: 
-                0 20px 60px rgba(0, 0, 0, 0.9),
-                0 0 40px rgba(0, 180, 219, 0.3),
-                inset 0 1px 0 rgba(0, 180, 219, 0.2);
-            border-radius: 12px;
-            padding: 25px;
+            min-width: 800px;
+            background: var(--white);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            padding: 30px 0;
             opacity: 0;
             visibility: hidden;
-            transform: translateY(-10px) scale(0.98);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 9999;
-            border: 1px solid var(--accent-cyan);
-            backdrop-filter: blur(15px);
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            border: 1px solid rgba(0, 0, 0, 0.08);
         }
         
         .has-submenu:hover .sub-menu {
             opacity: 1;
             visibility: visible;
-            transform: translateY(0) scale(1);
-            animation: biologicalDropdownAppear 0.4s ease-out;
-        }
-
-        @keyframes biologicalDropdownAppear {
-            0% {
-                opacity: 0;
-                transform: translateY(-20px) scale(0.9);
-            }
-            60% {
-                transform: translateY(2px) scale(1.02);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
+            transform: translateY(0);
         }
         
         .sub-menu-content {
@@ -303,7 +255,7 @@
         }
         
         .sub-links {
-            border-right: 1px solid rgba(0, 180, 219, 0.2);
+            border-right: 1px solid #e0e0e0;
             padding-right: 20px;
         }
         
@@ -318,47 +270,31 @@
         }
         
         .sub-links li {
-            margin: 0 0 15px 0;
+            margin: 0 0 12px 0;
         }
         
         .sub-links a {
-            color: var(--text-light);
-            font-size: 13px;
+            color: #333;
+            font-size: 14px;
             font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-weight: 500;
+            font-weight: 400;
             text-decoration: none;
-            padding: 12px 16px;
+            padding: 6px 0;
             display: block;
-            transition: all 0.25s ease;
-            line-height: 1.4;
-            border-radius: 6px;
-            background: rgba(0, 180, 219, 0.08);
-            border: 1px solid rgba(0, 180, 219, 0.15);
-            margin-bottom: 4px;
+            transition: all 0.3s ease;
+            line-height: 1.5;
         }
         
         .sub-links a:hover {
-            color: var(--accent-cyan);
-            background: linear-gradient(135deg, rgba(0, 180, 219, 0.25), rgba(0, 255, 255, 0.15));
-            border-color: var(--accent-cyan);
-            text-shadow: 0 0 10px rgba(0, 180, 219, 0.5);
-            box-shadow: 
-                0 0 20px rgba(0, 180, 219, 0.4),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
-            transform: translateX(4px);
+            color: var(--primary-orange);
+            padding-left: 8px;
         }
         
         .sub-links a i {
-            margin-right: 10px;
-            width: 18px;
+            margin-right: 8px;
+            width: 16px;
             text-align: center;
-            color: var(--accent-cyan);
-            transition: all 0.3s ease;
-        }
-
-        .sub-links a:hover i {
-            color: var(--accent-cyan);
-            text-shadow: 0 0 5px var(--accent-glow);
+            color: var(--primary-blue);
         }
         
         /* Hero Section - Blue/Orange Theme */
@@ -791,50 +727,28 @@
                                     
                                     <!-- Authentication - Enhanced with session check -->
                                     {% if current_user.is_authenticated or session.get('user_authenticated') %}
-                                    <li class="nav-item has-submenu">
-                                        <a class="nav-link" href="#">
-                                            <i class="fas fa-user-circle"></i>
-                                            {% if current_user.full_name %}
-                                                {{ current_user.full_name.split()[0] }}
-                                            {% elif session.get('user_email') %}
-                                                {{ session.get('user_email').split('@')[0].title() }}
-                                            {% else %}
-                                                User
-                                            {% endif %}
-                                            <span class="sub-nav-toggler"></span>
-                                        </a>
-                                        <button class="sub-nav-toggler">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255, 255, 255, 0.6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right" aria-hidden="true">
-                                                <path d="m9 18 6-6-6-6"></path>
-                                            </svg>
-                                        </button>
-                                        <div class="sub-menu">
-                                            <div class="sub-menu-content">
-                                                <div class="row row-eq-height">
-                                                    <div class="col-lg-12">
-                                                        <div class="sub-links no-border">
-                                                            <ul>
-                                                                <li><a href="{{ url_for('auth.profile') }}"><i class="fas fa-user-circle"></i> Profile</a></li>
-                                                                {% if session.get('user_email') == 'loc22100302@gmail.com' %}
-                                                                <li><a href="{{ url_for('backup_management') }}"><i class="fas fa-database"></i> System Backup</a></li>
-                                                                {% endif %}
-                                                                <li><hr class="dropdown-divider"></li>
-                                                                <li><a href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                                                            </ul>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </li>
+                                        <li class="nav-item dropdown has-submenu">
+                                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="display: inline-flex; align-items: center;">
+                                                <i class="fas fa-user me-2"></i>
+                                                {% if session.get('user_authenticated') %}
+                                                    {{ session.get('user_name', 'User') }}
+                                                {% else %}
+                                                    {{ current_user.name if current_user.name else 'User' }}
+                                                {% endif %}
+                                            </a>
+                                            <ul class="dropdown-menu" aria-labelledby="userDropdown" style="background: white; box-shadow: 0 4px 20px rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.1); border-radius: 8px;">
+                                                <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="fas fa-user me-2"></i> Profile</a></li>
+                                                <li><a class="dropdown-item" href="{{ url_for('change_password') }}"><i class="fas fa-key me-2"></i> Change Password</a></li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+                                            </ul>
+                                        </li>
                                     {% else %}
-                                    <!-- LOGIN button only when not authenticated -->
-                                    <li class="nav-item">
-                                        <a class="nav-link" href="{{ url_for('auth.login') }}">
-                                            <i class="fas fa-sign-in-alt"></i>
-                                            LOGIN
-                                        </a>
-                                    </li>
+                                        <li class="nav-item">
+                                            <a class="nav-link" href="{{ url_for('login') }}">
+                                                <i class="fas fa-sign-in-alt me-2"></i>LOGIN
+                                            </a>
+                                        </li>
                                     {% endif %}
                                 </ul>
                             </div>
@@ -844,132 +758,33 @@
             </div>
         </div>
     </header>
-
-    <!-- Admin Access Notice -->
-    {% if current_user.is_authenticated and not current_user.is_admin() %}
-        {% if request.endpoint in ['admin_dashboard', 'manage_lipids'] %}
-        <div class="container mt-3">
-            <div class="alert alert-info alert-dismissible fade show" role="alert">
-                <i class="fas fa-info-circle"></i>
-                <strong>Need Admin Access?</strong> 
-                If you're the platform administrator, <a href="{{ url_for('promote_to_admin') }}" class="alert-link">click here to request admin privileges</a>.
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        </div>
-        {% endif %}
-    {% endif %}
-
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="container mt-3">
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' if category == 'success' else 'warning' }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
-
-    <!-- Hero Section (Only on Homepage) -->
+    
+    <!-- Hero Section (conditional) -->
     {% block hero %}
-    <!-- Hero section only appears on homepage -->
-    {% if request.endpoint == 'homepage' %}
-    <section class="phenikaa-hero">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h2 class="display-5 fw-bold mb-3">Welcome to Advanced Metabolomics</h2>
-                    <p class="lead mb-4">
-                        Explore comprehensive lipid chromatography data with interactive visualizations, 
-                        advanced filtering, and scientific-grade analysis tools.
-                    </p>
-                    <div class="d-flex gap-3">
-                        <a href="{{ url_for('clean_dashboard') }}" class="btn btn-phenikaa">
-                            <i class="fas fa-play"></i> Start Analysis
-                        </a>
-                        <a href="{{ url_for('browse_lipids') }}" class="btn btn-phenikaa-secondary">
-                            <i class="fas fa-database"></i> Browse Data
-                        </a>
-                    </div>
-                </div>
-                <div class="col-md-4 text-center">
-                    <div class="hero-icon" style="font-size: 120px; color: rgba(255,255,255,0.2);">
-                        <i class="fas fa-microscope"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-    {% endif %}
     {% endblock %}
-
+    
     <!-- Main Content -->
-    <main class="container-fluid my-4">
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="container mt-3">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else 'success' if category == 'success' else 'info' }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
         {% block content %}{% endblock %}
     </main>
-
-    <!-- Phenikaa Footer -->
-    <footer class="phenikaa-footer">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="phenikaa-logo me-3" style="width: 40px; height: 40px; font-size: 16px;">
-                            <i class="fas fa-flask"></i>
-                        </div>
-                        <div>
-                            <h6 class="mb-1">Metabolomics Research Platform</h6>
-                            <small class="opacity-75">Advanced Chromatography Analysis</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <div class="mb-3">
-                        <small class="opacity-75">
-                            Powered by <i class="fas fa-database"></i> PostgreSQL & 
-                            <i class="fab fa-python"></i> Flask<br>
-                            Data source: <a href="https://metabolomics.baker.edu.au" class="text-light opacity-75">Baker Institute</a>
-                        </small>
-                    </div>
-                </div>
-            </div>
-            <hr class="opacity-25">
-            <div class="text-center">
-                <small class="opacity-50">
-                    &copy; 2025 Metabolomics Research Platform | Built for Scientific Excellence
-                </small>
-            </div>
-        </div>
-    </footer>
-
-    <!-- jQuery (required for some functionality) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
-    <!-- Bootstrap JS -->
+    <!-- Bootstrap JavaScript Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Custom JavaScript -->
-    <script>
-        // Utility functions for the metabolomics app
-        function formatRetentionTime(rt) {
-            if (rt === null || rt === undefined) return 'N/A';
-            return parseFloat(rt).toFixed(2) + ' min';
-        }
-        
-        function formatIntensity(intensity) {
-            if (intensity === null || intensity === undefined) return 'N/A';
-            return parseInt(intensity).toLocaleString();
-        }
-        
-        // Auto-hide alerts after 5 seconds
-        setTimeout(function() {
-            $('.alert').alert('close');
-        }, 5000);
-    </script>
-    
+    <!-- Additional JavaScript -->
     {% block extra_js %}{% endblock %}
 </body>
 </html>
