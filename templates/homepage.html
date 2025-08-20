@@ -43,22 +43,24 @@
     }
     
     
-    /* Beautiful Video Background Hero Section - No White Borders */
+    /* Beautiful Video Background Hero Section - Debug Mode */
     .hero-banner-container {
-        position: relative;
-        width: 100%;
-        height: 100vh;
-        min-height: 700px;
-        max-width: 100vw;
-        box-sizing: border-box;
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0;
-        padding: 0;
-        border: none;
-        background: var(--dark-bg);
+        position: relative !important;
+        width: 100% !important;
+        height: 100vh !important;
+        min-height: 700px !important;
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 3px solid lime !important; /* Debug border */
+        background: var(--dark-bg) !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
 
     .hero-video-background {
@@ -1614,9 +1616,13 @@
 {% block hero %}
 <!-- Beautiful Video Background Hero -->
 <div class="hero-banner-container">
-    <!-- Video Background -->
-    <video class="hero-video-background" autoplay loop muted playsinline>
+    <!-- Video Background with Debug Styling -->
+    <video class="hero-video-background" autoplay loop muted playsinline 
+           style="z-index: 1; opacity: 0.8; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; background: red;">
         <source src="https://cdn.bioturing.com/landing_page_thumbnail/videos/hero-video.mp4" type="video/mp4">
+        <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+        <!-- Fallback for testing -->
+        <div style="background: linear-gradient(45deg, #ff6b6b, #4ecdc4); position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></div>
         Your browser does not support the video tag.
     </video>
 
@@ -2480,17 +2486,37 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
-        // Extremely slow video playback rate - Almost static, barely moving
+        // Video debugging and setup
         const heroVideo = document.querySelector('.hero-video-background');
         if (heroVideo) {
-            heroVideo.addEventListener('loadeddata', function() {
-                this.playbackRate = 0.05; // Almost static: 5% of normal speed - barely moving
-            });
+            console.log('🎬 Video element found:', heroVideo);
             
-            // Also set it immediately if video is already loaded
+            // Debug video events
+            heroVideo.addEventListener('loadstart', () => console.log('🔄 Video load started'));
+            heroVideo.addEventListener('loadeddata', function() {
+                console.log('✅ Video data loaded');
+                this.playbackRate = 0.05; // Almost static: 5% of normal speed
+                console.log('🐌 Video speed set to:', this.playbackRate);
+            });
+            heroVideo.addEventListener('canplay', () => console.log('▶️ Video can start playing'));
+            heroVideo.addEventListener('play', () => console.log('🎵 Video started playing'));
+            heroVideo.addEventListener('error', (e) => console.error('❌ Video error:', e));
+            
+            // Try to load and play
+            heroVideo.load();
+            
+            // Set speed immediately if already loaded
             if (heroVideo.readyState >= 2) {
-                heroVideo.playbackRate = 0.05; // Almost static: 5% of normal speed - barely moving
+                heroVideo.playbackRate = 0.05;
+                console.log('⚡ Video speed set immediately to:', heroVideo.playbackRate);
             }
+            
+            // Force visibility
+            heroVideo.style.display = 'block';
+            heroVideo.style.visibility = 'visible';
+            console.log('👁️ Video visibility forced');
+        } else {
+            console.error('❌ Video element not found!');
         }
 
     });
