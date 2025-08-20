@@ -240,14 +240,16 @@
         }
     }
 
-    /* Clean content sections */
+    /* Complete Dark Theme Content Sections */
     .project-overview {
         padding: 80px 0;
-        background: linear-gradient(135deg, var(--darker-bg), var(--dark-bg));
+        background: linear-gradient(135deg, #0F1419, #0A0F16);
+        margin: 0;
+        border: none;
     }
 
     .overview-card {
-        background: var(--card-bg);
+        background: linear-gradient(145deg, #1A2028, #151B22);
         border-radius: 15px;
         box-shadow: 
             0 8px 25px rgba(0, 0, 0, 0.4),
@@ -255,7 +257,7 @@
         padding: 30px;
         transition: all 0.3s ease;
         height: 100%;
-        border: 1px solid var(--border-dark);
+        border: 1px solid rgba(255, 255, 255, 0.05);
         position: relative;
         overflow: hidden;
     }
@@ -265,14 +267,14 @@
         box-shadow: 
             0 20px 50px rgba(0, 0, 0, 0.6),
             0 0 30px rgba(0, 180, 219, 0.2);
-        border-color: var(--accent-cyan);
+        border-color: #00B4DB;
     }
 
     .overview-card .icon {
         width: 60px;
         height: 60px;
         border-radius: 50%;
-        background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--primary-orange) 100%);
+        background: linear-gradient(135deg, #00B4DB 0%, #E94B00 100%);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -283,7 +285,7 @@
     }
 
     .overview-card h4, .overview-card h5 {
-        color: var(--text-light);
+        color: #E2E8F0;
         font-family: Inter;
         font-weight: 600;
         margin-bottom: 15px;
@@ -291,12 +293,51 @@
     }
 
     .overview-card p {
-        color: var(--text-gray);
+        color: #94A3B8;
         font-family: Inter;
         font-weight: 400;
         line-height: 1.7;
         margin-bottom: 0;
         font-size: 15px;
+    }
+
+    /* CTA Section Dark Theme */
+    .cta-section {
+        padding: 80px 0;
+        background: linear-gradient(135deg, #2E4C92 0%, #213671 100%);
+        color: white;
+        text-align: center;
+        margin: 0;
+        border: none;
+    }
+
+    .cta-section h3 {
+        color: #E2E8F0;
+        text-shadow: 0 0 20px rgba(0, 180, 219, 0.3);
+    }
+
+    .cta-section p {
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    /* Enhanced CTA buttons */
+    .cta-section .btn {
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .cta-section .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Remove any white backgrounds */
+    .homepage-body, .homepage-body * {
+        background-color: transparent !important;
+    }
+    
+    .homepage-body {
+        background: #0F1419 !important;
     }
 </style>
 {% endblock %}
@@ -372,18 +413,20 @@
     <div class="container">
         <div class="text-center mb-5">
             <h2 style="
-                color: var(--text-light); 
+                color: #E2E8F0; 
                 font-weight: 600; 
                 margin-bottom: 30px; 
                 font-size: 2.5rem;
                 text-shadow: 0 0 20px rgba(0, 180, 219, 0.3);
+                font-family: Inter;
             ">Why Choose Phenikaa University for Molecular Biology Research?</h2>
             <p style="
-                color: var(--text-gray); 
+                color: #94A3B8; 
                 font-size: 18px; 
                 max-width: 700px; 
                 margin: 0 auto;
                 line-height: 1.7;
+                font-family: Inter;
             ">Join Vietnam's leading research institution with world-class facilities and opportunities</p>
         </div>
         
@@ -456,19 +499,19 @@
 </section>
 
 <!-- Call to Action Section -->
-<section class="cta-section" style="padding: 80px 0; background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%); color: var(--white); text-align: center;">
+<section class="cta-section">
     <div class="container">
         <div class="cta-content">
-            <h3 style="font-size: 36px; font-weight: 600; margin-bottom: 20px;">Ready to Start Your Research?</h3>
+            <h3 style="font-size: 36px; font-weight: 600; margin-bottom: 20px; font-family: Inter;">Ready to Start Your Research?</h3>
             <p style="color: rgba(255, 255, 255, 0.9); font-family: Inter; line-height: 1.6; margin-bottom: 30px; font-size: 18px; max-width: 600px; margin-left: auto; margin-right: auto;">
                 Explore our comprehensive metabolomics platform and discover the power of 
                 advanced lipid chromatography analysis for your research projects.
             </p>
             <div class="d-flex justify-content-center gap-3">
-                <a href="{{ url_for('clean_dashboard') }}" class="btn btn-phenikaa btn-lg" style="background: linear-gradient(135deg, var(--primary-orange), var(--light-orange)); border: 2px solid var(--primary-orange); color: var(--white); padding: 12px 30px; border-radius: 25px; text-decoration: none; font-weight: 600; display: inline-block; transition: all 0.3s ease;">
+                <a href="{{ url_for('clean_dashboard') }}" class="btn btn-phenikaa btn-lg" style="background: linear-gradient(135deg, #E94B00, #FF6B1A); border: 2px solid #E94B00; color: white; padding: 12px 30px; border-radius: 25px; text-decoration: none; font-weight: 600; display: inline-block; transition: all 0.3s ease; font-family: Inter;">
                     <i class="fas fa-play me-2"></i>Get Started
                 </a>
-                <a href="{{ url_for('browse_lipids') }}" class="btn btn-phenikaa-secondary btn-lg" style="background: transparent; color: white; border: 2px solid rgba(255, 255, 255, 0.3); padding: 12px 30px; border-radius: 25px; text-decoration: none; font-weight: 600; display: inline-block; transition: all 0.3s ease;">
+                <a href="{{ url_for('browse_lipids') }}" class="btn btn-phenikaa-secondary btn-lg" style="background: transparent; color: white; border: 2px solid rgba(255, 255, 255, 0.3); padding: 12px 30px; border-radius: 25px; text-decoration: none; font-weight: 600; display: inline-block; transition: all 0.3s ease; font-family: Inter;">
                     <i class="fas fa-book me-2"></i>Learn More
                 </a>
             </div>
