@@ -60,6 +60,8 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
             border-bottom: 2px solid var(--accent-cyan);
             backdrop-filter: blur(10px);
+            position: relative;
+            z-index: 5000;
         }
         
         /* Logo and Title Section */
@@ -118,17 +120,23 @@
         /* Navigation Menu - Clean text only */
         .right-main-menu {
             margin-left: auto;
+            position: relative;
+            z-index: 6000;
         }
         
         .main-menu .navbar {
             padding: 0;
             background: none !important;
             border: none !important;
+            position: relative;
+            z-index: 7000;
         }
         
         .navbar {
             background: none !important;
             border: none !important;
+            position: relative;
+            z-index: 7000;
         }
         
         .navbar-toggler {
@@ -244,7 +252,7 @@
             visibility: hidden;
             transform: translateY(-15px) scale(0.95);
             transition: all 0.4s ease;
-            z-index: 1000;
+            z-index: 9999;
             border: 2px solid var(--accent-cyan);
             backdrop-filter: blur(10px);
         }
