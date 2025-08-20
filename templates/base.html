@@ -11,7 +11,8 @@
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- Chart.js loaded in specific pages as needed -->
-    
+    <!-- Premium Fonts for Dark Theme -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Exact Phenikaa University CSS (Based on ui-test files) -->
     <style>
@@ -232,22 +233,41 @@
             top: 100%;
             left: 0;
             min-width: 800px;
-            background: var(--white);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-            border-radius: 8px;
+            background: linear-gradient(135deg, var(--card-bg), var(--darker-bg));
+            box-shadow: 
+                0 15px 40px rgba(0, 0, 0, 0.8),
+                0 0 30px var(--accent-glow),
+                inset 0 1px 0 rgba(0, 255, 255, 0.1);
+            border-radius: 15px;
             padding: 30px 0;
             opacity: 0;
             visibility: hidden;
-            transform: translateY(-10px);
-            transition: all 0.3s ease;
+            transform: translateY(-15px) scale(0.95);
+            transition: all 0.4s ease;
             z-index: 1000;
-            border: 1px solid rgba(0, 0, 0, 0.08);
+            border: 2px solid var(--accent-cyan);
+            backdrop-filter: blur(10px);
         }
         
         .has-submenu:hover .sub-menu {
             opacity: 1;
             visibility: visible;
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
+            animation: biologicalDropdownAppear 0.4s ease-out;
+        }
+
+        @keyframes biologicalDropdownAppear {
+            0% {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.9);
+            }
+            60% {
+                transform: translateY(2px) scale(1.02);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
         
         .sub-menu-content {
@@ -263,7 +283,7 @@
         }
         
         .sub-links {
-            border-right: 1px solid #e0e0e0;
+            border-right: 2px solid rgba(0, 180, 219, 0.3);
             padding-right: 20px;
         }
         
@@ -278,31 +298,44 @@
         }
         
         .sub-links li {
-            margin: 0 0 12px 0;
+            margin: 0 0 15px 0;
         }
         
         .sub-links a {
-            color: #333;
+            color: var(--text-light);
             font-size: 14px;
-            font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-weight: 400;
+            font-family: 'Orbitron', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-weight: 500;
             text-decoration: none;
-            padding: 6px 0;
+            padding: 8px 12px;
             display: block;
             transition: all 0.3s ease;
             line-height: 1.5;
+            border-radius: 8px;
+            background: rgba(0, 180, 219, 0.05);
+            border: 1px solid transparent;
         }
         
         .sub-links a:hover {
-            color: var(--primary-orange);
-            padding-left: 8px;
+            color: var(--accent-cyan);
+            padding-left: 20px;
+            background: linear-gradient(135deg, rgba(0, 180, 219, 0.15), rgba(0, 255, 255, 0.1));
+            border-color: var(--accent-cyan);
+            text-shadow: 0 0 8px var(--accent-glow);
+            box-shadow: 0 0 15px var(--accent-glow);
         }
         
         .sub-links a i {
-            margin-right: 8px;
-            width: 16px;
+            margin-right: 10px;
+            width: 18px;
             text-align: center;
-            color: var(--primary-blue);
+            color: var(--accent-cyan);
+            transition: all 0.3s ease;
+        }
+
+        .sub-links a:hover i {
+            color: var(--accent-cyan);
+            text-shadow: 0 0 5px var(--accent-glow);
         }
         
         /* Hero Section - Blue/Orange Theme */
