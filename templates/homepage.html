@@ -172,10 +172,6 @@
     .particle:nth-child(5) { width: 4px; height: 4px; top: 70%; left: 85%; animation-delay: 0.5s; }
     .particle:nth-child(6) { width: 7px; height: 7px; top: 50%; left: 90%; animation-delay: 2.5s; }
 
-    /* Hero Icon Styling */
-    .hero-icon {
-        animation: fadeInUp 1s ease-out 0.5s both;
-    }
 
     /* Animation Keyframes */
     @keyframes fadeInUp {
@@ -378,8 +374,8 @@
     <!-- Hero Content -->
     <div class="container">
         <div class="hero-content">
-            <div class="row align-items-center h-100">
-                <div class="col-lg-8">
+            <div class="row justify-content-center h-100">
+                <div class="col-lg-10 text-center">
                     <h1 class="hero-main-title">
                         Center for Research on
                         <span class="highlight-text">Applied Molecular Biology</span>
@@ -400,11 +396,6 @@
                         <a href="{{ url_for('browse_lipids') }}" class="hero-cta-button hero-cta-secondary">
                             <i class="fas fa-microscope me-2"></i>Discover Platform
                         </a>
-                    </div>
-                </div>
-                <div class="col-lg-4 text-center">
-                    <div class="hero-icon" style="font-size: 120px; color: rgba(255,255,255,0.2);">
-                        <i class="fas fa-microscope"></i>
                     </div>
                 </div>
             </div>
@@ -751,16 +742,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Hero icon animation enhancement
-    const heroIcon = document.querySelector('.hero-icon');
-    if (heroIcon) {
-        heroIcon.addEventListener('mouseenter', function() {
-            this.style.transform = 'scale(1.1)';
-        });
-        heroIcon.addEventListener('mouseleave', function() {
-            this.style.transform = 'scale(1)';
-        });
-    }
 });
 </script>
 {% endblock %}
