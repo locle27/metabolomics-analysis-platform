@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from flask import url_for, current_app
 from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash
-from models_postgresql_optimized import db, User
+from models import db, User
 import secrets
 
 class AuthService:

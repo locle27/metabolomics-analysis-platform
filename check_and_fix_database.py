@@ -6,7 +6,7 @@ Ensures the User table exists with all required columns for password functionali
 
 import os
 from sqlalchemy import create_engine, text, inspect
-from models_postgresql_optimized import db, User, VerificationToken
+from models import db, User, VerificationToken
 
 def check_database_connection():
     """Test database connection"""

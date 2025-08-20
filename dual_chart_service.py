@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Tuple, Any
 # Import compatibility - works with both PostgreSQL and SQLite
 try:
     # Try PostgreSQL optimized models first
-    from models_postgresql_optimized import optimized_manager
+    from models import optimized_manager
     print("✅ Using optimized PostgreSQL models for dual charts")
 except ImportError:
     # Fallback to SQLite

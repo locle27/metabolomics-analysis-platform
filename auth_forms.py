@@ -6,7 +6,7 @@ Forms for registration, login, password reset
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, BooleanField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError
-from models_postgresql_optimized import User
+from models import User
 
 class RegistrationForm(FlaskForm):
     """User registration form with validation"""
