@@ -2411,6 +2411,19 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
+        // Slow down video playback rate - Very Very Slow
+        const heroVideo = document.querySelector('.hero-video-background');
+        if (heroVideo) {
+            heroVideo.addEventListener('loadeddata', function() {
+                this.playbackRate = 0.3; // Very slow: 30% of normal speed
+            });
+            
+            // Also set it immediately if video is already loaded
+            if (heroVideo.readyState >= 2) {
+                heroVideo.playbackRate = 0.3; // Very slow: 30% of normal speed
+            }
+        }
+
     });
     
 });
