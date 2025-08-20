@@ -7,60 +7,27 @@
     /* Import Premium Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&family=Exo+2:wght@300;400;600;800&family=Russo+One&display=swap');
     
-    /* Prevent any horizontal overflow and ensure dark theme */
+    /* Prevent any horizontal overflow */
     html, body {
         overflow-x: hidden;
         max-width: 100vw;
         box-sizing: border-box;
         margin: 0;
         padding: 0;
-        background: var(--dark-bg) !important;
     }
     
-    /* Remove white borders but preserve essential elements */
-    .hero-banner-container, .hero-content, .hero-video-background {
-        border: none !important;
-    }
-    
-    /* Ensure hero elements are visible */
-    .hero-content {
-        z-index: 10 !important;
-        position: relative !important;
-        color: white !important;
-    }
-    
-    .hero-video-background {
-        z-index: 1 !important;
-        opacity: 0.8 !important;
-    }
-    
-    .hero-overlay {
-        z-index: 2 !important;
-    }
-    
-    .container, .container-fluid {
-        background: transparent !important;
-    }
-    
-    
-    /* Beautiful Video Background Hero Section - Debug Mode */
+    /* Beautiful Video Background Hero Section */
     .hero-banner-container {
-        position: relative !important;
-        width: 100% !important;
-        height: 100vh !important;
-        min-height: 700px !important;
-        max-width: 100vw !important;
-        box-sizing: border-box !important;
-        overflow: hidden !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        border: 3px solid lime !important; /* Debug border */
-        background: var(--dark-bg) !important;
-        visibility: visible !important;
-        opacity: 1 !important;
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        min-height: 700px;
+        max-width: 100vw;
+        box-sizing: border-box;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .hero-video-background {
@@ -98,15 +65,12 @@
     }
 
     .hero-main-title {
-        font-size: clamp(2.5rem, 5vw + 1rem, 3.8rem) !important;
-        font-weight: 700 !important;
-        line-height: 1.1 !important;
-        margin-bottom: 1.5rem !important;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3) !important;
-        color: white !important;
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
+        font-size: clamp(2.5rem, 5vw + 1rem, 3.8rem);
+        font-weight: 700;
+        line-height: 1.1;
+        margin-bottom: 1.5rem;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        color: white;
     }
 
     .highlight-text {
@@ -119,26 +83,20 @@
     }
 
     .hero-subtitle {
-        font-size: clamp(1.25rem, 2.5vw, 1.8rem) !important;
-        font-weight: 500 !important;
-        margin-bottom: 1rem !important;
-        color: #f0f9ff !important;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3) !important;
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
+        font-size: clamp(1.25rem, 2.5vw, 1.8rem);
+        font-weight: 500;
+        margin-bottom: 1rem;
+        color: #f0f9ff;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
     }
 
     .hero-description {
-        font-size: clamp(1rem, 1.5vw, 1.2rem) !important;
-        font-weight: 400 !important;
-        margin-bottom: 2.5rem !important;
-        color: #e2e8f0 !important;
-        line-height: 1.6 !important;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2) !important;
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
+        font-size: clamp(1rem, 1.5vw, 1.2rem);
+        font-weight: 400;
+        margin-bottom: 2.5rem;
+        color: #e2e8f0;
+        line-height: 1.6;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
     }
 
     .hero-cta-container {
@@ -211,7 +169,6 @@
     .particle:nth-child(5) { width: 4px; height: 4px; top: 70%; left: 85%; animation-delay: 0.5s; }
     .particle:nth-child(6) { width: 7px; height: 7px; top: 50%; left: 90%; animation-delay: 2.5s; }
 
-
     /* Animation Keyframes */
     @keyframes fadeInUp {
         from {
@@ -251,11 +208,6 @@
             width: 100%;
             max-width: 280px;
         }
-
-        .animated-dna-gif {
-            max-width: 280px;
-            min-height: 280px;
-        }
     }
 
     /* Additional visual effects */
@@ -285,963 +237,26 @@
         }
     }
 
-    /* 3D Molecular Background */
-    .homepage-3d-background {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: -1;
-        overflow: hidden;
-        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #dbeafe 100%);
-    }
-    
-    .dna-helix {
-        position: absolute;
-        width: 300px;
-        height: 800px;
-        left: 10%;
-        top: -100px;
-        transform-style: preserve-3d;
-        animation: rotate3d 20s linear infinite;
-        opacity: 0.1;
-    }
-    
-    .dna-strand {
-        position: absolute;
-        width: 4px;
-        height: 100%;
-        background: linear-gradient(to bottom, var(--primary-blue), var(--primary-orange));
-        border-radius: 2px;
-        transform-origin: 50% 50%;
-    }
-    
-    .dna-strand:nth-child(1) { transform: rotateY(0deg) translateZ(50px); }
-    .dna-strand:nth-child(2) { transform: rotateY(180deg) translateZ(50px); }
-    
-    .dna-base {
-        position: absolute;
-        width: 100px;
-        height: 3px;
-        background: rgba(46, 76, 146, 0.3);
-        border-radius: 2px;
-        left: -48px;
-        animation: pulse 3s ease-in-out infinite;
-    }
-    
-    .molecular-structure {
-        position: absolute;
-        width: 200px;
-        height: 200px;
-        right: 15%;
-        top: 20%;
-        transform-style: preserve-3d;
-        animation: float3d 15s ease-in-out infinite;
-        opacity: 0.08;
-    }
-    
-    .molecule {
-        position: absolute;
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background: radial-gradient(circle, var(--primary-orange), rgba(233, 75, 0, 0.5));
-        transform-style: preserve-3d;
-    }
-    
-    .molecule:nth-child(1) { transform: translateZ(0px) translateX(0px) translateY(0px); }
-    .molecule:nth-child(2) { transform: translateZ(50px) translateX(50px) translateY(20px); }
-    .molecule:nth-child(3) { transform: translateZ(-30px) translateX(-40px) translateY(40px); }
-    .molecule:nth-child(4) { transform: translateZ(80px) translateX(20px) translateY(-30px); }
-    .molecule:nth-child(5) { transform: translateZ(-60px) translateX(-20px) translateY(-50px); }
-    
-    .molecular-bond {
-        position: absolute;
-        width: 2px;
-        height: 60px;
-        background: linear-gradient(to bottom, rgba(46, 76, 146, 0.2), transparent);
-        transform-origin: 50% 0%;
-    }
-    
-    .floating-particles {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-    }
-    
-    .particle {
-        position: absolute;
-        width: 6px;
-        height: 6px;
-        background: radial-gradient(circle, rgba(46, 76, 146, 0.3), transparent);
-        border-radius: 50%;
-        animation: floatParticle 25s linear infinite;
-    }
-    
-    .lipid-chain {
-        position: absolute;
-        width: 400px;
-        height: 150px;
-        right: 5%;
-        bottom: 10%;
-        transform-style: preserve-3d;
-        animation: sway3d 18s ease-in-out infinite;
-        opacity: 0.06;
-    }
-    
-    .chain-segment {
-        position: absolute;
-        width: 30px;
-        height: 8px;
-        background: linear-gradient(90deg, rgba(233, 75, 0, 0.4), rgba(255, 107, 26, 0.2));
-        border-radius: 4px;
-        transform-style: preserve-3d;
-    }
-    
-    /* Animation Keyframes */
-    @keyframes rotate3d {
-        0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
-        100% { transform: rotateX(360deg) rotateY(360deg) rotateZ(180deg); }
-    }
-    
-    @keyframes float3d {
-        0%, 100% { transform: translateY(0px) rotateX(0deg) rotateY(0deg); }
-        25% { transform: translateY(-20px) rotateX(10deg) rotateY(90deg); }
-        50% { transform: translateY(10px) rotateX(-5deg) rotateY(180deg); }
-        75% { transform: translateY(-10px) rotateX(15deg) rotateY(270deg); }
-    }
-    
-    @keyframes sway3d {
-        0%, 100% { transform: translateY(0px) rotateZ(0deg) rotateX(0deg); }
-        50% { transform: translateY(-15px) rotateZ(10deg) rotateX(20deg); }
-    }
-    
-    @keyframes pulse {
-        0%, 100% { opacity: 0.3; transform: scaleY(1); }
-        50% { opacity: 0.6; transform: scaleY(1.2); }
-    }
-    
-    @keyframes floatParticle {
-        0% {
-            transform: translateY(100vh) translateX(0px) rotateZ(0deg);
-            opacity: 0;
-        }
-        10% { opacity: 1; }
-        90% { opacity: 1; }
-        100% {
-            transform: translateY(-100px) translateX(50px) rotateZ(360deg);
-            opacity: 0;
-        }
-    }
-    
-    /* Responsive Design */
-    @media (max-width: 768px) {
-        .phenikaa-moving-text-section { padding: 10px 0; }
-        .moving-text-item { font-size: 10px; letter-spacing: 1px; margin: 0 15px; }
-        .phenikaa-primary { font-size: 12px; }
-        .phenikaa-secondary { font-size: 10px; }
-        .phenikaa-tertiary { font-size: 9px; }
-        .dna-helix { width: 200px; height: 600px; }
-        .molecular-structure { width: 150px; height: 150px; }
-        .lipid-chain { width: 300px; height: 120px; }
-    }
-
-    /* Global Background - Now with 3D elements */
-    .homepage-body {
-        background: transparent;
-        min-height: 100vh;
-        position: relative;
-    }
-    
-    /* Hero Section - Molecular Biology Banner Style */
-    .hero-section {
-        background: linear-gradient(135deg, #0a4b78 0%, #1e3a8a 50%, #2563eb 100%);
-        color: var(--white);
-        padding: 100px 0;
-        position: relative;
-        overflow: hidden;
-        min-height: 600px;
-    }
-    
-    .hero-section::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: 
-            /* DNA Helix Pattern */
-            url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><circle cx="40" cy="60" r="3" fill="rgba(233,75,0,0.3)"/><circle cx="160" cy="140" r="4" fill="rgba(46,76,146,0.4)"/><circle cx="80" cy="30" r="2.5" fill="rgba(255,255,255,0.2)"/><circle cx="140" cy="170" r="3.5" fill="rgba(233,75,0,0.2)"/><path d="M30 80 Q100 60 170 80" stroke="rgba(46,76,146,0.15)" stroke-width="2" fill="none"/><path d="M40 120 Q100 100 160 120" stroke="rgba(233,75,0,0.1)" stroke-width="1.5" fill="none"/><path d="M20 40 Q100 20 180 40" stroke="rgba(255,255,255,0.1)" stroke-width="1" fill="none"/></svg>'),
-            /* Molecular Structure */
-            radial-gradient(circle at 20% 30%, rgba(233, 75, 0, 0.15) 0%, transparent 40%),
-            radial-gradient(circle at 80% 70%, rgba(46, 76, 146, 0.2) 0%, transparent 50%),
-            radial-gradient(circle at 60% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 30%),
-            radial-gradient(circle at 30% 80%, rgba(233, 75, 0, 0.1) 0%, transparent 35%);
-        background-size: 300px 300px, 200px 200px, 250px 250px, 150px 150px, 180px 180px;
-        animation: molecularBackground 40s ease-in-out infinite;
-        opacity: 0.7;
-    }
-    
-    .hero-section::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: 
-            /* Floating Molecular Bonds */
-            url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><g opacity="0.3"><circle cx="100" cy="100" r="6" fill="rgba(233,75,0,0.4)"/><circle cx="300" cy="300" r="5" fill="rgba(46,76,146,0.5)"/><circle cx="150" cy="250" r="4" fill="rgba(255,255,255,0.3)"/><circle cx="350" cy="150" r="7" fill="rgba(233,75,0,0.3)"/><line x1="100" y1="100" x2="150" y2="120" stroke="rgba(255,255,255,0.2)" stroke-width="2"/><line x1="300" y1="300" x2="280" y2="260" stroke="rgba(46,76,146,0.2)" stroke-width="1.5"/><line x1="150" y1="250" x2="200" y2="200" stroke="rgba(233,75,0,0.15)" stroke-width="1"/></g></svg>');
-        background-size: 400px 400px;
-        animation: molecularBonds 35s ease-in-out infinite reverse;
-        opacity: 0.6;
-        pointer-events: none;
-    }
-    
-    @keyframes molecularBackground {
-        0%, 100% { 
-            transform: scale(1) rotate(0deg);
-            opacity: 0.7;
-        }
-        25% { 
-            transform: scale(1.05) rotate(90deg);
-            opacity: 0.8;
-        }
-        50% { 
-            transform: scale(0.95) rotate(180deg);
-            opacity: 0.6;
-        }
-        75% { 
-            transform: scale(1.02) rotate(270deg);
-            opacity: 0.9;
-        }
-    }
-    
-    @keyframes molecularBonds {
-        0%, 100% { 
-            transform: scale(1) rotate(0deg) translateY(0px);
-            opacity: 0.6;
-        }
-        33% { 
-            transform: scale(1.08) rotate(120deg) translateY(-5px);
-            opacity: 0.8;
-        }
-        66% { 
-            transform: scale(0.92) rotate(240deg) translateY(5px);
-            opacity: 0.4;
-        }
-    }
-    
-    /* Floating Molecular Particles */
-    .hero-section .molecular-particles {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        pointer-events: none;
-        z-index: 1;
-    }
-    
-    .molecular-particle {
-        position: absolute;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        opacity: 0.6;
-        animation: floatMolecule 25s linear infinite;
-    }
-    
-    .molecular-particle:nth-child(1) {
-        background: radial-gradient(circle, rgba(233, 75, 0, 0.8), rgba(233, 75, 0, 0.2));
-        left: 10%;
-        animation-delay: 0s;
-        animation-duration: 20s;
-    }
-    
-    .molecular-particle:nth-child(2) {
-        background: radial-gradient(circle, rgba(46, 76, 146, 0.7), rgba(46, 76, 146, 0.1));
-        left: 25%;
-        animation-delay: -5s;
-        animation-duration: 30s;
-        width: 6px;
-        height: 6px;
-    }
-    
-    .molecular-particle:nth-child(3) {
-        background: radial-gradient(circle, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.1));
-        left: 50%;
-        animation-delay: -10s;
-        animation-duration: 25s;
-        width: 10px;
-        height: 10px;
-    }
-    
-    .molecular-particle:nth-child(4) {
-        background: radial-gradient(circle, rgba(233, 75, 0, 0.5), rgba(233, 75, 0, 0.1));
-        left: 70%;
-        animation-delay: -15s;
-        animation-duration: 35s;
-        width: 7px;
-        height: 7px;
-    }
-    
-    .molecular-particle:nth-child(5) {
-        background: radial-gradient(circle, rgba(46, 76, 146, 0.6), rgba(46, 76, 146, 0.2));
-        left: 85%;
-        animation-delay: -20s;
-        animation-duration: 28s;
-        width: 9px;
-        height: 9px;
-    }
-    
-    @keyframes floatMolecule {
-        0% {
-            transform: translateY(110vh) scale(0) rotate(0deg);
-            opacity: 0;
-        }
-        10% {
-            opacity: 0.6;
-            transform: translateY(90vh) scale(1) rotate(45deg);
-        }
-        50% {
-            opacity: 0.8;
-            transform: translateY(50vh) scale(1.2) rotate(180deg);
-        }
-        90% {
-            opacity: 0.4;
-            transform: translateY(10vh) scale(0.8) rotate(315deg);
-        }
-        100% {
-            transform: translateY(-10vh) scale(0) rotate(360deg);
-            opacity: 0;
-        }
-    }
-
-    .hero-content {
-        position: relative;
-        z-index: 2;
-    }
-    
-    /* Interactive 3D Cell Container */
-    .interactive-3d-cell {
-        position: relative;
-        width: 100%;
-        max-width: 500px;
-        height: 500px;
-        margin: 0 auto;
-        perspective: 1000px;
-        cursor: grab;
-        user-select: none;
-    }
-    
-    .interactive-3d-cell:active {
-        cursor: grabbing;
-    }
-    
-    .cell-container {
-        position: relative;
-        width: 100%;
-        height: 100%;
-        transform-style: preserve-3d;
-        transition: transform 0.1s ease-out;
-        animation: cellIdle 15s ease-in-out infinite;
-    }
-    
-    @keyframes cellIdle {
-        0%, 100% { transform: rotateX(0deg) rotateY(0deg) scale(1); }
-        25% { transform: rotateX(10deg) rotateY(90deg) scale(1.05); }
-        50% { transform: rotateX(-5deg) rotateY(180deg) scale(0.95); }
-        75% { transform: rotateX(15deg) rotateY(270deg) scale(1.02); }
-    }
-    
-    /* Cell Membrane */
-    .cell-membrane {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 300px;
-        height: 300px;
-        margin: -150px 0 0 -150px;
-        border-radius: 50%;
-        background: radial-gradient(circle at 30% 30%, 
-            rgba(46, 76, 146, 0.3) 0%,
-            rgba(46, 76, 146, 0.2) 40%,
-            rgba(46, 76, 146, 0.1) 80%,
-            transparent 100%);
-        border: 3px solid rgba(46, 76, 146, 0.4);
-        animation: membranePulse 6s ease-in-out infinite;
-        box-shadow: 
-            inset 0 0 50px rgba(46, 76, 146, 0.2),
-            0 0 30px rgba(46, 76, 146, 0.3),
-            0 0 60px rgba(46, 76, 146, 0.1);
-    }
-    
-    @keyframes membranePulse {
-        0%, 100% { transform: scale(1) rotateZ(0deg); opacity: 0.8; }
-        50% { transform: scale(1.05) rotateZ(180deg); opacity: 1; }
-    }
-    
-    /* Cell Nucleus */
-    .cell-nucleus {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 120px;
-        height: 120px;
-        margin: -60px 0 0 -60px;
-        border-radius: 50%;
-        background: radial-gradient(circle at 25% 25%,
-            rgba(233, 75, 0, 0.6) 0%,
-            rgba(233, 75, 0, 0.4) 50%,
-            rgba(233, 75, 0, 0.2) 100%);
-        border: 2px solid rgba(233, 75, 0, 0.6);
-        animation: nucleusRotate 8s linear infinite;
-        box-shadow:
-            inset 0 0 20px rgba(233, 75, 0, 0.3),
-            0 0 20px rgba(233, 75, 0, 0.4);
-    }
-    
-    @keyframes nucleusRotate {
-        0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
-        100% { transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg); }
-    }
-    
-    /* Mitochondria */
-    .mitochondria {
-        position: absolute;
-        width: 40px;
-        height: 20px;
-        background: linear-gradient(45deg, 
-            rgba(16, 185, 129, 0.6) 0%,
-            rgba(16, 185, 129, 0.3) 100%);
-        border-radius: 20px 10px;
-        border: 1px solid rgba(16, 185, 129, 0.6);
-        animation: mitochondriaFloat 10s ease-in-out infinite;
-    }
-    
-    .mitochondria:nth-child(1) {
-        top: 25%; left: 20%;
-        animation-delay: 0s;
-        transform: rotateZ(45deg) translateZ(50px);
-    }
-    
-    .mitochondria:nth-child(2) {
-        top: 60%; right: 25%;
-        animation-delay: 2s;
-        transform: rotateZ(-30deg) translateZ(-30px);
-    }
-    
-    .mitochondria:nth-child(3) {
-        bottom: 30%; left: 35%;
-        animation-delay: 4s;
-        transform: rotateZ(120deg) translateZ(20px);
-    }
-    
-    .mitochondria:nth-child(4) {
-        top: 35%; right: 15%;
-        animation-delay: 6s;
-        transform: rotateZ(-60deg) translateZ(-10px);
-    }
-    
-    @keyframes mitochondriaFloat {
-        0%, 100% { transform: translateY(0px) rotateZ(0deg) scale(1); }
-        25% { transform: translateY(-15px) rotateZ(90deg) scale(1.1); }
-        50% { transform: translateY(10px) rotateZ(180deg) scale(0.9); }
-        75% { transform: translateY(-5px) rotateZ(270deg) scale(1.05); }
-    }
-    
-    /* Ribosomes */
-    .ribosome {
-        position: absolute;
-        width: 12px;
-        height: 12px;
-        background: radial-gradient(circle, 
-            rgba(245, 158, 11, 0.8) 0%,
-            rgba(245, 158, 11, 0.4) 100%);
-        border-radius: 50%;
-        border: 1px solid rgba(245, 158, 11, 0.6);
-        animation: ribosomeOrbit 12s linear infinite;
-    }
-    
-    .ribosome:nth-child(1) {
-        top: 15%; left: 30%;
-        animation-delay: 0s;
-        transform: translateZ(40px);
-    }
-    
-    .ribosome:nth-child(2) {
-        top: 25%; right: 20%;
-        animation-delay: 1s;
-        transform: translateZ(-25px);
-    }
-    
-    .ribosome:nth-child(3) {
-        bottom: 20%; left: 25%;
-        animation-delay: 2s;
-        transform: translateZ(30px);
-    }
-    
-    .ribosome:nth-child(4) {
-        bottom: 35%; right: 35%;
-        animation-delay: 3s;
-        transform: translateZ(-40px);
-    }
-    
-    .ribosome:nth-child(5) {
-        top: 45%; left: 15%;
-        animation-delay: 4s;
-        transform: translateZ(15px);
-    }
-    
-    .ribosome:nth-child(6) {
-        top: 55%; right: 10%;
-        animation-delay: 5s;
-        transform: translateZ(-35px);
-    }
-    
-    @keyframes ribosomeOrbit {
-        0% { transform: rotateY(0deg) translateZ(var(--z-pos, 0px)); }
-        100% { transform: rotateY(360deg) translateZ(var(--z-pos, 0px)); }
-    }
-    
-    /* Endoplasmic Reticulum Network */
-    .er-network {
-        position: absolute;
-        top: 10%;
-        left: 10%;
-        right: 10%;
-        bottom: 10%;
-        pointer-events: none;
-    }
-    
-    .er-strand {
-        position: absolute;
-        height: 2px;
-        background: linear-gradient(90deg,
-            rgba(139, 69, 19, 0.4) 0%,
-            rgba(139, 69, 19, 0.2) 50%,
-            rgba(139, 69, 19, 0.4) 100%);
-        border-radius: 1px;
-        animation: erFlow 8s ease-in-out infinite;
-    }
-    
-    .er-strand:nth-child(1) {
-        top: 20%; width: 60%; left: 20%;
-        transform: rotateZ(15deg);
-        animation-delay: 0s;
-    }
-    
-    .er-strand:nth-child(2) {
-        top: 50%; width: 70%; left: 15%;
-        transform: rotateZ(-10deg);
-        animation-delay: 1s;
-    }
-    
-    .er-strand:nth-child(3) {
-        top: 75%; width: 55%; left: 25%;
-        transform: rotateZ(25deg);
-        animation-delay: 2s;
-    }
-    
-    @keyframes erFlow {
-        0%, 100% { opacity: 0.4; transform: scaleX(1) rotateZ(var(--rotation, 0deg)); }
-        50% { opacity: 0.8; transform: scaleX(1.1) rotateZ(calc(var(--rotation, 0deg) + 10deg)); }
-    }
-    
-    /* Cell Control Information */
-    .cell-info {
-        position: absolute;
-        bottom: -40px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(255, 255, 255, 0.9);
-        padding: 10px 20px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--primary-blue);
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        backdrop-filter: blur(10px);
-    }
-    
-    /* Responsive Design */
-    @media (max-width: 768px) {
-        .interactive-3d-cell {
-            max-width: 350px;
-            height: 350px;
-        }
-        
-        .cell-membrane {
-            width: 250px;
-            height: 250px;
-            margin: -125px 0 0 -125px;
-        }
-        
-        .cell-nucleus {
-            width: 90px;
-            height: 90px;
-            margin: -45px 0 0 -45px;
-        }
-    }
-    
-    /* 3D Interactive Tech Guardian */
-    .tech-guardian-container {
-        position: fixed;
-        top: 20%;
-        right: 5%;
-        width: 200px;
-        height: 300px;
-        z-index: 999;
-        pointer-events: none;
-        transform-style: preserve-3d;
-        perspective: 1000px;
-    }
-    
-    .tech-guardian {
-        position: relative;
-        width: 100%;
-        height: 100%;
-        transform-style: preserve-3d;
-        animation: guardianHover 6s ease-in-out infinite;
-        transition: all 0.3s ease;
-    }
-    
-    @keyframes guardianHover {
-        0%, 100% { transform: translateY(0px) rotateY(5deg); }
-        50% { transform: translateY(-15px) rotateY(-5deg); }
-    }
-    
-    /* Guardian Head */
-    .guardian-head {
-        position: absolute;
-        top: 0;
-        left: 50%;
-        width: 60px;
-        height: 60px;
-        margin-left: -30px;
-        background: linear-gradient(135deg, #00d4aa 0%, #00a693 50%, #008c7a 100%);
-        border-radius: 50% 50% 45% 45%;
-        border: 2px solid #00fff7;
-        box-shadow: 
-            inset 0 0 20px rgba(0, 255, 247, 0.3),
-            0 0 30px rgba(0, 255, 247, 0.4),
-            0 0 50px rgba(0, 255, 247, 0.2);
-        animation: headPulse 3s ease-in-out infinite;
-        transform-style: preserve-3d;
-    }
-    
-    @keyframes headPulse {
-        0%, 100% { transform: scale(1) rotateX(0deg); }
-        50% { transform: scale(1.05) rotateX(10deg); }
-    }
-    
-    /* Guardian Eyes */
-    .guardian-eye {
-        position: absolute;
-        width: 8px;
-        height: 8px;
-        background: radial-gradient(circle, #00fff7 0%, #00d4aa 100%);
-        border-radius: 50%;
-        box-shadow: 0 0 15px #00fff7, 0 0 25px #00fff7;
-        animation: eyeGlow 2s ease-in-out infinite alternate;
-    }
-    
-    .guardian-eye.left {
-        top: 20px;
-        left: 15px;
-    }
-    
-    .guardian-eye.right {
-        top: 20px;
-        right: 15px;
-    }
-    
-    @keyframes eyeGlow {
-        0% { opacity: 0.8; transform: scale(1); }
-        100% { opacity: 1; transform: scale(1.3); }
-    }
-    
-    /* Guardian Torso */
-    .guardian-torso {
-        position: absolute;
-        top: 55px;
-        left: 50%;
-        width: 80px;
-        height: 120px;
-        margin-left: -40px;
-        background: linear-gradient(180deg, 
-            #1a365d 0%, 
-            #2c5282 30%, 
-            #3182ce 60%, 
-            #2c5282 100%);
-        border-radius: 15px 15px 20px 20px;
-        border: 2px solid #4299e1;
-        box-shadow: 
-            inset 0 0 30px rgba(66, 153, 225, 0.2),
-            0 0 40px rgba(66, 153, 225, 0.3);
-        position: relative;
-    }
-    
-    /* Arc Reactor (Center Chest) */
-    .arc-reactor {
-        position: absolute;
-        top: 30px;
-        left: 50%;
-        width: 30px;
-        height: 30px;
-        margin-left: -15px;
-        background: radial-gradient(circle, 
-            #00fff7 0%, 
-            #00d4aa 30%, 
-            #008c7a 70%, 
-            #004d40 100%);
-        border-radius: 50%;
-        border: 2px solid #00fff7;
-        box-shadow: 
-            inset 0 0 15px rgba(0, 255, 247, 0.5),
-            0 0 20px rgba(0, 255, 247, 0.6),
-            0 0 40px rgba(0, 255, 247, 0.4);
-        animation: reactorPulse 1.5s ease-in-out infinite;
-    }
-    
-    @keyframes reactorPulse {
-        0%, 100% { 
-            transform: scale(1) rotate(0deg);
-            box-shadow: 
-                inset 0 0 15px rgba(0, 255, 247, 0.5),
-                0 0 20px rgba(0, 255, 247, 0.6),
-                0 0 40px rgba(0, 255, 247, 0.4);
-        }
-        50% { 
-            transform: scale(1.1) rotate(180deg);
-            box-shadow: 
-                inset 0 0 25px rgba(0, 255, 247, 0.8),
-                0 0 30px rgba(0, 255, 247, 0.9),
-                0 0 60px rgba(0, 255, 247, 0.6);
-        }
-    }
-    
-    /* Guardian Arms */
-    .guardian-arm {
-        position: absolute;
-        width: 25px;
-        height: 80px;
-        background: linear-gradient(180deg, #2c5282 0%, #3182ce 50%, #2c5282 100%);
-        border-radius: 12px;
-        border: 1px solid #4299e1;
-        box-shadow: inset 0 0 10px rgba(66, 153, 225, 0.3);
-    }
-    
-    .guardian-arm.left {
-        top: 65px;
-        left: -15px;
-        transform: rotate(15deg);
-        animation: leftArmMove 4s ease-in-out infinite;
-    }
-    
-    .guardian-arm.right {
-        top: 65px;
-        right: -15px;
-        transform: rotate(-15deg);
-        animation: rightArmMove 4s ease-in-out infinite;
-    }
-    
-    @keyframes leftArmMove {
-        0%, 100% { transform: rotate(15deg) translateY(0px); }
-        50% { transform: rotate(25deg) translateY(-5px); }
-    }
-    
-    @keyframes rightArmMove {
-        0%, 100% { transform: rotate(-15deg) translateY(0px); }
-        50% { transform: rotate(-25deg) translateY(-5px); }
-    }
-    
-    /* Guardian Legs */
-    .guardian-leg {
-        position: absolute;
-        width: 20px;
-        height: 100px;
-        background: linear-gradient(180deg, #2c5282 0%, #3182ce 50%, #1a365d 100%);
-        border-radius: 8px 8px 12px 12px;
-        border: 1px solid #4299e1;
-        box-shadow: inset 0 0 8px rgba(66, 153, 225, 0.2);
-    }
-    
-    .guardian-leg.left {
-        top: 170px;
-        left: 20px;
-        animation: leftLegMove 3s ease-in-out infinite;
-    }
-    
-    .guardian-leg.right {
-        top: 170px;
-        right: 20px;
-        animation: rightLegMove 3s ease-in-out infinite;
-    }
-    
-    @keyframes leftLegMove {
-        0%, 100% { transform: rotate(5deg); }
-        50% { transform: rotate(-5deg); }
-    }
-    
-    @keyframes rightLegMove {
-        0%, 100% { transform: rotate(-5deg); }
-        50% { transform: rotate(5deg); }
-    }
-    
-    /* Guardian Jetpack/Thrusters */
-    .guardian-jetpack {
-        position: absolute;
-        top: 70px;
-        left: 50%;
-        width: 60px;
-        height: 40px;
-        margin-left: -30px;
-        background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
-        border-radius: 20px 20px 8px 8px;
-        border: 1px solid #4a5568;
-        z-index: -1;
-    }
-    
-    .thruster {
-        position: absolute;
-        bottom: -10px;
-        width: 8px;
-        height: 20px;
-        background: linear-gradient(180deg, #00fff7 0%, transparent 100%);
-        border-radius: 50% 50% 0 0;
-        animation: thrusterFlame 0.5s ease-in-out infinite alternate;
-    }
-    
-    .thruster.left {
-        left: 15px;
-        animation-delay: 0s;
-    }
-    
-    .thruster.right {
-        right: 15px;
-        animation-delay: 0.25s;
-    }
-    
-    @keyframes thrusterFlame {
-        0% { 
-            opacity: 0.7; 
-            transform: scaleY(1); 
-            box-shadow: 0 0 10px #00fff7;
-        }
-        100% { 
-            opacity: 1; 
-            transform: scaleY(1.5); 
-            box-shadow: 0 0 20px #00fff7, 0 0 30px #00d4aa;
-        }
-    }
-    
-    /* Energy Field */
-    .energy-field {
-        position: absolute;
-        top: -20px;
-        left: -20px;
-        right: -20px;
-        bottom: -20px;
-        border: 2px solid transparent;
-        border-radius: 50%;
-        background: linear-gradient(45deg, transparent, rgba(0, 255, 247, 0.1), transparent);
-        animation: energyField 8s linear infinite;
-        opacity: 0.6;
-    }
-    
-    @keyframes energyField {
-        0% { transform: rotate(0deg) scale(1); opacity: 0.6; }
-        50% { transform: rotate(180deg) scale(1.1); opacity: 0.8; }
-        100% { transform: rotate(360deg) scale(1); opacity: 0.6; }
-    }
-    
-    /* Scanning Beam */
-    .scanning-beam {
-        position: absolute;
-        top: 25px;
-        left: 50%;
-        width: 2px;
-        height: 500px;
-        background: linear-gradient(180deg, 
-            #00fff7 0%, 
-            rgba(0, 255, 247, 0.5) 30%, 
-            transparent 100%);
-        margin-left: -1px;
-        opacity: 0;
-        animation: scanningBeam 3s ease-in-out infinite;
-    }
-    
-    @keyframes scanningBeam {
-        0%, 90%, 100% { opacity: 0; }
-        10%, 80% { opacity: 1; }
-    }
-    
-    /* Responsive Design */
-    @media (max-width: 768px) {
-        .tech-guardian-container {
-            width: 120px;
-            height: 180px;
-            right: 2%;
-        }
-        
-        .guardian-head {
-            width: 40px;
-            height: 40px;
-            margin-left: -20px;
-        }
-        
-        .guardian-torso {
-            width: 50px;
-            height: 75px;
-            margin-left: -25px;
-        }
-        
-        .arc-reactor {
-            width: 20px;
-            height: 20px;
-            margin-left: -10px;
-        }
-    }
-    
-    /* Project Overview Cards - Clean Professional Style */
+    /* Clean content sections */
     .project-overview {
         padding: 80px 0;
-        background: var(--darker-bg);
+        background: linear-gradient(135deg, var(--darker-bg), var(--dark-bg));
     }
-    
+
     .overview-card {
         background: var(--card-bg);
         border-radius: 15px;
-        padding: 30px;
         box-shadow: 
             0 8px 25px rgba(0, 0, 0, 0.4),
             0 0 20px rgba(0, 180, 219, 0.05);
+        padding: 30px;
         transition: all 0.3s ease;
-        border: 1px solid var(--border-dark);
         height: 100%;
+        border: 1px solid var(--border-dark);
         position: relative;
         overflow: hidden;
     }
-    
-    .overview-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(135deg, var(--accent-glow) 0%, transparent 50%);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        pointer-events: none;
-    }
-    
+
     .overview-card:hover {
         transform: translateY(-10px);
         box-shadow: 
@@ -1249,11 +264,7 @@
             0 0 30px rgba(0, 180, 219, 0.2);
         border-color: var(--accent-cyan);
     }
-    
-    .overview-card:hover::before {
-        opacity: 1;
-    }
-    
+
     .overview-card .icon {
         width: 60px;
         height: 60px;
@@ -1267,7 +278,7 @@
         margin-bottom: 20px;
         box-shadow: 0 0 20px rgba(0, 180, 219, 0.3);
     }
-    
+
     .overview-card h4, .overview-card h5 {
         color: var(--text-light);
         font-family: Inter;
@@ -1275,7 +286,7 @@
         margin-bottom: 15px;
         font-size: 1.2rem;
     }
-    
+
     .overview-card p {
         color: var(--text-gray);
         font-family: Inter;
@@ -1284,345 +295,15 @@
         margin-bottom: 0;
         font-size: 15px;
     }
-    
-    /* News Section */
-    .news-section {
-        padding: 80px 0;
-        background: transparent;
-    }
-    
-    /* Leadership & Research Cards */
-    .leadership-card, .research-team-card {
-        border-left: 4px solid var(--primary-blue);
-    }
-    
-    .leadership-card:hover, .research-team-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 12px 40px rgba(46, 76, 146, 0.15);
-    }
-    
-    .director-credentials {
-        background: var(--light-bg);
-        padding: 10px;
-        border-radius: 8px;
-        margin-top: 15px;
-    }
-    
-    .team-stats {
-        background: var(--light-bg);
-        padding: 15px;
-        border-radius: 8px;
-    }
-    
-    .team-stats strong {
-        font-size: 20px;
-        color: var(--primary-blue);
-    }
-    
-    .update-card {
-        border-left: 4px solid var(--primary-orange);
-        transition: all 0.3s ease;
-    }
-    
-    .update-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(233, 75, 0, 0.15);
-    }
-    
-    .update-icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .news-card {
-        background: var(--card-bg);
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-        border: 1px solid var(--border-dark);
-        overflow: hidden;
-        transition: all 0.3s ease;
-        height: 100%;
-        border: 1px solid rgba(0, 0, 0, 0.05);
-    }
-    
-    .news-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-    }
-    
-    .news-card .news-image,
-    .news-card .position-relative.news-item_img {
-        height: 321px;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .news-card .news-image img,
-    .news-card .position-relative.news-item_img img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        transition: transform 0.3s ease;
-    }
-    
-    .news-card:hover .news-image img,
-    .news-card:hover .position-relative.news-item_img img {
-        transform: scale(1.05);
-    }
-    
-    .date_group {
-        position: absolute;
-        background-color: rgb(54, 180, 255);
-        bottom: 0;
-        right: 0;
-        color: rgb(255, 255, 255);
-        text-align: center;
-        padding: 10px;
-        min-width: 70px;
-    }
-    
-    .date_group .day {
-        font-weight: 700;
-        font-size: 1.3rem;
-        line-height: 1;
-    }
-    
-    .date_group .line {
-        width: 60px;
-        height: 1px;
-        background-color: rgb(255, 255, 255);
-        margin: 5px auto;
-    }
-    
-    .date_group .month {
-        font-size: 0.9rem;
-        text-transform: capitalize;
-        font-weight: 500;
-    }
-    
-    .news-card .news-content {
-        padding: 25px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        height: calc(100% - 321px);
-    }
-    
-    .news-card .news-date {
-        color: var(--primary-orange);
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        margin-bottom: 10px;
-    }
-    
-    .news-card h5, .news-card .news-item_title {
-        color: rgb(0, 0, 0);
-        font-size: 20px;
-        font-weight: 600;
-        line-height: 1.2;
-        margin-bottom: 10px;
-        padding-right: 20px;
-        text-decoration: none;
-        display: block;
-    }
-    
-    .news-card h5:hover, .news-card .news-item_title:hover {
-        color: var(--primary-orange);
-    }
-    
-    .news-card p, .news-card .news-item_desc {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        margin-top: 10px;
-        font-size: 14px;
-        color: rgb(94, 94, 94);
-        line-height: 1.6;
-    }
-    
-    .see-more_link {
-        color: var(--text-gray);
-        font-size: 13px;
-        text-decoration: none;
-        position: relative;
-        display: inline-block;
-        margin-top: 15px;
-        transition: all 0.3s ease;
-    }
-    
-    .see-more_link:hover {
-        color: var(--accent-cyan);
-    }
-    
-    .see-more_link .icon-arrow-right {
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        left: 75px;
-        width: 15px;
-        transition: left 0.3s ease;
-    }
-    
-    .see-more_link:hover .icon-arrow-right {
-        left: 85px;
-    }
-    
-    /* News Grid Specific Styles - Phenikaa Template */
-    .left-grid, .right-grid {
-        height: auto;
-    }
-    
-    .news-item_wrapper {
-        margin-bottom: 20px;
-    }
-    
-    .news-child_item .news-item {
-        display: flex;
-        flex-direction: row;
-        padding: 15px;
-        height: 100%;
-        background: var(--card-bg);
-        box-shadow: rgba(0, 0, 0, 0.8) 0px 4px 8px;
-        border: 1px solid var(--border-dark);
-    }
-    
-    .meta5 {
-        color: var(--text-gray);
-        font-size: 12px;
-        margin-bottom: 8px;
-    }
-    
-    .module-title h2 {
-        font-size: 28px;
-        color: var(--text-light);
-        font-weight: 600;
-        text-transform: uppercase;
-        margin: 0;
-    }
-    
-    .section-description {
-        margin-top: 50px;
-        text-transform: none;
-        color: var(--text-gray);
-        font-size: 16px;
-        line-height: 1.5;
-    }
-    
-    .see-more_btn {
-        background: var(--primary-blue);
-        color: white;
-        padding: 12px 30px;
-        border-radius: 25px;
-        text-decoration: none;
-        font-weight: 600;
-        display: inline-block;
-        transition: all 0.3s ease;
-        font-size: 14px;
-        text-transform: uppercase;
-    }
-    
-    .see-more_btn:hover {
-        background: var(--primary-orange);
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(46, 76, 146, 0.3);
-    }
-    
-    /* Statistics Section - Dark Theme */
-    .stats-section {
-        padding: 80px 0;
-        background: linear-gradient(135deg, var(--card-bg), var(--darker-bg));
-        margin: 40px 0;
-        border-radius: 24px;
-        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8);
-        border: 1px solid var(--border-dark);
-    }
-    
-    .stat-item {
-        text-align: center;
-        padding: 20px;
-    }
-    
-    .stat-number {
-        font-size: 48px;
-        font-weight: 700;
-        color: var(--primary-blue);
-        display: block;
-        background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-orange) 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-    
-    .stat-label {
-        font-size: 16px;
-        font-weight: 500;
-        color: var(--text-gray);
-        margin-top: 8px;
-    }
-    
-    /* CTA Section */
-    .cta-section {
-        padding: 80px 0;
-        background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
-        color: var(--white);
-        text-align: center;
-    }
-    
-    .cta-content h3 {
-        font-size: 36px;
-        font-weight: 600;
-        margin-bottom: 20px;
-    }
-    
-    .cta-content p {
-        color: rgba(255, 255, 255, 0.9);
-        font-family: Inter;
-        line-height: 1.6;
-        margin-bottom: 30px;
-        font-size: 18px;
-        max-width: 600px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-    
-    /* Section Titles */
-    .section-title {
-        text-align: center;
-        margin-bottom: 50px;
-    }
-    
-    .section-title h2 {
-        color: var(--primary-blue);
-        font-family: Inter;
-        font-weight: 600;
-        font-size: 36px;
-        margin-bottom: 15px;
-    }
-    
-    .section-title p {
-        color: var(--dark-text);
-        font-family: Inter;
-        font-size: 18px;
-        line-height: 1.6;
-    }
 </style>
 {% endblock %}
 
 {% block hero %}
 <!-- Beautiful Video Background Hero -->
 <div class="hero-banner-container">
-    <!-- Video Background with Debug Styling -->
-    <video class="hero-video-background" autoplay loop muted playsinline 
-           style="z-index: 1; opacity: 0.8; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; background: red;">
+    <!-- Video Background -->
+    <video class="hero-video-background" autoplay loop muted playsinline>
         <source src="https://cdn.bioturing.com/landing_page_thumbnail/videos/hero-video.mp4" type="video/mp4">
-        <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
-        <!-- Fallback for testing -->
-        <div style="background: linear-gradient(45deg, #ff6b6b, #4ecdc4); position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></div>
         Your browser does not support the video tag.
     </video>
 
@@ -1667,6 +348,7 @@
                     </div>
                 </div>
                 <div class="col-lg-4 text-center">
+                    <!-- Empty space for future content -->
                 </div>
             </div>
         </div>
@@ -1677,68 +359,8 @@
 {% block content %}
 <div class="homepage-body" style="background: var(--dark-bg); margin: 0; padding: 0;">
 
-
-
-<!-- 3D Molecular Background -->
-<div class="homepage-3d-background" id="molecular-background">
-    <!-- DNA Helix Structure -->
-    <div class="dna-helix" id="dna-helix">
-        <div class="dna-strand"></div>
-        <div class="dna-strand"></div>
-        <!-- DNA base pairs -->
-        <div class="dna-base" style="top: 10%;"></div>
-        <div class="dna-base" style="top: 20%;"></div>
-        <div class="dna-base" style="top: 30%;"></div>
-        <div class="dna-base" style="top: 40%;"></div>
-        <div class="dna-base" style="top: 50%;"></div>
-        <div class="dna-base" style="top: 60%;"></div>
-        <div class="dna-base" style="top: 70%;"></div>
-        <div class="dna-base" style="top: 80%;"></div>
-    </div>
-    
-    <!-- Molecular Structure -->
-    <div class="molecular-structure" id="molecular-structure">
-        <div class="molecule"></div>
-        <div class="molecule"></div>
-        <div class="molecule"></div>
-        <div class="molecule"></div>
-        <div class="molecule"></div>
-        <!-- Molecular bonds -->
-        <div class="molecular-bond" style="transform: rotateZ(45deg) translateX(30px);"></div>
-        <div class="molecular-bond" style="transform: rotateZ(-30deg) translateX(-20px);"></div>
-        <div class="molecular-bond" style="transform: rotateZ(90deg) translateY(40px);"></div>
-    </div>
-    
-    <!-- Lipid Chain Structure -->
-    <div class="lipid-chain" id="lipid-chain">
-        <div class="chain-segment" style="transform: translateX(0px) rotateZ(5deg);"></div>
-        <div class="chain-segment" style="transform: translateX(35px) rotateZ(-3deg);"></div>
-        <div class="chain-segment" style="transform: translateX(70px) rotateZ(8deg);"></div>
-        <div class="chain-segment" style="transform: translateX(105px) rotateZ(-5deg);"></div>
-        <div class="chain-segment" style="transform: translateX(140px) rotateZ(10deg);"></div>
-        <div class="chain-segment" style="transform: translateX(175px) rotateZ(-2deg);"></div>
-        <div class="chain-segment" style="transform: translateX(210px) rotateZ(6deg);"></div>
-        <div class="chain-segment" style="transform: translateX(245px) rotateZ(-8deg);"></div>
-        <div class="chain-segment" style="transform: translateX(280px) rotateZ(4deg);"></div>
-        <div class="chain-segment" style="transform: translateX(315px) rotateZ(-6deg);"></div>
-    </div>
-    
-    <!-- Floating Particles -->
-    <div class="floating-particles" id="floating-particles">
-        <div class="particle" style="left: 10%; animation-delay: 0s;"></div>
-        <div class="particle" style="left: 20%; animation-delay: 3s;"></div>
-        <div class="particle" style="left: 30%; animation-delay: 6s;"></div>
-        <div class="particle" style="left: 40%; animation-delay: 9s;"></div>
-        <div class="particle" style="left: 50%; animation-delay: 12s;"></div>
-        <div class="particle" style="left: 60%; animation-delay: 15s;"></div>
-        <div class="particle" style="left: 70%; animation-delay: 18s;"></div>
-        <div class="particle" style="left: 80%; animation-delay: 21s;"></div>
-        <div class="particle" style="left: 90%; animation-delay: 24s;"></div>
-    </div>
-</div>
-
 <!-- Why Choose Phenikaa University Section -->
-<section class="project-overview" style="background: var(--darker-bg); margin: 0; padding: 80px 0; border: none;">
+<section class="project-overview">
     <div class="container">
         <div class="text-center mb-5">
             <h2 style="
@@ -1757,9 +379,9 @@
             ">Join Vietnam's leading research institution with world-class facilities and opportunities</p>
         </div>
         
-        <div class="row g-3">
+        <div class="row g-4">
             <div class="col-lg-6 col-md-6">
-                <div class="overview-card" style="padding: 25px;">
+                <div class="overview-card">
                     <div style="display: flex; align-items: center; gap: 20px;">
                         <div class="icon" style="width: 50px; height: 50px; font-size: 24px; margin-bottom: 0;">
                             <i class="fas fa-trophy"></i>
@@ -1775,13 +397,13 @@
             </div>
             
             <div class="col-lg-6 col-md-6">
-                <div class="overview-card" style="padding: 25px;">
+                <div class="overview-card">
                     <div style="display: flex; align-items: center; gap: 20px;">
                         <div class="icon" style="width: 50px; height: 50px; font-size: 24px; margin-bottom: 0;">
                             <i class="fas fa-lightbulb"></i>
                         </div>
                         <div>
-                            <h5 style="margin-bottom: 8px; font-size: 1.1rem;">Innovation &amp; Patents</h5>
+                            <h5 style="margin-bottom: 8px; font-size: 1.1rem;">Innovation & Patents</h5>
                             <p style="margin: 0; font-size: 14px; line-height: 1.5;">
                                 56 accepted applications, 3 granted patents, and 5 utility solutions in cutting-edge medical research.
                             </p>
@@ -1791,7 +413,7 @@
             </div>
             
             <div class="col-lg-6 col-md-6">
-                <div class="overview-card" style="padding: 25px;">
+                <div class="overview-card">
                     <div style="display: flex; align-items: center; gap: 20px;">
                         <div class="icon" style="width: 50px; height: 50px; font-size: 24px; margin-bottom: 0;">
                             <i class="fas fa-hospital"></i>
@@ -1807,7 +429,7 @@
             </div>
             
             <div class="col-lg-6 col-md-6">
-                <div class="overview-card" style="padding: 25px;">
+                <div class="overview-card">
                     <div style="display: flex; align-items: center; gap: 20px;">
                         <div class="icon" style="width: 50px; height: 50px; font-size: 24px; margin-bottom: 0;">
                             <i class="fas fa-users"></i>
@@ -1825,283 +447,20 @@
     </div>
 </section>
 
-<!-- Research Leadership Section - Moved Up -->
-<section class="project-overview" style="background: var(--darker-bg); padding: 80px 0;">
-    <div class="container">
-        <div class="text-center mb-5">
-            <h2 style="color: var(--primary-blue); font-weight: 700; margin-bottom: 20px; font-size: 2.5rem;">Research Leadership & Expertise</h2>
-            <p style="color: #64748b; font-size: 18px; max-width: 700px; margin: 0 auto;">Meet our distinguished research team and state-of-the-art facilities</p>
-        </div>
-
-        <!-- Research Expert and Team Cards -->
-        <div class="row g-4 mb-5">
-            <!-- Research Expert Card -->
-            <div class="col-lg-6">
-                <div class="overview-card leadership-card" style="height: 100%; overflow: hidden;">
-                    <div class="news-image director-image" style="background-image: url('{{ url_for('static', filename='PhD-Do Van Khanh.png') }}'); background-size: cover; background-position: center; height: 300px; border-radius: 15px 15px 0 0;">
-                    </div>
-                    <div class="news-content" style="padding: 30px;">
-                        <div class="news-date" style="color: var(--primary-orange); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">RESEARCH EXPERT</div>
-                        <h5 style="color: var(--primary-blue); font-weight: 700; margin-bottom: 15px; font-size: 1.4rem;">Dr. Do Van Khanh, PhD</h5>
-                        <p style="color: #64748b; line-height: 1.6; margin-bottom: 20px;">Expert in research on molecular biology applications in Medicine at Phenikaa University. Specializing in advanced analytical techniques and metabolomics methodologies for biomedical research and clinical applications.</p>
-                        <div class="director-credentials">
-                            <small style="color: #6c757d;">
-                                <i class="fas fa-graduation-cap me-2" style="color: var(--primary-orange);"></i>PhD in Molecular Biology Applications
-                                <br>
-                                <i class="fas fa-university me-2" style="color: var(--primary-orange);"></i>Phenikaa University Faculty
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Research Team Card -->
-            <div class="col-lg-6">
-                <div class="overview-card research-team-card" style="height: 100%; overflow: hidden;">
-                    <div class="news-image team-image" style="background-image: url('{{ url_for('static', filename='research.png') }}'); background-size: cover; background-position: center; height: 300px; border-radius: 15px 15px 0 0;">
-                    </div>
-                    <div class="news-content" style="padding: 30px;">
-                        <div class="news-date" style="color: var(--primary-orange); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px;">RESEARCH TEAM</div>
-                        <h5 style="color: var(--primary-blue); font-weight: 700; margin-bottom: 15px; font-size: 1.4rem;">Advanced Metabolomics Laboratory</h5>
-                        <p style="color: #64748b; line-height: 1.6; margin-bottom: 20px;">Our multidisciplinary research team combines expertise in analytical chemistry, bioinformatics, and molecular biology. Working collaboratively to advance lipid analysis techniques and develop innovative solutions for biomedical research.</p>
-                        <div class="team-stats mt-3">
-                            <div class="row text-center">
-                                <div class="col-4">
-                                    <strong style="color: var(--primary-blue); font-size: 24px;">15+</strong>
-                                    <br><small style="color: #6c757d;">Researchers</small>
-                                </div>
-                                <div class="col-4">
-                                    <strong style="color: var(--primary-blue); font-size: 24px;">50+</strong>
-                                    <br><small style="color: #6c757d;">Publications</small>
-                                </div>
-                                <div class="col-4">
-                                    <strong style="color: var(--primary-blue); font-size: 24px;">10+</strong>
-                                    <br><small style="color: #6c757d;">Projects</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Research Facilities & Awards Section -->
-<section class="project-overview" style="background: var(--dark-bg); padding: 80px 0;">
-    <div class="container">
-        <div class="text-center mb-5">
-            <h2 style="color: var(--primary-blue); font-weight: 700; margin-bottom: 20px; font-size: 2.5rem;">Research Facilities & Recognition</h2>
-            <p style="color: #64748b; font-size: 18px; max-width: 700px; margin: 0 auto;">World-class infrastructure and international acknowledgment of our scientific achievements</p>
-        </div>
-        
-        <!-- 1 Left + 2 Right Layout -->
-        <div class="row g-4">
-            <!-- Large Image Left -->
-            <div class="col-lg-6">
-                <div class="overview-card" style="height: 100%; overflow: hidden; position: relative;">
-                    <div style="position: relative; height: 400px; background-image: url('{{ url_for('static', filename='award2.jpg') }}'); background-size: cover; background-position: center; border-radius: 15px;">
-                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.7)); padding: 30px; border-radius: 0 0 15px 15px;">
-                            <h4 style="color: white; font-weight: 700; margin-bottom: 10px;">Research Excellence Awards</h4>
-                            <p style="color: rgba(255,255,255,0.9); margin: 0; font-size: 16px;">International recognition for outstanding contributions to metabolomics research and innovation in molecular biology applications.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 2 Images Right -->
-            <div class="col-lg-6">
-                <div class="d-flex flex-column" style="gap: 20px; height: 100%;">
-                    <!-- Interactive Platform Card -->
-                    <div class="overview-card" style="flex: 1; overflow: hidden; min-height: 180px;">
-                        <div class="row g-0" style="height: 100%;">
-                            <div class="col-5">
-                                <div style="height: 100%; min-height: 180px; background-image: url('{{ url_for('static', filename='view.png') }}'); background-size: cover; background-position: center; border-radius: 15px 0 0 15px;"></div>
-                            </div>
-                            <div class="col-7" style="padding: 25px;">
-                                <h6 style="color: var(--primary-blue); font-weight: 600; margin-bottom: 12px; font-size: 18px;">Interactive Platform</h6>
-                                <p style="color: #64748b; font-size: 15px; line-height: 1.5; margin: 0;">Advanced data visualization and analysis tools for comprehensive metabolomics research with real-time processing capabilities.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Recognition Portfolio Card -->
-                    <div class="overview-card" style="flex: 1; overflow: hidden; min-height: 180px;">
-                        <div class="row g-0" style="height: 100%;">
-                            <div class="col-5">
-                                <div style="height: 100%; min-height: 180px; background-image: url('{{ url_for('static', filename='awards.png') }}'); background-size: cover; background-position: center; border-radius: 15px 0 0 15px;"></div>
-                            </div>
-                            <div class="col-7" style="padding: 25px;">
-                                <h6 style="color: var(--primary-blue); font-weight: 600; margin-bottom: 12px; font-size: 18px;">Recognition Portfolio</h6>
-                                <p style="color: #64748b; font-size: 15px; line-height: 1.5; margin: 0;">International awards and achievements recognizing our research excellence and innovation in metabolomics and molecular biology.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Future Development Plans Section -->
-<section class="project-overview">
-    <div class="container">
-        <div class="text-center mb-5">
-            <h2 style="color: var(--primary-blue); font-weight: 600; margin-bottom: 20px;">Future Development Plans</h2>
-            <p style="color: #64748b; font-size: 18px; max-width: 600px; margin: 0 auto;">Upcoming features and platform enhancements</p>
-        </div>
-        
-        <div class="row g-4">
-            <div class="col-lg-4 col-md-6">
-                <div class="overview-card">
-                    <div class="icon">
-                        <i class="fas fa-robot"></i>
-                    </div>
-                    <h4>AI-Powered Analysis</h4>
-                    <p>
-                        Integration of machine learning algorithms for automated lipid identification 
-                        and pattern recognition in chromatography data.
-                    </p>
-                </div>
-            </div>
-            
-            <div class="col-lg-4 col-md-6">
-                <div class="overview-card">
-                    <div class="icon">
-                        <i class="fas fa-cloud"></i>
-                    </div>
-                    <h4>Cloud Integration</h4>
-                    <p>
-                        Enhanced cloud-based data storage and processing capabilities for 
-                        large-scale metabolomics studies and collaborative research.
-                    </p>
-                </div>
-            </div>
-            
-            <div class="col-lg-4 col-md-6">
-                <div class="overview-card">
-                    <div class="icon">
-                        <i class="fas fa-mobile-alt"></i>
-                    </div>
-                    <h4>Mobile Platform</h4>
-                    <p>
-                        Development of mobile application for on-the-go access to metabolomics data 
-                        and real-time analysis capabilities.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Research Excellence & Recognition - Professional Card Layout -->
-<section class="project-overview" style="background: var(--dark-bg); padding: 80px 0;">
-    <div class="container">
-        <div class="text-center mb-5">
-            <h2 style="color: var(--primary-blue); font-weight: 700; margin-bottom: 20px; font-size: 2.5rem;">Research Excellence & Recognition</h2>
-            <p style="color: #64748b; font-size: 18px; max-width: 700px; margin: 0 auto;">Our commitment to groundbreaking research and innovation has earned global recognition</p>
-        </div>
-        
-        <!-- Three Column Cards -->
-        <div class="row g-4">
-            <!-- International Recognition Card -->
-            <div class="col-lg-4">
-                <div class="overview-card" style="height: 100%; padding: 30px; text-align: center; transition: all 0.3s ease;">
-                    <div class="icon" style="width: 80px; height: 80px; font-size: 36px; margin-bottom: 25px; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);">
-                        <i class="fas fa-trophy"></i>
-                    </div>
-                    <h4 style="color: var(--primary-blue); font-weight: 600; margin-bottom: 15px;">International Recognition</h4>
-                    <p style="color: #64748b; margin-bottom: 20px;">
-                        Recipient of THE Awards Asia 2025 for Teaching and Learning Strategy of the Year, 
-                        recognizing our innovative approach to metabolomics education.
-                    </p>
-                    <div style="background: #f0f9ff; padding: 15px; border-radius: 10px; margin-top: auto;">
-                        <strong style="color: var(--primary-blue); font-size: 24px;">Top 6</strong>
-                        <p style="margin: 0; color: #64748b; font-size: 14px;">University in Vietnam</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Research Publications Card -->
-            <div class="col-lg-4">
-                <div class="overview-card" style="height: 100%; padding: 30px; text-align: center; transition: all 0.3s ease;">
-                    <div class="icon" style="width: 80px; height: 80px; font-size: 36px; margin-bottom: 25px; background: linear-gradient(135deg, var(--primary-blue) 0%, #1e3a8a 100%);">
-                        <i class="fas fa-book-open"></i>
-                    </div>
-                    <h4 style="color: var(--primary-blue); font-weight: 600; margin-bottom: 15px;">Research Publications</h4>
-                    <p style="color: #64748b; margin-bottom: 20px;">
-                        Leading metabolomics research with over 500+ peer-reviewed publications in top-tier 
-                        international journals including Nature, Science, and Cell.
-                    </p>
-                    <div style="background: #fef3c7; padding: 15px; border-radius: 10px; margin-top: auto;">
-                        <strong style="color: var(--primary-orange); font-size: 24px;">500+</strong>
-                        <p style="margin: 0; color: #64748b; font-size: 14px;">Publications</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Global Partnerships Card -->
-            <div class="col-lg-4">
-                <div class="overview-card" style="height: 100%; padding: 30px; text-align: center; transition: all 0.3s ease;">
-                    <div class="icon" style="width: 80px; height: 80px; font-size: 36px; margin-bottom: 25px; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-                        <i class="fas fa-globe-asia"></i>
-                    </div>
-                    <h4 style="color: var(--primary-blue); font-weight: 600; margin-bottom: 15px;">Global Partnerships</h4>
-                    <p style="color: #64748b; margin-bottom: 20px;">
-                        Collaborating with leading institutions worldwide including Harvard, MIT, Oxford, 
-                        and top Asian universities for cutting-edge research.
-                    </p>
-                    <div style="background: #d1fae5; padding: 15px; border-radius: 10px; margin-top: auto;">
-                        <strong style="color: #059669; font-size: 24px;">50+</strong>
-                        <p style="margin: 0; color: #64748b; font-size: 14px;">Partner Institutions</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Achievement Metrics Row -->
-        <div class="row mt-5">
-            <div class="col-12">
-                <div style="background: linear-gradient(135deg, var(--primary-blue) 0%, #1e3a8a 100%); color: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 40px rgba(46, 76, 146, 0.2);">
-                    <div class="row text-center">
-                        <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
-                            <h3 style="font-size: 36px; font-weight: 700; margin-bottom: 5px;">15+</h3>
-                            <p style="margin: 0; opacity: 0.9;">International Awards</p>
-                        </div>
-                        <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
-                            <h3 style="font-size: 36px; font-weight: 700; margin-bottom: 5px;">800+</h3>
-                            <p style="margin: 0; opacity: 0.9;">Research Papers</p>
-                        </div>
-                        <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
-                            <h3 style="font-size: 36px; font-weight: 700; margin-bottom: 5px;">$5M+</h3>
-                            <p style="margin: 0; opacity: 0.9;">Research Funding</p>
-                        </div>
-                        <div class="col-md-3 col-sm-6">
-                            <h3 style="font-size: 36px; font-weight: 700; margin-bottom: 5px;">100+</h3>
-                            <p style="margin: 0; opacity: 0.9;">PhD Graduates</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-
 <!-- Call to Action Section -->
-<section class="cta-section">
+<section class="cta-section" style="padding: 80px 0; background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%); color: var(--white); text-align: center;">
     <div class="container">
         <div class="cta-content">
-            <h3>Ready to Start Your Research?</h3>
-            <p>
+            <h3 style="font-size: 36px; font-weight: 600; margin-bottom: 20px;">Ready to Start Your Research?</h3>
+            <p style="color: rgba(255, 255, 255, 0.9); font-family: Inter; line-height: 1.6; margin-bottom: 30px; font-size: 18px; max-width: 600px; margin-left: auto; margin-right: auto;">
                 Explore our comprehensive metabolomics platform and discover the power of 
                 advanced lipid chromatography analysis for your research projects.
             </p>
             <div class="d-flex justify-content-center gap-3">
-                <a href="{{ url_for('clean_dashboard') }}" class="btn btn-phenikaa btn-lg">
+                <a href="{{ url_for('clean_dashboard') }}" class="btn btn-phenikaa btn-lg" style="background: linear-gradient(135deg, var(--primary-orange), var(--light-orange)); border: 2px solid var(--primary-orange); color: var(--white); padding: 12px 30px; border-radius: 25px; text-decoration: none; font-weight: 600; display: inline-block; transition: all 0.3s ease;">
                     <i class="fas fa-play me-2"></i>Get Started
                 </a>
-                <a href="#documentation" class="btn btn-phenikaa-secondary btn-lg">
+                <a href="{{ url_for('browse_lipids') }}" class="btn btn-phenikaa-secondary btn-lg" style="background: transparent; color: white; border: 2px solid rgba(255, 255, 255, 0.3); padding: 12px 30px; border-radius: 25px; text-decoration: none; font-weight: 600; display: inline-block; transition: all 0.3s ease;">
                     <i class="fas fa-book me-2"></i>Learn More
                 </a>
             </div>
@@ -2109,420 +468,69 @@
     </div>
 </section>
 
-<!-- Professional Interaction Effects -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Simple fade-in animation for cards
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
-    
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
-            }
-        });
-    }, observerOptions);
-    
-    // Apply fade-in to all cards
-    document.querySelectorAll('.overview-card').forEach((card, index) => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(20px)';
-        card.style.transition = 'all 0.4s ease';
-        card.style.transitionDelay = `${index * 0.05}s`;
-        observer.observe(card);
-    });
-    
-    // Subtle image hover effect
-    document.querySelectorAll('.overview-card img').forEach(img => {
-        img.addEventListener('mouseenter', function() {
-            img.style.transform = 'scale(1.03)';
-            img.style.transition = 'transform 0.3s ease';
-        });
-        
-        img.addEventListener('mouseleave', function() {
-            img.style.transform = 'scale(1)';
-        });
-    });
-    
-    // 3D Background Scroll Interactivity
-    const dnaHelix = document.getElementById('dna-helix');
-    const molecularStructure = document.getElementById('molecular-structure');
-    const lipidChain = document.getElementById('lipid-chain');
-    const floatingParticles = document.getElementById('floating-particles');
-    
-    function update3DBackground() {
-        const scrollPercent = window.pageYOffset / (document.documentElement.scrollHeight - window.innerHeight);
-        const scrollY = window.pageYOffset;
-        
-        if (dnaHelix) {
-            // DNA Helix rotates based on scroll with 3D depth
-            const rotationX = scrollPercent * 720; // 2 full rotations
-            const rotationY = scrollPercent * 360; // 1 full rotation
-            const translateZ = Math.sin(scrollPercent * Math.PI * 2) * 30;
-            
-            dnaHelix.style.transform = `
-                rotateX(${rotationX}deg) 
-                rotateY(${rotationY}deg) 
-                translateZ(${translateZ}px)
-                scale(${1 + scrollPercent * 0.3})
-            `;
-        }
-        
-        if (molecularStructure) {
-            // Molecular structure floats and rotates in 3D space
-            const rotationX = scrollPercent * 180;
-            const rotationY = scrollPercent * 360;
-            const translateY = Math.sin(scrollPercent * Math.PI * 4) * 20;
-            const translateZ = Math.cos(scrollPercent * Math.PI * 3) * 40;
-            
-            molecularStructure.style.transform = `
-                translateY(${translateY}px)
-                translateZ(${translateZ}px)
-                rotateX(${rotationX}deg)
-                rotateY(${rotationY}deg)
-                scale(${1 + scrollPercent * 0.4})
-            `;
-        }
-        
-        if (lipidChain) {
-            // Lipid chain sways with scroll
-            const rotationZ = Math.sin(scrollPercent * Math.PI * 3) * 15;
-            const translateY = scrollPercent * -50;
-            const rotationX = scrollPercent * 90;
-            
-            lipidChain.style.transform = `
-                translateY(${translateY}px)
-                rotateZ(${rotationZ}deg)
-                rotateX(${rotationX}deg)
-                scale(${1 + scrollPercent * 0.2})
-            `;
-        }
-        
-        // Individual particle movement
-        const particles = document.querySelectorAll('.particle');
-        particles.forEach((particle, index) => {
-            const speed = 1 + (index * 0.1);
-            const translateY = (scrollY * speed) % (window.innerHeight + 100);
-            const rotateZ = (scrollPercent * 360 * speed) % 360;
-            
-            particle.style.transform = `
-                translateY(${translateY - 100}px)
-                rotateZ(${rotateZ}deg)
-                scale(${1 + Math.sin(scrollPercent * Math.PI * 4) * 0.3})
-            `;
-        });
-        
-        // Background parallax effect
-        const molecularBg = document.getElementById('molecular-background');
-        if (molecularBg) {
-            const bgOffset = scrollY * 0.5;
-            molecularBg.style.transform = `translateY(${bgOffset}px)`;
-        }
-    }
-    
-    // Smooth scroll listener with throttling
-    let ticking = false;
-    function requestTick() {
-        if (!ticking) {
-            requestAnimationFrame(update3DBackground);
-            ticking = true;
-            setTimeout(() => { ticking = false; }, 16); // ~60fps
-        }
-    }
-    
-    window.addEventListener('scroll', requestTick);
-    
-    // Initial call
-    update3DBackground();
-    
-    // 3D Tech Guardian Controller
-    const techGuardian = document.getElementById('tech-guardian');
-    const guardianContainer = document.getElementById('tech-guardian-container');
-    const leftEye = document.getElementById('left-eye');
-    const rightEye = document.getElementById('right-eye');
-    const scanningBeam = document.getElementById('scanning-beam');
-    
-    let currentTarget = null;
-    let isScanning = false;
-    let guardianRotation = { x: 0, y: 0 };
-    
-    // Guardian Eye Tracking System
-    function updateGuardianLook(targetX, targetY, targetElement = null) {
-        if (!techGuardian) return;
-        
-        const guardianRect = guardianContainer.getBoundingClientRect();
-        const guardianCenterX = guardianRect.left + guardianRect.width / 2;
-        const guardianCenterY = guardianRect.top + guardianRect.height / 2;
-        
-        // Calculate angle to target
-        const deltaX = targetX - guardianCenterX;
-        const deltaY = targetY - guardianCenterY;
-        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-        
-        // Calculate rotation angles (limited range for natural movement)
-        const maxRotation = 25; // Maximum rotation in degrees
-        const rotationY = Math.max(-maxRotation, Math.min(maxRotation, (deltaX / window.innerWidth) * maxRotation * 2));
-        const rotationX = Math.max(-maxRotation/2, Math.min(maxRotation/2, (deltaY / window.innerHeight) * maxRotation));
-        
-        guardianRotation.x = rotationX;
-        guardianRotation.y = rotationY;
-        
-        // Apply smooth rotation to guardian
-        techGuardian.style.transform = `
-            translateY(${Math.sin(Date.now() * 0.001) * 15}px)
-            rotateX(${rotationX}deg)
-            rotateY(${rotationY}deg)
-            scale(${1 + (distance > 200 ? 0 : (200 - distance) / 2000)})
-        `;
-        
-        // Eye glow intensity based on focus
-        const focusIntensity = Math.max(0.5, 1 - distance / 1000);
-        if (leftEye && rightEye) {
-            leftEye.style.boxShadow = `0 0 ${15 * focusIntensity}px #00fff7, 0 0 ${25 * focusIntensity}px #00fff7`;
-            rightEye.style.boxShadow = `0 0 ${15 * focusIntensity}px #00fff7, 0 0 ${25 * focusIntensity}px #00fff7`;
-        }
-        
-        // Special interaction with specific elements
-        if (targetElement) {
-            const elementType = targetElement.tagName.toLowerCase();
-            const hasInteractiveClass = targetElement.classList.contains('btn') || 
-                                       targetElement.classList.contains('card') ||
-                                       targetElement.classList.contains('nav-link') ||
-                                       targetElement.classList.contains('interactive-3d-cell');
-            
-            if (hasInteractiveClass || elementType === 'button' || elementType === 'a') {
-                activateGuardianScan(targetX, targetY);
-            }
-        }
-    }
-    
-    // Guardian Scanning Beam Activation
-    function activateGuardianScan(targetX, targetY) {
-        if (isScanning || !scanningBeam) return;
-        
-        isScanning = true;
-        
-        // Calculate beam direction
-        const guardianRect = guardianContainer.getBoundingClientRect();
-        const guardianCenterX = guardianRect.left + guardianRect.width / 2;
-        const guardianCenterY = guardianRect.top + guardianRect.height / 2;
-        
-        const angle = Math.atan2(targetY - guardianCenterY, targetX - guardianCenterX) * 180 / Math.PI;
-        
-        // Activate scanning beam
-        scanningBeam.style.transform = `rotate(${angle + 90}deg)`;
-        scanningBeam.style.opacity = '1';
-        
-        // Enhanced guardian effects during scan
-        techGuardian.classList.add('scanning-mode');
-        
-        setTimeout(() => {
-            if (scanningBeam) {
-                scanningBeam.style.opacity = '0';
-            }
-            techGuardian.classList.remove('scanning-mode');
-            isScanning = false;
-        }, 1000);
-    }
-    
-    // Mouse Movement Tracking
-    document.addEventListener('mousemove', (e) => {
-        updateGuardianLook(e.clientX, e.clientY, e.target);
-    });
-    
-    // Click Tracking - Guardian focuses on clicks
-    document.addEventListener('click', (e) => {
-        updateGuardianLook(e.clientX, e.clientY, e.target);
-        activateGuardianScan(e.clientX, e.clientY);
-        
-        // Special reaction to button clicks
-        if (e.target.tagName.toLowerCase() === 'button' || e.target.classList.contains('btn')) {
-            // Guardian approval animation
-            techGuardian.style.animation = 'guardianApproval 2s ease-in-out';
-            setTimeout(() => {
-                techGuardian.style.animation = 'guardianHover 6s ease-in-out infinite';
-            }, 2000);
-        }
-    });
-    
-    // Touch Support for Mobile
-    document.addEventListener('touchstart', (e) => {
-        const touch = e.touches[0];
-        updateGuardianLook(touch.clientX, touch.clientY, e.target);
-    });
-    
-    document.addEventListener('touchmove', (e) => {
-        const touch = e.touches[0];
-        updateGuardianLook(touch.clientX, touch.clientY, e.target);
-        e.preventDefault(); // Prevent scrolling during touch
-    });
-    
-    // Guardian Special Animations
-    const guardianApprovalKeyframes = `
-        @keyframes guardianApproval {
-            0% { transform: translateY(0px) rotateY(${guardianRotation.y}deg) scale(1); }
-            25% { transform: translateY(-20px) rotateY(${guardianRotation.y + 15}deg) scale(1.1); }
-            50% { transform: translateY(-10px) rotateY(${guardianRotation.y - 15}deg) scale(1.05); }
-            75% { transform: translateY(-15px) rotateY(${guardianRotation.y + 10}deg) scale(1.08); }
-            100% { transform: translateY(0px) rotateY(${guardianRotation.y}deg) scale(1); }
-        }
-    `;
-    
-    // Add dynamic keyframes to document
-    const style = document.createElement('style');
-    style.textContent = guardianApprovalKeyframes;
-    document.head.appendChild(style);
-    
-    // Enhanced Guardian Modes
-    const arcReactor = document.querySelector('.arc-reactor');
-    const energyField = document.querySelector('.energy-field');
-    
-    // Scanning mode enhancements
-    const scanningModeCSS = `
-        .tech-guardian.scanning-mode .guardian-head {
-            animation: headScanPulse 0.5s ease-in-out 2;
-        }
-        
-        .tech-guardian.scanning-mode .arc-reactor {
-            box-shadow: 
-                inset 0 0 30px rgba(0, 255, 247, 0.9),
-                0 0 40px rgba(0, 255, 247, 1),
-                0 0 80px rgba(0, 255, 247, 0.8) !important;
-            animation: reactorOvercharge 0.5s ease-in-out 2;
-        }
-        
-        .tech-guardian.scanning-mode .energy-field {
-            opacity: 1;
-            border-color: #00fff7;
-            animation: energyFieldOvercharge 1s ease-in-out;
-        }
-        
-        @keyframes headScanPulse {
-            0%, 100% { transform: scale(1) rotateX(0deg); }
-            50% { transform: scale(1.1) rotateX(20deg); }
-        }
-        
-        @keyframes reactorOvercharge {
-            0%, 100% { transform: scale(1) rotate(0deg); }
-            50% { transform: scale(1.3) rotate(180deg); }
-        }
-        
-        @keyframes energyFieldOvercharge {
-            0% { transform: scale(1) rotate(0deg); opacity: 0.6; }
-            50% { transform: scale(1.3) rotate(180deg); opacity: 1; }
-            100% { transform: scale(1) rotate(360deg); opacity: 0.6; }
-        }
-    `;
-    
-    const scanStyle = document.createElement('style');
-    scanStyle.textContent = scanningModeCSS;
-    document.head.appendChild(scanStyle);
-    
-    // Guardian Auto-behaviors
-    setInterval(() => {
-        // Random scanning behavior when idle
-        if (!isScanning && Math.random() < 0.1) { // 10% chance every interval
-            const randomX = Math.random() * window.innerWidth;
-            const randomY = Math.random() * window.innerHeight;
-            activateGuardianScan(randomX, randomY);
-        }
-    }, 3000);
-    
-    // Guardian follows page elements automatically
-    function autoFollowElements() {
-        const interactiveElements = document.querySelectorAll('.btn, .card, .nav-link, .overview-card');
-        
-        setInterval(() => {
-            if (!isScanning && Math.random() < 0.05) { // 5% chance
-                const randomElement = interactiveElements[Math.floor(Math.random() * interactiveElements.length)];
-                if (randomElement) {
-                    const rect = randomElement.getBoundingClientRect();
-                    if (rect.top >= 0 && rect.bottom <= window.innerHeight) { // Element is visible
-                        updateGuardianLook(
-                            rect.left + rect.width / 2, 
-                            rect.top + rect.height / 2, 
-                            randomElement
-                        );
-                    }
-                }
-            }
-        }, 5000);
-    }
-    
-    // Initialize auto-follow behavior
-    setTimeout(autoFollowElements, 2000);
-    
-    // Video Hero Interactive Effects
-    document.addEventListener('DOMContentLoaded', function() {
-        // Add smooth scrolling for CTA buttons
-        document.querySelectorAll('.hero-cta-button').forEach(button => {
-            button.addEventListener('click', function(e) {
-                // Add a subtle click animation
-                this.style.transform = 'translateY(-3px) scale(0.98)';
-                setTimeout(() => {
-                    this.style.transform = 'translateY(-3px) scale(1)';
-                }, 150);
-            });
-        });
-
-        // Add parallax effect to particles on mouse move
-        document.addEventListener('mousemove', (e) => {
-            const particles = document.querySelectorAll('.particle');
-            if (particles.length === 0) return;
-            
-            const mouseX = e.clientX / window.innerWidth;
-            const mouseY = e.clientY / window.innerHeight;
-            
-            particles.forEach((particle, index) => {
-                const speed = (index + 1) * 0.5;
-                const x = (mouseX - 0.5) * speed;
-                const y = (mouseY - 0.5) * speed;
-                
-                particle.style.transform = `translate(${x}px, ${y}px)`;
-            });
-        });
-
-        // Video debugging and setup
-        const heroVideo = document.querySelector('.hero-video-background');
-        if (heroVideo) {
-            console.log('🎬 Video element found:', heroVideo);
-            
-            // Debug video events
-            heroVideo.addEventListener('loadstart', () => console.log('🔄 Video load started'));
-            heroVideo.addEventListener('loadeddata', function() {
-                console.log('✅ Video data loaded');
-                this.playbackRate = 0.05; // Almost static: 5% of normal speed
-                console.log('🐌 Video speed set to:', this.playbackRate);
-            });
-            heroVideo.addEventListener('canplay', () => console.log('▶️ Video can start playing'));
-            heroVideo.addEventListener('play', () => console.log('🎵 Video started playing'));
-            heroVideo.addEventListener('error', (e) => console.error('❌ Video error:', e));
-            
-            // Try to load and play
-            heroVideo.load();
-            
-            // Set speed immediately if already loaded
-            if (heroVideo.readyState >= 2) {
-                heroVideo.playbackRate = 0.05;
-                console.log('⚡ Video speed set immediately to:', heroVideo.playbackRate);
-            }
-            
-            // Force visibility
-            heroVideo.style.display = 'block';
-            heroVideo.style.visibility = 'visible';
-            console.log('👁️ Video visibility forced');
-        } else {
-            console.error('❌ Video element not found!');
-        }
-
-    });
-    
-});
-</script>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Ultra-slow video playback rate - Almost static, barely moving
+    const heroVideo = document.querySelector('.hero-video-background');
+    if (heroVideo) {
+        console.log('🎬 Video element found');
+        
+        heroVideo.addEventListener('loadeddata', function() {
+            this.playbackRate = 0.05; // Almost static: 5% of normal speed - barely moving
+            console.log('🐌 Video speed set to:', this.playbackRate);
+        });
+        
+        // Also set it immediately if video is already loaded
+        if (heroVideo.readyState >= 2) {
+            heroVideo.playbackRate = 0.05; // Almost static: 5% of normal speed - barely moving
+            console.log('⚡ Video speed set immediately');
+        }
+    } else {
+        console.error('❌ Video element not found!');
+    }
+
+    // Add parallax effect to particles on mouse move
+    document.addEventListener('mousemove', (e) => {
+        const particles = document.querySelectorAll('.particle');
+        if (particles.length === 0) return;
+        
+        const mouseX = e.clientX / window.innerWidth;
+        const mouseY = e.clientY / window.innerHeight;
+        
+        particles.forEach((particle, index) => {
+            const speed = (index + 1) * 0.5;
+            const x = (mouseX - 0.5) * speed;
+            const y = (mouseY - 0.5) * speed;
+            
+            particle.style.transform = `translate(${x}px, ${y}px)`;
+        });
+    });
+
+    // Add smooth scrolling for navigation links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth'
+                });
+            }
+        });
+    });
+
+    // CTA button click animations
+    document.querySelectorAll('.hero-cta-button').forEach(button => {
+        button.addEventListener('click', function(e) {
+            // Add a subtle click animation
+            this.style.transform = 'translateY(-3px) scale(0.98)';
+            setTimeout(() => {
+                this.style.transform = 'translateY(-3px) scale(1)';
+            }, 150);
+        });
+    });
+});
+</script>
 {% endblock %}
