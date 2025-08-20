@@ -31,14 +31,17 @@
     }
 
     .hero-video-background {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        z-index: 1;
-        opacity: 0.8;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        z-index: 1 !important;
+        opacity: 0.8 !important;
+        display: block !important;
+        visibility: visible !important;
+        background: none !important;
     }
 
     .hero-overlay {
@@ -301,10 +304,15 @@
 {% block hero %}
 <!-- Beautiful Video Background Hero -->
 <div class="hero-banner-container">
-    <!-- Video Background -->
-    <video class="hero-video-background" autoplay loop muted playsinline>
+    <!-- Video Background - Enhanced for Visibility -->
+    <video class="hero-video-background" autoplay loop muted playsinline 
+           style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; opacity: 0.8; display: block !important; visibility: visible !important;">
         <source src="https://cdn.bioturing.com/landing_page_thumbnail/videos/hero-video.mp4" type="video/mp4">
-        Your browser does not support the video tag.
+        <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+        <!-- Fallback for video loading issues -->
+        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #2E4C92, #213671); display: flex; align-items: center; justify-content: center; color: white; font-size: 18px;">
+            Loading Video Background...
+        </div>
     </video>
 
     <!-- Overlay -->
@@ -472,23 +480,65 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Ultra-slow video playback rate - Almost static, barely moving
+    // Enhanced video setup with debugging
     const heroVideo = document.querySelector('.hero-video-background');
     if (heroVideo) {
-        console.log('🎬 Video element found');
+        console.log('🎬 Video element found:', heroVideo);
         
-        heroVideo.addEventListener('loadeddata', function() {
-            this.playbackRate = 0.05; // Almost static: 5% of normal speed - barely moving
-            console.log('🐌 Video speed set to:', this.playbackRate);
+        // Force video visibility
+        heroVideo.style.display = 'block';
+        heroVideo.style.visibility = 'visible';
+        heroVideo.style.opacity = '0.8';
+        heroVideo.style.zIndex = '1';
+        
+        // Add comprehensive event listeners
+        heroVideo.addEventListener('loadstart', () => {
+            console.log('🔄 Video loading started');
         });
         
-        // Also set it immediately if video is already loaded
+        heroVideo.addEventListener('loadeddata', function() {
+            console.log('✅ Video data loaded successfully');
+            this.playbackRate = 0.05; // 5% speed - almost static
+            console.log('🐌 Video speed set to 5%');
+        });
+        
+        heroVideo.addEventListener('canplay', () => {
+            console.log('▶️ Video can start playing');
+        });
+        
+        heroVideo.addEventListener('playing', () => {
+            console.log('🎵 Video is now playing');
+        });
+        
+        heroVideo.addEventListener('error', (e) => {
+            console.error('❌ Video error:', e);
+            console.log('🔧 Check network or video source');
+        });
+        
+        // Force reload the video
+        heroVideo.load();
+        
+        // Set speed immediately if already loaded
         if (heroVideo.readyState >= 2) {
-            heroVideo.playbackRate = 0.05; // Almost static: 5% of normal speed - barely moving
+            heroVideo.playbackRate = 0.05;
             console.log('⚡ Video speed set immediately');
         }
+        
+        // Diagnostic check after 3 seconds
+        setTimeout(() => {
+            console.log('📊 Video status check:');
+            console.log('- Ready state:', heroVideo.readyState);
+            console.log('- Network state:', heroVideo.networkState);
+            console.log('- Paused:', heroVideo.paused);
+            console.log('- Current time:', heroVideo.currentTime);
+            
+            if (heroVideo.readyState === 0) {
+                console.warn('⚠️ Video failed to load - check network or source');
+            }
+        }, 3000);
+        
     } else {
-        console.error('❌ Video element not found!');
+        console.error('❌ Video element not found in DOM!');
     }
 
     // Add parallax effect to particles on mouse move
