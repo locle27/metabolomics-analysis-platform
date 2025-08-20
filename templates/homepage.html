@@ -2411,16 +2411,16 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
-        // Ultra slow video playback rate - Much Much Slower
+        // Extremely slow video playback rate - Almost static, barely moving
         const heroVideo = document.querySelector('.hero-video-background');
         if (heroVideo) {
             heroVideo.addEventListener('loadeddata', function() {
-                this.playbackRate = 0.15; // Ultra slow: 15% of normal speed
+                this.playbackRate = 0.05; // Almost static: 5% of normal speed - barely moving
             });
             
             // Also set it immediately if video is already loaded
             if (heroVideo.readyState >= 2) {
-                heroVideo.playbackRate = 0.15; // Ultra slow: 15% of normal speed
+                heroVideo.playbackRate = 0.05; // Almost static: 5% of normal speed - barely moving
             }
         }
 
