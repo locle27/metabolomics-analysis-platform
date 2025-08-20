@@ -17,9 +17,25 @@
         background: var(--dark-bg) !important;
     }
     
-    /* Remove any white borders or backgrounds */
-    * {
+    /* Remove white borders but preserve essential elements */
+    .hero-banner-container, .hero-content, .hero-video-background {
         border: none !important;
+    }
+    
+    /* Ensure hero elements are visible */
+    .hero-content {
+        z-index: 10 !important;
+        position: relative !important;
+        color: white !important;
+    }
+    
+    .hero-video-background {
+        z-index: 1 !important;
+        opacity: 0.8 !important;
+    }
+    
+    .hero-overlay {
+        z-index: 2 !important;
     }
     
     .container, .container-fluid {
@@ -80,12 +96,15 @@
     }
 
     .hero-main-title {
-        font-size: clamp(2.5rem, 5vw + 1rem, 3.8rem);
-        font-weight: 700;
-        line-height: 1.1;
-        margin-bottom: 1.5rem;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-        color: white;
+        font-size: clamp(2.5rem, 5vw + 1rem, 3.8rem) !important;
+        font-weight: 700 !important;
+        line-height: 1.1 !important;
+        margin-bottom: 1.5rem !important;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3) !important;
+        color: white !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
 
     .highlight-text {
@@ -98,20 +117,26 @@
     }
 
     .hero-subtitle {
-        font-size: clamp(1.25rem, 2.5vw, 1.8rem);
-        font-weight: 500;
-        margin-bottom: 1rem;
-        color: #f0f9ff;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        font-size: clamp(1.25rem, 2.5vw, 1.8rem) !important;
+        font-weight: 500 !important;
+        margin-bottom: 1rem !important;
+        color: #f0f9ff !important;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3) !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
 
     .hero-description {
-        font-size: clamp(1rem, 1.5vw, 1.2rem);
-        font-weight: 400;
-        margin-bottom: 2.5rem;
-        color: #e2e8f0;
-        line-height: 1.6;
-        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+        font-size: clamp(1rem, 1.5vw, 1.2rem) !important;
+        font-weight: 400 !important;
+        margin-bottom: 2.5rem !important;
+        color: #e2e8f0 !important;
+        line-height: 1.6 !important;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2) !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
 
     .hero-cta-container {
