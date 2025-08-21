@@ -544,9 +544,15 @@
         <!-- Action Buttons -->
         <div class="text-center my-4">
             <!-- Generate Button -->
-            <button class="btn btn-success btn-lg px-5 py-3" onclick="generateSequence()" style="background: linear-gradient(45deg, #28a745, #20c997); border: none; border-radius: 12px; font-weight: 600; font-size: 18px; color: white; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3); transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(40, 167, 69, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(40, 167, 69, 0.3)'">
+            <button class="btn btn-success btn-lg px-5 py-3 me-3" onclick="generateSequence()" style="background: linear-gradient(45deg, #28a745, #20c997); border: none; border-radius: 12px; font-weight: 600; font-size: 18px; color: white; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3); transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(40, 167, 69, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(40, 167, 69, 0.3)'">
                 <i class="fas fa-flask me-2"></i>
                 Generate LC-MS Sequence
+            </button>
+            
+            <!-- Direct Excel Export Button -->
+            <button class="btn btn-primary btn-lg px-5 py-3" onclick="directExcelExport()" style="background: linear-gradient(45deg, #007bff, #0056b3); border: none; border-radius: 12px; font-weight: 600; font-size: 18px; color: white; box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3); transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0, 123, 255, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0, 123, 255, 0.3)'">
+                <i class="fas fa-file-excel me-2"></i>
+                Download Excel
             </button>
         </div>
         
@@ -846,13 +852,159 @@ function updateStatistics() {
     document.getElementById('estimated-time').textContent = sequenceStats.estimatedTime;
 }
 
-// Export to Excel
-function exportToExcel() {
+// Direct Excel Export (generates sequence and downloads immediately)
+function directExcelExport() {
+    // Generate sequence silently (without showing the results table)
+    generateSequenceData();
+    
+    // Check if sequence was generated successfully
     if (generatedSequence.length === 0) {
-        alert('Please generate a sequence first!');
+        alert('Failed to generate sequence. Please check your configuration and try again.');
         return;
     }
     
+    // Export to Excel immediately
+    exportSequenceToExcel();
+    
+    // Show success notification
+    showNotification('Excel file generated and downloaded successfully!', 'success');
+}
+
+// Generate sequence data without showing UI
+function generateSequenceData() {
+    // Get configuration (same as generateSequence())
+    const config = {
+        projectName: document.getElementById('project-name').value,
+        batchDate: document.getElementById('batch-date').value,
+        samplePrefix: document.getElementById('sample-prefix').value,
+        sampleStart: parseInt(document.getElementById('sample-start').value),
+        sampleCount: parseInt(document.getElementById('sample-count').value),
+        startingPosition: document.getElementById('starting-position').value,
+        sampleMethod: document.getElementById('sample-method').value,
+        carryoverInterval: parseInt(document.getElementById('carryover-interval').value),
+        carryoverSampleName: document.getElementById('carryover-sample-name').value,
+        carryoverMethod: document.getElementById('carryover-method').value,
+        nistInterval: parseInt(document.getElementById('nist-interval').value),
+        nistName: document.getElementById('nist-name').value,
+        nistMethod: document.getElementById('nist-method').value,
+        datafilePath: document.getElementById('datafile-path').value,
+        pathFormat: document.getElementById('path-format').value
+    };
+    
+    // Initialize variables (same logic as generateSequence())
+    generatedSequence = [];
+    let stepNumber = 1;
+    let currentPosition = config.startingPosition;
+    let carryoverCount = 1;
+    let nistCount = 1;
+    let mainSampleCount = 0;
+    
+    // Generate sequence with accurate step counting (same as generateSequence())
+    for (let i = 0; i < config.sampleCount; i++) {
+        const sampleNumber = config.sampleStart + i;
+        const sampleName = config.samplePrefix + sampleNumber.toString().padStart(4, '0');
+        
+        // Generate datafile path using configurable base path
+        const formattedDate = config.batchDate ? config.batchDate.replace(/-/g, '') : '20250101';
+        const batchRange = `${config.sampleStart.toString().padStart(4, '0')}-${(config.sampleStart + config.sampleCount - 1).toString().padStart(4, '0')}`;
+        
+        // Format path based on selected format
+        let datafilePath;
+        if (config.pathFormat === 'unix') {
+            const unixPath = config.datafilePath.replace(/\\/g, '/');
+            datafilePath = `${unixPath}/${config.projectName}/${config.samplePrefix}${batchRange} (${formattedDate})/${sampleName}.d`;
+        } else {
+            datafilePath = `${config.datafilePath}\\${config.projectName}\\${config.samplePrefix}${batchRange} (${formattedDate})\\${sampleName}.d`;
+        }
+        
+        // Add main sample
+        generatedSequence.push({
+            step: stepNumber++,
+            sampleName: sampleName,
+            position: currentPosition,
+            method: config.sampleMethod,
+            datafile: datafilePath,
+            type: 'Sample',
+            notes: `Main sample ${i + 1}`,
+            rowClass: 'sample-row'
+        });
+        
+        currentPosition = calculateNextPosition(currentPosition);
+        mainSampleCount++;
+        
+        // Check for NIST insertion first (every N samples)
+        let nistInserted = false;
+        if ((i + 1) % config.nistInterval === 0) {
+            const nistName = config.nistName.replace('(1)', `(${nistCount})`);
+            let nistDatafile;
+            if (config.pathFormat === 'unix') {
+                const unixPath = config.datafilePath.replace(/\\/g, '/');
+                nistDatafile = `${unixPath}/${config.projectName}/${config.samplePrefix}${batchRange} (${formattedDate})/${nistName}.d`;
+            } else {
+                nistDatafile = `${config.datafilePath}\\${config.projectName}\\${config.samplePrefix}${batchRange} (${formattedDate})\\${nistName}.d`;
+            }
+            generatedSequence.push({
+                step: stepNumber++,
+                sampleName: nistName,
+                position: 'P2-F1', // Fixed NIST position
+                method: config.nistMethod,
+                datafile: nistDatafile,
+                type: 'NIST Standard',
+                notes: `Quality control after ${config.nistInterval} samples`,
+                rowClass: 'nist-row'
+            });
+            nistCount++;
+            nistInserted = true;
+            
+            // Always add 1 carryover immediately after NIST
+            const carryoverName = config.carryoverSampleName + carryoverCount.toString().padStart(2, '0');
+            let carryoverDatafile;
+            if (config.pathFormat === 'unix') {
+                const unixPath = config.datafilePath.replace(/\\/g, '/');
+                carryoverDatafile = `${unixPath}/${config.projectName}/${config.samplePrefix}${batchRange} (${formattedDate})/${carryoverName}.d`;
+            } else {
+                carryoverDatafile = `${config.datafilePath}\\${config.projectName}\\${config.samplePrefix}${batchRange} (${formattedDate})\\${carryoverName}.d`;
+            }
+            generatedSequence.push({
+                step: stepNumber++,
+                sampleName: carryoverName,
+                position: 'P1-A1', // Fixed carryover position
+                method: config.carryoverMethod,
+                datafile: carryoverDatafile,
+                type: 'Carryover',
+                notes: `Mandatory carryover after NIST`,
+                rowClass: 'carryover-row'
+            });
+            carryoverCount++;
+        }
+        
+        // Check for regular carryover insertion (every N samples) - only if NIST was not inserted
+        if (!nistInserted && (i + 1) % config.carryoverInterval === 0) {
+            const carryoverName = config.carryoverSampleName + carryoverCount.toString().padStart(2, '0');
+            let carryoverDatafile;
+            if (config.pathFormat === 'unix') {
+                const unixPath = config.datafilePath.replace(/\\/g, '/');
+                carryoverDatafile = `${unixPath}/${config.projectName}/${config.samplePrefix}${batchRange} (${formattedDate})/${carryoverName}.d`;
+            } else {
+                carryoverDatafile = `${config.datafilePath}\\${config.projectName}\\${config.samplePrefix}${batchRange} (${formattedDate})\\${carryoverName}.d`;
+            }
+            generatedSequence.push({
+                step: stepNumber++,
+                sampleName: carryoverName,
+                position: 'P1-A1', // Fixed carryover position
+                method: config.carryoverMethod,
+                datafile: carryoverDatafile,
+                type: 'Carryover',
+                notes: `Regular carryover after ${config.carryoverInterval} samples`,
+                rowClass: 'carryover-row'
+            });
+            carryoverCount++;
+        }
+    }
+}
+
+// Export sequence to Excel (extracted from exportToExcel)
+function exportSequenceToExcel() {
     // Prepare data for Excel
     const wsData = [
         ['Order', 'Name', 'Pos', 'Method', 'Datafile']
@@ -881,6 +1033,17 @@ function exportToExcel() {
     
     // Save file
     XLSX.writeFile(wb, filename);
+}
+
+// Export to Excel
+function exportToExcel() {
+    if (generatedSequence.length === 0) {
+        alert('Please generate a sequence first!');
+        return;
+    }
+    
+    // Use the helper function to export
+    exportSequenceToExcel();
     
     // Show success message
     showNotification('Excel file exported successfully!', 'success');
