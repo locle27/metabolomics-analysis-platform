@@ -638,13 +638,13 @@ function calculateNextPosition(currentPosition, increment = 1) {
     // Increment position
     col += increment;
     
-    // Handle column overflow (assuming 12 columns max)
-    if (col > 12) {
+    // Handle column overflow (limited to 11 columns max: 1-11)
+    if (col > 11) {
         col = 1;
         row = String.fromCharCode(row.charCodeAt(0) + 1);
         
-        // Handle row overflow (A-H, then next plate)
-        if (row > 'H') {
+        // Handle row overflow (A-F only, then next plate)
+        if (row > 'F') {
             row = 'A';
             plate++;
         }
