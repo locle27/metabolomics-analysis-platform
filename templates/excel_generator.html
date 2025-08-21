@@ -447,6 +447,12 @@
                             <label for="starting-position"><i class="fas fa-map-marker-alt me-2"></i>Starting Position</label>
                         </div>
                     </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="number" id="sample-inj-vol" class="form-control" value="5" min="0.1" max="100" step="0.1" style="border-radius: 10px; border: 2px solid #dee2e6; font-weight: 500;">
+                            <label for="sample-inj-vol"><i class="fas fa-syringe me-2"></i>Injection Vol (μL)</label>
+                        </div>
+                    </div>
                 </div>
                 <div class="row g-3 mt-2">
                     <div class="col-md-12">
@@ -463,19 +469,25 @@
             <div class="config-subsection" style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); border-left: 4px solid #ffc107;">
                 <h5 style="color: #856404; font-weight: 700;"><i class="fas fa-recycle"></i> Carryover Configuration</h5>
                 <div class="row g-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="form-floating">
                             <input type="text" id="carryover-sample-name" class="form-control" value="carryover_" placeholder="carryover_" style="border-radius: 10px; border: 2px solid #ffc107; font-weight: 500; font-family: 'Courier New', monospace;">
                             <label for="carryover-sample-name"><i class="fas fa-tag me-2"></i>Carryover Prefix</label>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="form-floating">
                             <input type="number" id="carryover-interval" class="form-control" value="5" min="1" max="10" style="border-radius: 10px; border: 2px solid #ffc107; font-weight: 500;">
                             <label for="carryover-interval"><i class="fas fa-step-forward me-2"></i>Every N Steps</label>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <div class="form-floating">
+                            <input type="number" id="carryover-inj-vol" class="form-control" value="5" min="0.1" max="100" step="0.1" style="border-radius: 10px; border: 2px solid #ffc107; font-weight: 500;">
+                            <label for="carryover-inj-vol"><i class="fas fa-syringe me-2"></i>Injection Vol (μL)</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
                         <div class="form-floating">
                             <input type="text" id="carryover-method" class="form-control" value="Phenikaa_LipidMix_carryover_v1.m" style="border-radius: 10px; border: 2px solid #ffc107; font-weight: 500; font-family: 'Courier New', monospace;">
                             <label for="carryover-method"><i class="fas fa-file-code me-2"></i>Method File</label>
@@ -491,19 +503,25 @@
             <div class="config-subsection" style="background: linear-gradient(135deg, #d1ecf1 0%, #b8daff 100%); border-left: 4px solid #17a2b8;">
                 <h5 style="color: #0c5460; font-weight: 700;"><i class="fas fa-certificate"></i> NIST Standard Configuration</h5>
                 <div class="row g-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="form-floating">
                             <input type="text" id="nist-name" class="form-control" value="NIST_1401-1500 (1)" style="border-radius: 10px; border: 2px solid #17a2b8; font-weight: 500; font-family: 'Courier New', monospace;">
                             <label for="nist-name"><i class="fas fa-tag me-2"></i>NIST Prefix</label>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="form-floating">
                             <input type="number" id="nist-interval" class="form-control" value="30" min="1" max="100" style="border-radius: 10px; border: 2px solid #17a2b8; font-weight: 500;">
                             <label for="nist-interval"><i class="fas fa-step-forward me-2"></i>Every N Steps</label>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <div class="form-floating">
+                            <input type="number" id="nist-inj-vol" class="form-control" value="5" min="0.1" max="100" step="0.1" style="border-radius: 10px; border: 2px solid #17a2b8; font-weight: 500;">
+                            <label for="nist-inj-vol"><i class="fas fa-syringe me-2"></i>Injection Vol (μL)</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
                         <div class="form-floating">
                             <input type="text" id="nist-method" class="form-control" value="Phenikaa_LipidMix_NIST_v1.m" style="border-radius: 10px; border: 2px solid #17a2b8; font-weight: 500; font-family: 'Courier New', monospace;">
                             <label for="nist-method"><i class="fas fa-file-code me-2"></i>Method File</label>
@@ -584,6 +602,8 @@
                             <th>Order</th>
                             <th>Name</th>
                             <th>Pos</th>
+                            <th>Sample Type</th>
+                            <th>Inj Vol (μL)</th>
                             <th>Method</th>
                             <th>Datafile</th>
                         </tr>
@@ -674,12 +694,15 @@ function generateSequence() {
         sampleCount: parseInt(document.getElementById('sample-count').value),
         startingPosition: document.getElementById('starting-position').value,
         sampleMethod: document.getElementById('sample-method').value,
+        sampleInjVol: parseFloat(document.getElementById('sample-inj-vol').value),
         carryoverInterval: parseInt(document.getElementById('carryover-interval').value),
         carryoverSampleName: document.getElementById('carryover-sample-name').value,
         carryoverMethod: document.getElementById('carryover-method').value,
+        carryoverInjVol: parseFloat(document.getElementById('carryover-inj-vol').value),
         nistInterval: parseInt(document.getElementById('nist-interval').value),
         nistName: document.getElementById('nist-name').value,
         nistMethod: document.getElementById('nist-method').value,
+        nistInjVol: parseFloat(document.getElementById('nist-inj-vol').value),
         datafilePath: document.getElementById('datafile-path').value,
         pathFormat: document.getElementById('path-format').value
     };
@@ -715,6 +738,8 @@ function generateSequence() {
             step: stepNumber++,
             sampleName: sampleName,
             position: currentPosition,
+            sampleType: 'Sample',
+            injVol: config.sampleInjVol,
             method: config.sampleMethod,
             datafile: datafilePath,
             type: 'Sample',
@@ -740,6 +765,8 @@ function generateSequence() {
                 step: stepNumber++,
                 sampleName: nistName,
                 position: 'P2-F1', // Fixed NIST position
+                sampleType: 'Sample',
+                injVol: config.nistInjVol,
                 method: config.nistMethod,
                 datafile: nistDatafile,
                 type: 'NIST Standard',
@@ -762,6 +789,8 @@ function generateSequence() {
                 step: stepNumber++,
                 sampleName: carryoverName,
                 position: 'P1-A1', // Fixed carryover position
+                sampleType: 'Sample',
+                injVol: config.carryoverInjVol,
                 method: config.carryoverMethod,
                 datafile: carryoverDatafile,
                 type: 'Carryover',
@@ -788,6 +817,8 @@ function generateSequence() {
                 method: config.carryoverMethod,
                 datafile: carryoverDatafile,
                 type: 'Carryover',
+                sampleType: 'Sample',
+                injVol: config.carryoverInjVol,
                 notes: `Regular carryover after ${config.carryoverInterval} samples`,
                 rowClass: 'carryover-row'
             });
@@ -825,6 +856,8 @@ function renderSequenceTable() {
             <td><strong>${item.step}</strong></td>
             <td><code>${item.sampleName}</code></td>
             <td><span class="badge bg-secondary">${item.position}</span></td>
+            <td><span class="badge bg-${getTypeBadgeColor(item.type)}">${item.sampleType}</span></td>
+            <td><strong>${item.injVol}</strong></td>
             <td><small class="text-info">${item.method || 'Default'}</small></td>
             <td><small class="text-muted font-monospace">${item.datafile}</small></td>
         `;
@@ -881,12 +914,15 @@ function generateSequenceData() {
         sampleCount: parseInt(document.getElementById('sample-count').value),
         startingPosition: document.getElementById('starting-position').value,
         sampleMethod: document.getElementById('sample-method').value,
+        sampleInjVol: parseFloat(document.getElementById('sample-inj-vol').value),
         carryoverInterval: parseInt(document.getElementById('carryover-interval').value),
         carryoverSampleName: document.getElementById('carryover-sample-name').value,
         carryoverMethod: document.getElementById('carryover-method').value,
+        carryoverInjVol: parseFloat(document.getElementById('carryover-inj-vol').value),
         nistInterval: parseInt(document.getElementById('nist-interval').value),
         nistName: document.getElementById('nist-name').value,
         nistMethod: document.getElementById('nist-method').value,
+        nistInjVol: parseFloat(document.getElementById('nist-inj-vol').value),
         datafilePath: document.getElementById('datafile-path').value,
         pathFormat: document.getElementById('path-format').value
     };
@@ -922,6 +958,8 @@ function generateSequenceData() {
             step: stepNumber++,
             sampleName: sampleName,
             position: currentPosition,
+            sampleType: 'Sample',
+            injVol: config.sampleInjVol,
             method: config.sampleMethod,
             datafile: datafilePath,
             type: 'Sample',
@@ -947,6 +985,8 @@ function generateSequenceData() {
                 step: stepNumber++,
                 sampleName: nistName,
                 position: 'P2-F1', // Fixed NIST position
+                sampleType: 'Sample',
+                injVol: config.nistInjVol,
                 method: config.nistMethod,
                 datafile: nistDatafile,
                 type: 'NIST Standard',
@@ -969,6 +1009,8 @@ function generateSequenceData() {
                 step: stepNumber++,
                 sampleName: carryoverName,
                 position: 'P1-A1', // Fixed carryover position
+                sampleType: 'Sample',
+                injVol: config.carryoverInjVol,
                 method: config.carryoverMethod,
                 datafile: carryoverDatafile,
                 type: 'Carryover',
@@ -995,6 +1037,8 @@ function generateSequenceData() {
                 method: config.carryoverMethod,
                 datafile: carryoverDatafile,
                 type: 'Carryover',
+                sampleType: 'Sample',
+                injVol: config.carryoverInjVol,
                 notes: `Regular carryover after ${config.carryoverInterval} samples`,
                 rowClass: 'carryover-row'
             });
@@ -1007,7 +1051,7 @@ function generateSequenceData() {
 function exportSequenceToExcel() {
     // Prepare data for Excel
     const wsData = [
-        ['Order', 'Name', 'Pos', 'Method', 'Datafile']
+        ['Order', 'Name', 'Pos', 'Sample Type', 'Inj Vol (μL)', 'Method', 'Datafile']
     ];
     
     generatedSequence.forEach(item => {
@@ -1015,6 +1059,8 @@ function exportSequenceToExcel() {
             item.step,
             item.sampleName,
             item.position,
+            item.sampleType,
+            item.injVol,
             item.method || 'Default',
             item.datafile
         ]);
@@ -1056,13 +1102,15 @@ function exportToCSV() {
         return;
     }
     
-    let csvContent = 'Order,Name,Pos,Method,Datafile\n';
+    let csvContent = 'Order,Name,Pos,Sample Type,Inj Vol (μL),Method,Datafile\n';
     
     generatedSequence.forEach(item => {
         const row = [
             item.step,
             `"${item.sampleName}"`,
             `"${item.position}"`,
+            `"${item.sampleType}"`,
+            item.injVol,
             `"${item.method || 'Default'}"`,
             `"${item.datafile}"`
         ].join(',');
@@ -1090,10 +1138,10 @@ function copyToClipboard() {
         return;
     }
     
-    let textContent = 'Order\tName\tPos\tMethod\tDatafile\n';
+    let textContent = 'Order\tName\tPos\tSample Type\tInj Vol (μL)\tMethod\tDatafile\n';
     
     generatedSequence.forEach(item => {
-        textContent += `${item.step}\t${item.sampleName}\t${item.position}\t${item.method || 'Default'}\t${item.datafile}\n`;
+        textContent += `${item.step}\t${item.sampleName}\t${item.position}\t${item.sampleType}\t${item.injVol}\t${item.method || 'Default'}\t${item.datafile}\n`;
     });
     
     navigator.clipboard.writeText(textContent).then(() => {
@@ -1211,12 +1259,15 @@ function loadGlobalDefaults() {
                     'excel_sample_count': 'sample-count',
                     'excel_starting_position': 'starting-position',
                     'excel_sample_method': 'sample-method',
+                    'excel_sample_inj_vol': 'sample-inj-vol',
                     'excel_carryover_interval': 'carryover-interval',
                     'excel_carryover_sample_name': 'carryover-sample-name',
                     'excel_carryover_method': 'carryover-method',
+                    'excel_carryover_inj_vol': 'carryover-inj-vol',
                     'excel_nist_interval': 'nist-interval',
                     'excel_nist_name': 'nist-name',
                     'excel_nist_method': 'nist-method',
+                    'excel_nist_inj_vol': 'nist-inj-vol',
                     'excel_datafile_path': 'datafile-path',
                     'excel_path_format': 'path-format'
                 };
@@ -1275,9 +1326,9 @@ function autoSaveDefaults() {
     const settings = {};
     const fields = [
         'project-name', 'sample-prefix', 'sample-start', 'sample-count',
-        'starting-position', 'sample-method', 'carryover-interval',
-        'carryover-sample-name', 'carryover-method', 'nist-interval',
-        'nist-name', 'nist-method', 'datafile-path', 'path-format'
+        'starting-position', 'sample-method', 'sample-inj-vol', 'carryover-interval',
+        'carryover-sample-name', 'carryover-method', 'carryover-inj-vol', 'nist-interval',
+        'nist-name', 'nist-method', 'nist-inj-vol', 'datafile-path', 'path-format'
     ];
     
     fields.forEach(fieldId => {
