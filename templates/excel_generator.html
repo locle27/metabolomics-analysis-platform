@@ -603,6 +603,7 @@
                             <th>Name</th>
                             <th>Pos</th>
                             <th>Sample Type</th>
+                            <th></th>
                             <th>Inj Vol (μL)</th>
                             <th>Method</th>
                             <th>Datafile</th>
@@ -857,6 +858,7 @@ function renderSequenceTable() {
             <td><code>${item.sampleName}</code></td>
             <td><span class="badge bg-secondary">${item.position}</span></td>
             <td><span class="badge bg-${getTypeBadgeColor(item.type)}">${item.sampleType}</span></td>
+            <td></td>
             <td><strong>${item.injVol}</strong></td>
             <td><small class="text-info">${item.method || 'Default'}</small></td>
             <td><small class="text-muted font-monospace">${item.datafile}</small></td>
@@ -1051,7 +1053,7 @@ function generateSequenceData() {
 function exportSequenceToExcel() {
     // Prepare data for Excel
     const wsData = [
-        ['Order', 'Name', 'Pos', 'Sample Type', 'Inj Vol (μL)', 'Method', 'Datafile']
+        ['Order', 'Name', 'Pos', 'Sample Type', '', 'Inj Vol (μL)', 'Method', 'Datafile']
     ];
     
     generatedSequence.forEach(item => {
@@ -1060,6 +1062,7 @@ function exportSequenceToExcel() {
             item.sampleName,
             item.position,
             item.sampleType,
+            '', // Blank column
             item.injVol,
             item.method || 'Default',
             item.datafile
@@ -1102,7 +1105,7 @@ function exportToCSV() {
         return;
     }
     
-    let csvContent = 'Order,Name,Pos,Sample Type,Inj Vol (μL),Method,Datafile\n';
+    let csvContent = 'Order,Name,Pos,Sample Type,,Inj Vol (μL),Method,Datafile\n';
     
     generatedSequence.forEach(item => {
         const row = [
@@ -1110,6 +1113,7 @@ function exportToCSV() {
             `"${item.sampleName}"`,
             `"${item.position}"`,
             `"${item.sampleType}"`,
+            '', // Blank column
             item.injVol,
             `"${item.method || 'Default'}"`,
             `"${item.datafile}"`
@@ -1138,10 +1142,10 @@ function copyToClipboard() {
         return;
     }
     
-    let textContent = 'Order\tName\tPos\tSample Type\tInj Vol (μL)\tMethod\tDatafile\n';
+    let textContent = 'Order\tName\tPos\tSample Type\t\tInj Vol (μL)\tMethod\tDatafile\n';
     
     generatedSequence.forEach(item => {
-        textContent += `${item.step}\t${item.sampleName}\t${item.position}\t${item.sampleType}\t${item.injVol}\t${item.method || 'Default'}\t${item.datafile}\n`;
+        textContent += `${item.step}\t${item.sampleName}\t${item.position}\t${item.sampleType}\t\t${item.injVol}\t${item.method || 'Default'}\t${item.datafile}\n`;
     });
     
     navigator.clipboard.writeText(textContent).then(() => {
