@@ -787,3 +787,75 @@ class AdminSettings(db.Model):
         
         db.session.commit()
         return setting
+
+# =====================================================
+# QUANTITATIVE ANALYSIS REFERENCE DATA MODELS
+# =====================================================
+
+class SampleIndex(db.Model):
+    """Sample index reference data for quantitative analysis calculations"""
+    __tablename__ = 'sample_index'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    sample = db.Column(db.String(255), nullable=False, unique=True, index=True)
+    paired_nist = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    
+    def __repr__(self):
+        return f'<SampleIndex {self.sample}: {self.paired_nist}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'sample': self.sample,
+            'paired_nist': self.paired_nist,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+    
+    @staticmethod
+    def get_sample_mapping():
+        """Get sample to NIST mapping as dictionary"""
+        samples = SampleIndex.query.all()
+        return {sample.sample: sample.paired_nist for sample in samples}
+
+class CompoundIndex(db.Model):
+    """Compound index reference data for quantitative analysis calculations"""
+    __tablename__ = 'compound_index'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    compound = db.Column(db.String(255), nullable=False, unique=True, index=True)
+    istd = db.Column(db.String(255), nullable=False)
+    conc_nm = db.Column(db.Float)  # Concentration in nM
+    response_factor = db.Column(db.Float, default=1.0)
+    nist_conc_nm = db.Column(db.Float)  # NIST concentration in nM
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    
+    def __repr__(self):
+        return f'<CompoundIndex {self.compound}: {self.istd}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'compound': self.compound,
+            'istd': self.istd,
+            'conc_nm': self.conc_nm,
+            'response_factor': self.response_factor,
+            'nist_conc_nm': self.nist_conc_nm,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+    
+    @staticmethod
+    def get_compound_data(compound_name):
+        """Get compound reference data by name"""
+        compound = CompoundIndex.query.filter_by(compound=compound_name).first()
+        return compound.to_dict() if compound else None
+    
+    @staticmethod
+    def get_all_compounds_dict():
+        """Get all compound data as dictionary keyed by compound name"""
+        compounds = CompoundIndex.query.all()
+        return {compound.compound: compound.to_dict() for compound in compounds}

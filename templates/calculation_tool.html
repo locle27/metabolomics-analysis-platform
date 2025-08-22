@@ -397,6 +397,15 @@ function resetCalculator() {
     document.getElementById('previewSection').style.display = 'none';
     document.getElementById('errorMessage').style.display = 'none';
     document.getElementById('successMessage').style.display = 'none';
+    
+    // Restore hidden sections for multiple file processing
+    document.querySelector('.upload-section').style.display = 'block';
+    document.querySelector('.coefficient-input').style.display = 'block';
+    
+    // Ensure process button is enabled and loading spinner is hidden
+    document.getElementById('processBtn').disabled = false;
+    document.getElementById('loadingSpinner').style.display = 'none';
+    
     calculationResults = null;
 }
 
