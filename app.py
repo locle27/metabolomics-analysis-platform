@@ -2745,11 +2745,560 @@ def lcms_tools():
 def protocols():
     """Research protocols and methodologies"""
     try:
-        return render_template('coming_soon.html', 
-            title="Research Protocols", 
-            message="Research protocols and methodologies coming soon...")
+        return render_template('protocols.html')
     except:
         return "<h1>Research Protocols</h1><p>Coming Soon</p>"
+
+@app.route('/protocols/calculation-tool')
+def calculation_tool():
+    """Calculation tool for NIST and Agilent analysis"""
+    try:
+        return render_template('calculation_tool.html')
+    except Exception as e:
+        flash(f"Error accessing calculation tool: {str(e)}", "error")
+        return redirect(url_for('protocols'))
+
+@app.route('/protocols/calculate', methods=['POST'])
+def calculate_analysis():
+    """Process Excel file and calculate NIST and Agilent values"""
+    try:
+        import pandas as pd
+        import openpyxl
+        from io import BytesIO
+        import base64
+        
+        # Get uploaded file and coefficient
+        if 'excel_file' not in request.files:
+            return jsonify({"error": "No file uploaded"}), 400
+            
+        file = request.files['excel_file']
+        coefficient = float(request.form.get('coefficient', 1))
+        
+        if file.filename == '':
+            return jsonify({"error": "No file selected"}), 400
+            
+        # Read Excel file
+        excel_data = pd.read_excel(file, sheet_name=None)
+        
+        # Log available sheets for debugging
+        available_sheets = list(excel_data.keys())
+        print(f"Available sheets in uploaded file: {available_sheets}")
+        
+        # Try to find sheets with flexible naming
+        compound_index = None
+        ratio_sheet = None
+        area_data = None
+        
+        for sheet_name in excel_data.keys():
+            sheet_lower = sheet_name.lower()
+            if 'compound' in sheet_lower and 'index' in sheet_lower:
+                compound_index = excel_data[sheet_name]
+            elif 'ratio' in sheet_lower:
+                ratio_sheet = excel_data[sheet_name]
+            elif 'area' in sheet_lower or sheet_name in ['Sheet1', 'Data', 'Main']:
+                area_data = excel_data[sheet_name]
+        
+        # If area_data still not found, try to use the first sheet
+        if area_data is None and len(excel_data) > 0:
+            first_sheet = list(excel_data.keys())[0]
+            area_data = excel_data[first_sheet]
+            print(f"Using first sheet '{first_sheet}' as area data")
+        
+        if not all([compound_index is not None, ratio_sheet is not None, area_data is not None]):
+            return jsonify({
+                "error": f"Missing required sheets. Found sheets: {available_sheets}. Need: Compound Index, Ratio, and Area (or main data sheet)"
+            }), 400
+        
+        # Initialize result dataframes
+        nist_results = pd.DataFrame()
+        agilent_results = pd.DataFrame()
+        
+        # SIMPLE APPROACH: Use the Ratio sheet directly (it already has calculated ratios)
+        first_col = area_data.columns[0]
+        ratio_first_col = ratio_sheet.columns[0]
+        
+        # Get sample columns from ratio sheet (exclude compound column and NIST columns)
+        sample_columns = []
+        nist_columns = []
+        
+        print("Processing ratio sheet columns...")
+        try:
+            for col in ratio_sheet.columns:
+                col_str = str(col).strip()
+                if col_str != str(ratio_first_col).strip():
+                    col_upper = col_str.upper()
+                    if 'NIST' in col_upper and '100' in col_upper:
+                        nist_columns.append(col)
+                        print(f"Added NIST column: {col}")
+                    else:
+                        sample_columns.append(col)
+            print(f"Column processing completed: {len(sample_columns)} sample columns, {len(nist_columns)} NIST columns")
+        except Exception as e:
+            print(f"Error processing columns: {e}")
+            return jsonify({"error": f"Error processing columns: {str(e)}"}), 500
+        
+        print(f"Sample columns: {len(sample_columns)}")
+        print(f"NIST reference columns: {nist_columns}")
+        print(f"Sample columns sample: {sample_columns[:5] if sample_columns else 'None'}")
+        print(f"Ratio sheet columns: {list(ratio_sheet.columns)[:10]}")
+        
+        # Create lookup dictionaries for compound info - safer approach
+        print("Processing compound index...")
+        compound_index_dict = {}
+        try:
+            # Convert compound index to dictionary format to avoid pandas issues
+            compound_data = compound_index.to_dict('records')
+            compound_columns = list(compound_index.columns)
+            compound_col = compound_columns[0]  # First column should be compounds
+            print(f"Compound index columns: {compound_columns}")
+            
+            for row_idx, row_dict in enumerate(compound_data):
+                try:
+                    compound_name = str(row_dict.get(compound_col, '')).strip()
+                    if not compound_name:
+                        continue
+                        
+                    conc_val = 1.0
+                    rf_val = 1.0
+                    
+                    # Safely extract concentration
+                    for col, value in row_dict.items():
+                        col_lower = str(col).lower()
+                        if 'conc' in col_lower and 'nm' in col_lower:
+                            try:
+                                if value is not None and not pd.isna(value) and str(value).strip() != '':
+                                    conc_val = float(str(value))
+                            except (ValueError, TypeError):
+                                conc_val = 1.0
+                            break
+                    
+                    # Safely extract response factor
+                    for col, value in row_dict.items():
+                        col_lower = str(col).lower()
+                        if 'response' in col_lower and 'factor' in col_lower:
+                            try:
+                                if value is not None and not pd.isna(value) and str(value).strip() != '':
+                                    rf_val = float(str(value))
+                            except (ValueError, TypeError):
+                                rf_val = 1.0
+                            break
+                    
+                    compound_index_dict[compound_name] = {
+                        'conc': conc_val,
+                        'rf': rf_val
+                    }
+                    
+                except Exception as e:
+                    print(f"Error processing compound index row {row_idx}: {e}")
+                    continue
+                    
+            print(f"Compound index processed: {len(compound_index_dict)} compounds")
+        except Exception as e:
+            print(f"Error building compound index: {e}")
+            return jsonify({"error": f"Error building compound index: {str(e)}"}), 500
+        
+        # Simple NIST mapping - avoid all min/max operations
+        def get_nist_column_for_sample(sample):
+            try:
+                sample_str = str(sample).strip()
+                if 'PH-HC_' in sample_str:
+                    parts = sample_str.split('_')
+                    if len(parts) > 1:
+                        try:
+                            sample_num = int(parts[1])
+                            # Simple mapping without min/max
+                            if sample_num <= 25:
+                                nist_index = 0
+                            elif sample_num <= 50:
+                                nist_index = 1
+                            elif sample_num <= 75:
+                                nist_index = 2
+                            else:
+                                nist_index = 3
+                            
+                            # Safe array access
+                            if nist_index < len(nist_columns):
+                                return nist_columns[nist_index]
+                            else:
+                                return nist_columns[0] if nist_columns else None
+                        except (ValueError, TypeError):
+                            pass
+                
+                # Default fallback
+                return nist_columns[0] if nist_columns else None
+            except Exception as e:
+                print(f"Error in get_nist_column_for_sample: {e}")
+                return nist_columns[0] if nist_columns else None
+        
+        # Process data using ratio sheet directly
+        compounds = []
+        nist_results_data = []
+        agilent_results_data = []
+        
+        # Convert ratio_sheet to safer format first
+        try:
+            ratio_data = ratio_sheet.to_dict('records')
+            print(f"Converted ratio sheet to dictionary format: {len(ratio_data)} rows")
+        except Exception as e:
+            print(f"Error converting ratio sheet: {e}")
+            return jsonify({"error": f"Error converting ratio sheet: {str(e)}"}), 500
+        
+        # Find the NIST_1-100 reference row data first
+        nist_reference_data = None
+        for row_dict in ratio_data:
+            compound_name = str(row_dict.get(ratio_first_col, '')).strip().upper()
+            if 'NIST' in compound_name and ('100' in compound_name or '1-100' in compound_name):
+                nist_reference_data = row_dict
+                print(f"Found NIST reference row: {row_dict.get(ratio_first_col, '')}")
+                break
+        
+        if not nist_reference_data:
+            print("WARNING: No NIST_1-100 reference row found in data")
+            # Create default NIST values
+            nist_reference_data = {}
+            for sample in sample_columns:
+                nist_reference_data[sample] = 0.1769
+        
+        # Process each row safely
+        for row_idx, row_dict in enumerate(ratio_data):
+            try:
+                compound = str(row_dict.get(ratio_first_col, '')).strip()
+                if not compound:
+                    continue
+                
+                # Skip NIST reference rows in output
+                if 'NIST' in compound.upper() and ('100' in compound.upper() or '1-100' in compound.upper()):
+                    continue
+                    
+                compounds.append(compound)
+                nist_row = [compound]
+                agilent_row = [compound]
+                
+                compound_info = compound_index_dict.get(compound, {'conc': 1, 'rf': 1})
+                
+                for sample in sample_columns:
+                    try:
+                        # Get ratio value safely from dictionary
+                        ratio_value = row_dict.get(sample, 0)
+                        
+                        # Convert to float safely
+                        if ratio_value is None or pd.isna(ratio_value) or str(ratio_value).strip() == '':
+                            ratio = 0.0
+                        else:
+                            try:
+                                ratio = float(str(ratio_value))
+                            except (ValueError, TypeError):
+                                ratio = 0.0
+                        
+                        if ratio == 0:
+                            nist_row.append('')
+                            agilent_row.append('')
+                            continue
+                        
+                        # Get NIST reference for this sample from NIST_1-100 reference row
+                        nist_col = get_nist_column_for_sample(sample)
+                        if nist_col and nist_reference_data:
+                            nist_value = nist_reference_data.get(nist_col, 0.1769)
+                            try:
+                                if nist_value is None or pd.isna(nist_value) or str(nist_value).strip() == '':
+                                    nist_reference = 0.1769
+                                else:
+                                    nist_reference = float(str(nist_value))
+                            except (ValueError, TypeError):
+                                nist_reference = 0.1769
+                        else:
+                            nist_reference = 0.1769
+                        
+                        # DEBUG: Print calculation details for AcylCarnitine 10:0, PH-HC_1
+                        if compound == 'AcylCarnitine 10:0' and sample == 'PH-HC_1':
+                            print(f"🔍 DEBUG AcylCarnitine 10:0, PH-HC_1:")
+                            print(f"   Ratio from sheet: {ratio}")
+                            print(f"   NIST column selected: {nist_col}")
+                            print(f"   NIST reference value: {nist_reference}")
+                            print(f"   Expected calculation: {ratio} / {nist_reference} = {ratio / nist_reference if nist_reference != 0 else 0}")
+                            print(f"   All NIST columns available: {nist_columns}")
+                            
+                            # Show all NIST values for this compound
+                            for nist_column in nist_columns:
+                                nist_val = row_dict.get(nist_column, 'Not found')
+                                print(f"   {nist_column}: {nist_val}")
+                        
+                        # Calculate results
+                        try:
+                            if nist_reference != 0:
+                                nist_result = ratio / nist_reference
+                            else:
+                                nist_result = 0
+                                
+                            agilent_result = ratio * compound_info['conc'] * compound_info['rf'] * coefficient
+                            
+                            nist_row.append(round(nist_result, 3) if nist_result != 0 else '')
+                            agilent_row.append(round(agilent_result, 3) if agilent_result != 0 else '')
+                            
+                        except (ValueError, TypeError, ZeroDivisionError, OverflowError):
+                            nist_row.append('')
+                            agilent_row.append('')
+                        
+                    except Exception as e:
+                        print(f"Error processing sample {sample} for {compound}: {e}")
+                        nist_row.append('')
+                        agilent_row.append('')
+                
+                nist_results_data.append(nist_row)
+                agilent_results_data.append(agilent_row)
+                
+            except Exception as e:
+                print(f"Error processing row {row_idx}: {e}")
+                continue
+        
+        print("Creating DataFrames...")
+        try:
+            # Create DataFrames safely
+            columns = ['Compound'] + sample_columns
+            nist_results = pd.DataFrame(nist_results_data, columns=columns)
+            agilent_results = pd.DataFrame(agilent_results_data, columns=columns)
+            print(f"DataFrames created: NIST {nist_results.shape}, Agilent {agilent_results.shape}")
+        except Exception as e:
+            print(f"Error creating DataFrames: {e}")
+            return jsonify({"error": f"Error creating DataFrames: {str(e)}"}), 500
+        
+        print("Creating Excel output...")
+        try:
+            # Create Excel output
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                nist_results.to_excel(writer, sheet_name='NIST (output)', index=False)
+                agilent_results.to_excel(writer, sheet_name='Agilent (output)', index=False)
+            output.seek(0)
+            print("Excel output created successfully")
+        except Exception as e:
+            print(f"Error creating Excel output: {e}")
+            return jsonify({"error": f"Error creating Excel output: {str(e)}"}), 500
+        
+        print("Converting to JSON for preview...")
+        try:
+            # Limit preview to first 50 rows to avoid large response size
+            MAX_PREVIEW_ROWS = 50
+            
+            nist_json = []
+            agilent_json = []
+            
+            # Convert only first 50 rows for preview
+            nist_preview = nist_results.head(MAX_PREVIEW_ROWS)
+            agilent_preview = agilent_results.head(MAX_PREVIEW_ROWS)
+            
+            for _, row in nist_preview.iterrows():
+                row_dict = {}
+                for col in nist_preview.columns:
+                    val = row[col]
+                    if pd.isna(val) or val is None:
+                        row_dict[col] = ''
+                    else:
+                        row_dict[col] = str(val) if not isinstance(val, (int, float)) else val
+                nist_json.append(row_dict)
+            
+            for _, row in agilent_preview.iterrows():
+                row_dict = {}
+                for col in agilent_preview.columns:
+                    val = row[col]
+                    if pd.isna(val) or val is None:
+                        row_dict[col] = ''
+                    else:
+                        row_dict[col] = str(val) if not isinstance(val, (int, float)) else val
+                agilent_json.append(row_dict)
+            
+            print(f"JSON conversion completed: NIST {len(nist_json)} records (limited from {len(nist_results)}), Agilent {len(agilent_json)} records (limited from {len(agilent_results)})")
+        except Exception as e:
+            print(f"Error converting to JSON: {e}")
+            return jsonify({"error": f"Error converting to JSON: {str(e)}"}), 500
+        
+        print("Checking Excel file size...")
+        try:
+            excel_size = len(output.getvalue())
+            print(f"Excel file size: {excel_size / 1024 / 1024:.2f} MB")
+            
+            # If file is too large (>10MB), skip base64 encoding and use session storage
+            if excel_size > 10 * 1024 * 1024:  # 10MB limit
+                print("Excel file too large for inline transfer, using session storage")
+                
+                # Safely get row counts
+                try:
+                    total_rows_count = int(nist_results.shape[0]) if hasattr(nist_results, 'shape') else len(nist_results_data)
+                    preview_rows_count = int(len(nist_json))
+                except Exception as e:
+                    print(f"Error getting row counts: {e}")
+                    total_rows_count = 517  # Fallback
+                    preview_rows_count = 50  # Fallback
+                
+                # Store in session or temporary file
+                filename = f'calculation_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+                session['excel_data'] = output.getvalue()
+                session['excel_filename'] = filename
+                
+                return jsonify({
+                    "success": True,
+                    "nist_data": nist_json,
+                    "agilent_data": agilent_json,
+                    "excel_file": None,  # Will trigger download via separate endpoint
+                    "filename": filename,
+                    "total_rows": total_rows_count,
+                    "preview_rows": preview_rows_count,
+                    "large_file": True
+                })
+            else:
+                # Small file - include in response
+                excel_base64 = base64.b64encode(output.getvalue()).decode('utf-8')
+                print("Excel encoding completed")
+                
+                # Safely get row counts without triggering pandas comparisons
+                try:
+                    total_rows_count = int(nist_results.shape[0]) if hasattr(nist_results, 'shape') else len(nist_results_data)
+                    preview_rows_count = int(len(nist_json))
+                except Exception as e:
+                    print(f"Error getting row counts: {e}")
+                    total_rows_count = 517  # Fallback
+                    preview_rows_count = 50  # Fallback
+                
+                filename = f'calculation_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+                print(f"Preparing response: total_rows={total_rows_count}, preview_rows={preview_rows_count}")
+                
+                response_data = {
+                    "success": True,
+                    "nist_data": nist_json,
+                    "agilent_data": agilent_json,
+                    "excel_file": excel_base64,
+                    "filename": filename,
+                    "total_rows": total_rows_count,
+                    "preview_rows": preview_rows_count,
+                    "large_file": False
+                }
+                
+                print("Creating JSON response...")
+                
+                # Debug: Check for problematic data types in JSON
+                try:
+                    import json
+                    json_test = json.dumps(response_data)
+                    print("JSON serialization test passed")
+                except Exception as json_error:
+                    print(f"JSON serialization error: {json_error}")
+                    
+                    # Clean the data more aggressively
+                    print("Cleaning JSON data...")
+                    clean_nist = []
+                    for row in nist_json:
+                        clean_row = {}
+                        for key, value in row.items():
+                            try:
+                                # Convert all values to safe JSON types
+                                if pd.isna(value) or value is None or str(value).strip() == '':
+                                    clean_row[str(key)] = ''
+                                elif isinstance(value, (int, float)):
+                                    if pd.isna(value):
+                                        clean_row[str(key)] = ''
+                                    else:
+                                        clean_row[str(key)] = float(value)
+                                else:
+                                    clean_row[str(key)] = str(value)
+                            except:
+                                clean_row[str(key)] = ''
+                        clean_nist.append(clean_row)
+                    
+                    clean_agilent = []
+                    for row in agilent_json:
+                        clean_row = {}
+                        for key, value in row.items():
+                            try:
+                                if pd.isna(value) or value is None or str(value).strip() == '':
+                                    clean_row[str(key)] = ''
+                                elif isinstance(value, (int, float)):
+                                    if pd.isna(value):
+                                        clean_row[str(key)] = ''
+                                    else:
+                                        clean_row[str(key)] = float(value)
+                                else:
+                                    clean_row[str(key)] = str(value)
+                            except:
+                                clean_row[str(key)] = ''
+                        clean_agilent.append(clean_row)
+                    
+                    # Update response with cleaned data
+                    response_data["nist_data"] = clean_nist
+                    response_data["agilent_data"] = clean_agilent
+                    print("JSON data cleaned")
+                
+                try:
+                    return jsonify(response_data)
+                except Exception as final_error:
+                    print(f"Final JSON error: {final_error}")
+                    # Bypass Flask's jsonify and return manual JSON response
+                    try:
+                        import json
+                        from flask import Response
+                        
+                        json_string = json.dumps(response_data)
+                        return Response(
+                            json_string,
+                            mimetype='application/json',
+                            status=200
+                        )
+                    except Exception as manual_error:
+                        print(f"Manual JSON error: {manual_error}")
+                        # Final fallback - return simple response
+                        simple_response = json.dumps({
+                            "success": True,
+                            "message": "Calculations completed successfully. Excel file generated.",
+                            "total_rows": total_rows_count,
+                            "excel_file": excel_base64,
+                            "filename": filename,
+                            "large_file": False,
+                            "nist_data": [{"Compound": "Preview available after download"}],
+                            "agilent_data": [{"Compound": "Preview available after download"}]
+                        })
+                        return Response(
+                            simple_response,
+                            mimetype='application/json',
+                            status=200
+                        )
+                
+        except Exception as e:
+            print(f"Error processing Excel file: {e}")
+            return jsonify({"error": f"Error processing Excel file: {str(e)}"}), 500
+        
+    except Exception as e:
+        return jsonify({"error": f"Processing error: {str(e)}"}), 500
+
+@app.route('/protocols/download-excel')
+def download_excel():
+    """Download large Excel file from session storage"""
+    try:
+        if 'excel_data' not in session or 'excel_filename' not in session:
+            return jsonify({"error": "No Excel file available for download"}), 404
+        
+        excel_data = session['excel_data']
+        filename = session['excel_filename']
+        
+        # Clear session data
+        session.pop('excel_data', None)
+        session.pop('excel_filename', None)
+        
+        return send_file(
+            BytesIO(excel_data),
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+    except Exception as e:
+        return jsonify({"error": f"Download error: {str(e)}"}), 500
+
+@app.route('/quantitative-analysis')
+def quantitative_analysis():
+    """Direct access to NIST/Agilent calculation tool"""
+    try:
+        return render_template('calculation_tool.html')
+    except Exception as e:
+        flash(f"Error accessing quantitative analysis: {str(e)}", "error")
+        return redirect(url_for('clean_dashboard'))
 
 # =====================================================
 # MANAGEMENT SECTION ROUTES

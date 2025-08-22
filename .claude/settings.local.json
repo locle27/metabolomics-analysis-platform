@@ -58,7 +58,8 @@
       "Bash(rg -n -A 5 -B 5 \"<form\" templates/auth/login.html)",
       "Bash(rg -n \"{{.*}}\" templates/email/password_reset.html)",
       "Bash(mv:*)",
-      "Bash(git ls-tree:*)"
+      "Bash(git ls-tree:*)",
+      "Bash(pip3 install:*)"
     ],
     "deny": []
   }
