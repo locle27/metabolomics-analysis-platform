@@ -36,6 +36,227 @@
         font-size: 14px;
     }
     
+    /* Detailed Calculation Section Styles */
+    .calculation-details-section {
+        margin-top: 30px;
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        background: #f8f9fa;
+    }
+    
+    .details-header {
+        padding: 0;
+    }
+    
+    .details-toggle-btn {
+        width: 100%;
+        background: linear-gradient(135deg, var(--primary-blue), var(--primary-orange));
+        color: white;
+        border: none;
+        padding: 15px 20px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: all 0.3s ease;
+    }
+    
+    .details-toggle-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(46, 76, 146, 0.3);
+    }
+    
+    .details-content {
+        padding: 20px;
+        background: white;
+        margin: 10px;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .details-explanation h4,
+    .data-sources h4,
+    .calculation-steps h4 {
+        color: var(--primary-blue);
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .explanation-grid,
+    .source-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .explanation-card,
+    .source-card {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        border-left: 4px solid var(--primary-orange);
+    }
+    
+    .explanation-card h5,
+    .source-card h5 {
+        color: var(--primary-blue);
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+    
+    .formula-box {
+        background: #e8f4f8;
+        padding: 10px;
+        border-radius: 5px;
+        margin-top: 10px;
+        border-left: 3px solid var(--primary-blue);
+    }
+    
+    .formula-box code {
+        background: none;
+        color: var(--primary-blue);
+        font-weight: 600;
+        font-size: 14px;
+    }
+    
+    .steps-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+    
+    .step-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 15px;
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+        transition: transform 0.2s ease;
+    }
+    
+    .step-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .step-number {
+        background: var(--primary-blue);
+        color: white;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+    
+    .step-content h5 {
+        color: var(--primary-blue);
+        margin-bottom: 8px;
+        font-weight: 600;
+    }
+    
+    .step-content code {
+        background: #e8f4f8;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 12px;
+        color: var(--primary-blue);
+    }
+    
+    .step-content small {
+        color: #666;
+        font-style: italic;
+    }
+    
+    .sample-calculation {
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+        padding: 30px;
+        margin: 0;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    }
+    
+    .sample-calculation h4 {
+        color: var(--primary-blue);
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 20px;
+    }
+    
+    .sample-calculation p {
+        color: #6c757d;
+        margin-bottom: 25px;
+        font-size: 14px;
+    }
+    
+    .calculation-breakdown {
+        background: white;
+        padding: 0;
+        border-radius: 8px;
+        margin-top: 0;
+        border: 1px solid #e9ecef;
+        overflow: hidden;
+    }
+    
+    .breakdown-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid #f1f3f5;
+        transition: background-color 0.2s ease;
+    }
+    
+    .breakdown-row:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .breakdown-row:last-child {
+        border-bottom: none;
+        font-weight: 600;
+        background: linear-gradient(135deg, var(--primary-blue), var(--primary-orange));
+        color: white;
+        margin: 0;
+        padding: 20px;
+    }
+    
+    .breakdown-row:last-child .breakdown-label,
+    .breakdown-row:last-child .breakdown-value {
+        color: white;
+    }
+    
+    .breakdown-label {
+        font-weight: 500;
+        color: #495057;
+        font-size: 14px;
+    }
+    
+    .breakdown-value {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--primary-blue);
+        font-weight: 600;
+        font-size: 14px;
+    }
+    
+    @media (max-width: 768px) {
+        .explanation-grid,
+        .source-grid,
+        .steps-container {
+            grid-template-columns: 1fr;
+        }
+    }
+    
     .upload-section {
         background: #f8f9fa;
         border: 2px dashed #dee2e6;
@@ -332,6 +553,23 @@
                             <i class="fas fa-redo"></i> Calculate Another File
                         </button>
                     </div>
+                    
+                    <!-- Detailed Calculation Preview Section -->
+                    <div class="calculation-details-section" id="calculationDetailsSection">
+                        <div class="details-header">
+                            <button class="details-toggle-btn" onclick="toggleCalculationDetails()">
+                                <i class="fas fa-calculator"></i> 
+                                <span id="detailsToggleText">Show Detailed Calculation Breakdown</span>
+                                <i class="fas fa-chevron-down" id="detailsToggleIcon"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="details-content" id="calculationDetailsContent" style="display: none;">
+                            <div class="sample-calculation" id="sampleCalculationBreakdown">
+                                <!-- Sample calculation will be inserted here by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -487,6 +725,9 @@ document.getElementById('calculationForm').addEventListener('submit', async func
         if (response.ok) {
             const result = await response.json();
             
+            console.log('🔍 Full server response received:', result);
+            console.log('🔍 sample_breakdown in response:', result.sample_breakdown);
+            
             if (result.success) {
                 // Handle small vs large files differently
                 if (result.large_file) {
@@ -510,6 +751,16 @@ document.getElementById('calculationForm').addEventListener('submit', async func
                 // Display preview
                 document.getElementById('nistPreview').innerHTML = createPreviewTable(result.nist_data, result.total_rows);
                 document.getElementById('agilentPreview').innerHTML = createPreviewTable(result.agilent_data, result.total_rows);
+                
+                // Update sample calculation breakdown with real uploaded data
+                console.log('🔍 Before calling generateSampleCalculation, result.sample_breakdown:', result.sample_breakdown);
+                if (result.sample_breakdown) {
+                    generateSampleCalculation(result);
+                } else {
+                    console.log('⚠️ No sample_breakdown in result. Available keys:', Object.keys(result));
+                    // Still call it for debugging
+                    generateSampleCalculation(result);
+                }
                 
                 // Show preview section
                 document.getElementById('previewSection').style.display = 'block';
@@ -546,5 +797,115 @@ document.getElementById('calculationForm').addEventListener('submit', async func
         processBtn.disabled = false;
     }
 });
+
+// Toggle detailed calculation section
+function toggleCalculationDetails() {
+    const content = document.getElementById('calculationDetailsContent');
+    const toggleText = document.getElementById('detailsToggleText');
+    const toggleIcon = document.getElementById('detailsToggleIcon');
+    
+    if (content.style.display === 'none' || content.style.display === '') {
+        content.style.display = 'block';
+        toggleText.textContent = 'Hide Detailed Calculation Breakdown';
+        toggleIcon.className = 'fas fa-chevron-up';
+        
+        // Don't regenerate - the calculation should already be there from file processing
+        // generateSampleCalculation(); // REMOVED - was causing the second call with null data
+    } else {
+        content.style.display = 'none';
+        toggleText.textContent = 'Show Detailed Calculation Breakdown';
+        toggleIcon.className = 'fas fa-chevron-down';
+    }
+}
+
+// Generate sample calculation breakdown using data from uploaded file
+function generateSampleCalculation(uploadedFileData = null) {
+    const sampleDiv = document.getElementById('sampleCalculationBreakdown');
+    
+    console.log('🔍 JavaScript Debug - generateSampleCalculation called');
+    console.log('uploadedFileData:', uploadedFileData);
+    console.log('sample_breakdown exists:', uploadedFileData?.sample_breakdown);
+    
+    let sampleData;
+    
+    // Use actual data from the uploaded file if available
+    if (uploadedFileData && uploadedFileData.sample_breakdown) {
+        sampleData = uploadedFileData.sample_breakdown;
+        console.log('✅ Using uploaded file data:', sampleData);
+    } else {
+        // Fallback to default example
+        sampleData = {
+            compound: 'First compound from uploaded file',
+            sample: 'First sample from uploaded file',
+            area: 0,
+            istd_area: 212434.0,
+            nist_reference: 0.1769,
+            concentration: 25.0,
+            response_factor: 1.0,
+            coefficient: parseInt(document.getElementById('coefficient')?.value) || 500
+        };
+        console.log('⚠️ Using fallback data - uploadedFileData missing or invalid');
+        if (uploadedFileData) {
+            console.log('Available keys in uploadedFileData:', Object.keys(uploadedFileData));
+        }
+    }
+    
+    // Use pre-calculated values if available, otherwise calculate step by step
+    const ratio = sampleData.ratio || (sampleData.area / sampleData.istd_area);
+    const nist_result = sampleData.nist_result || (ratio / sampleData.nist_reference);
+    const agilent_result = sampleData.agilent_result || (ratio * sampleData.concentration * sampleData.response_factor * sampleData.coefficient);
+    
+    const html = `
+        <h4>Sample Calculation Breakdown</h4>
+        <p><strong>Example:</strong> ${sampleData.compound} (First compound from uploaded data) in ${sampleData.sample} (First sample)</p>
+        
+        <div style="background: #f0f0f0; padding: 10px; margin-bottom: 15px; border-radius: 5px; font-family: monospace; font-size: 12px;">
+            <strong>Debug Info:</strong><br>
+            Data Source: ${uploadedFileData && uploadedFileData.sample_breakdown ? '✅ Real uploaded data' : '⚠️ Fallback data'}<br>
+            Area Value: ${sampleData.area} (${typeof sampleData.area})
+        </div>
+        
+        <div class="calculation-breakdown">
+            <div class="breakdown-row">
+                <span class="breakdown-label">Raw Compound Area</span>
+                <span class="breakdown-value">${sampleData.area.toLocaleString()}</span>
+            </div>
+            <div class="breakdown-row">
+                <span class="breakdown-label">Internal Standard (ISTD) Area</span>
+                <span class="breakdown-value">${sampleData.istd_area.toLocaleString()}</span>
+            </div>
+            <div class="breakdown-row">
+                <span class="breakdown-label">Ratio = Area ÷ ISTD</span>
+                <span class="breakdown-value">${ratio.toFixed(6)}</span>
+            </div>
+            <div class="breakdown-row">
+                <span class="breakdown-label">NIST Reference Value</span>
+                <span class="breakdown-value">${sampleData.nist_reference}</span>
+            </div>
+            <div class="breakdown-row">
+                <span class="breakdown-label">NIST Result = Ratio ÷ NIST Ref</span>
+                <span class="breakdown-value">${nist_result.toFixed(6)}</span>
+            </div>
+            <div class="breakdown-row">
+                <span class="breakdown-label">Concentration (nM)</span>
+                <span class="breakdown-value">${sampleData.concentration}</span>
+            </div>
+            <div class="breakdown-row">
+                <span class="breakdown-label">Response Factor</span>
+                <span class="breakdown-value">${sampleData.response_factor}</span>
+            </div>
+            <div class="breakdown-row">
+                <span class="breakdown-label">Coefficient</span>
+                <span class="breakdown-value">${sampleData.coefficient}</span>
+            </div>
+            <div class="breakdown-row">
+                <span class="breakdown-label">Final Agilent Result</span>
+                <span class="breakdown-value">${agilent_result.toFixed(6)}</span>
+            </div>
+        </div>
+    `;
+    
+    sampleDiv.innerHTML = html;
+}
 </script>
 {% endblock %}

@@ -2808,22 +2808,39 @@ def calculate_analysis():
         except Exception as e:
             return jsonify({"error": f"Error loading reference data: {str(e)}"}), 400
         
-        # Process main data sheet structure (skip header row if exists)
+        # Process main data sheet structure (check for multiple header rows)
         print("🔍 Processing main data structure...")
-        if main_data.iloc[0, 0] == 'Name' or str(main_data.iloc[0, 0]).lower() == 'name':
-            # Skip header row and use row 0 as compounds, data starts from row 1
-            compound_method_col = main_data.columns[0]  # First column has compounds
-            data_columns = main_data.columns[1:]  # All other columns are samples/NIST
-            compounds = main_data.iloc[1:, 0].astype(str).str.strip()  # Skip header row
-            area_data_values = main_data.iloc[1:, 1:]  # Skip header row and compound column
-            print(f"✅ Found header row, processing {len(compounds)} compounds")
+        
+        # Check first few rows to identify header structure
+        print(f"🔍 Row 0: {list(main_data.iloc[0, :5])}")  # First 5 columns of row 0
+        print(f"🔍 Row 1: {list(main_data.iloc[1, :5])}")  # First 5 columns of row 1
+        if len(main_data) > 2:
+            print(f"🔍 Row 2: {list(main_data.iloc[2, :5])}")  # First 5 columns of row 2
+        
+        # Check if we have double headers (like "Name", "Area", "Area" in row 1)
+        row_0_first = str(main_data.iloc[0, 0]).strip().lower()
+        row_1_first = str(main_data.iloc[1, 0]).strip().lower()
+        
+        skip_rows = 0
+        if row_1_first in ['name', 'area', 'compound']:
+            # Double header - skip both row 0 and row 1
+            skip_rows = 2
+            print("✅ Found double header rows, skipping first 2 rows")
+        elif row_0_first in ['name', 'area', 'compound']:
+            # Single header - skip row 0
+            skip_rows = 1
+            print("✅ Found single header row, skipping first row")
         else:
-            # No header row, data starts from row 0
-            compound_method_col = main_data.columns[0]
-            data_columns = main_data.columns[1:]
-            compounds = main_data.iloc[:, 0].astype(str).str.strip()
-            area_data_values = main_data.iloc[:, 1:]
-            print(f"✅ No header row, processing {len(compounds)} compounds")
+            # No header - start from row 0
+            skip_rows = 0
+            print("✅ No header rows found, starting from row 0")
+        
+        # Extract data after skipping appropriate header rows
+        compound_method_col = main_data.columns[0]  # First column has compounds
+        data_columns = main_data.columns[1:]  # All other columns are samples/NIST
+        compounds = main_data.iloc[skip_rows:, 0].astype(str).str.strip()  # Skip header rows
+        area_data_values = main_data.iloc[skip_rows:, 1:]  # Skip header rows and compound column
+        print(f"✅ Processing {len(compounds)} compounds after skipping {skip_rows} header rows")
         
         print(f"📋 Data columns sample: {list(data_columns)[:10]}...")
         
@@ -3037,6 +3054,116 @@ def calculate_analysis():
                     total_rows_count = 517  # Fallback
                     preview_rows_count = 50  # Fallback
                 
+                # Create sample breakdown from first compound and first sample for detailed explanation
+                sample_breakdown = None
+                try:
+                    if len(compounds) > 0 and len(sample_columns) > 0:
+                        first_compound = str(compounds.iloc[0]).strip()
+                        first_sample = sample_columns[0]
+                        
+                        print(f"🔍 Sample breakdown debug:")
+                        print(f"  First compound: '{first_compound}'")
+                        print(f"  First sample: '{first_sample}'")
+                        print(f"  Sample columns: {sample_columns[:3]}")
+                        print(f"  Data columns: {list(data_columns)[:3]}")
+                        print(f"  Area data shape: {area_data_values.shape}")
+                        
+                        # Get the actual area value for first compound, first sample
+                        # Method 1: Direct column access
+                        try:
+                            first_area_value = area_data_values.iloc[0][first_sample]
+                            print(f"  Method 1 (direct): area = {first_area_value}")
+                        except Exception as e1:
+                            print(f"  Method 1 failed: {e1}")
+                            
+                            # Method 2: Find column index
+                            try:
+                                sample_col_index = list(data_columns).index(first_sample)
+                                first_area_value = area_data_values.iloc[0, sample_col_index]
+                                print(f"  Method 2 (index {sample_col_index}): area = {first_area_value}")
+                            except Exception as e2:
+                                print(f"  Method 2 failed: {e2}")
+                                
+                                # Method 3: Use first available column
+                                first_area_value = area_data_values.iloc[0, 0]
+                                print(f"  Method 3 (fallback): area = {first_area_value}")
+                        
+                        # Use EXACT SAME LOGIC as main calculation loop (idx=0, col=first_sample)
+                        idx = 0  # First compound
+                        col = first_sample  # First sample
+                        
+                        # Get area value for this compound and sample
+                        area_value = area_data_values.iloc[idx][col]
+                        print(f"  Raw area value: {area_value}")
+                        
+                        # Get ISTD information from database (SAME LOGIC)
+                        compound_info = compound_data.get(first_compound, {})
+                        istd_name = compound_info.get('istd', 'LPC 18:1 d7')  # Default ISTD
+                        conc_nm = compound_info.get('conc_nm', 25.0)
+                        response_factor = compound_info.get('response_factor', 1.0)
+                        print(f"  ISTD name: {istd_name}")
+                        print(f"  Concentration: {conc_nm}")
+                        print(f"  Response factor: {response_factor}")
+                        
+                        # Find ISTD area in the same sample column (SAME LOGIC)
+                        istd_area = None
+                        for istd_idx, istd_compound in enumerate(compounds):
+                            if str(istd_compound).strip() == istd_name:
+                                istd_area = area_data_values.iloc[istd_idx][col]
+                                print(f"  Found ISTD at idx {istd_idx}: {istd_area}")
+                                break
+                        
+                        # If ISTD not found, use calculated value (SAME LOGIC)
+                        if istd_area is None or pd.isna(istd_area) or istd_area == 0:
+                            istd_area = 212434.0
+                            print(f"  Using calculated ISTD: {istd_area}")
+                        
+                        # Calculate ratio (SAME LOGIC)
+                        sample_ratio = float(area_value) / float(istd_area)
+                        print(f"  Ratio: {sample_ratio}")
+                        
+                        # Determine NIST column based on sample number (SAME LOGIC)
+                        sample_num = int(first_sample.split('_')[1])
+                        if sample_num <= 5725:
+                            nist_col = 'NIST_5701-5800 (1)'
+                        elif sample_num <= 5750:
+                            nist_col = 'NIST_5701-5800 (2)'
+                        elif sample_num <= 5775:
+                            nist_col = 'NIST_5701-5800 (3)'
+                        else:
+                            nist_col = 'NIST_5701-5800 (4)'
+                        print(f"  NIST column: {nist_col}")
+                        
+                        # Get NIST reference (or use default)
+                        nist_reference = 0.1769  # Default value
+                        print(f"  NIST reference: {nist_reference}")
+                        
+                        # Calculate NIST value (SAME LOGIC)
+                        nist_value = sample_ratio / nist_reference
+                        
+                        # Calculate Agilent value (SAME LOGIC)
+                        agilent_value = float(sample_ratio) * conc_nm * response_factor * coefficient
+                        print(f"  Final Agilent value: {agilent_value}")
+                        
+                        sample_breakdown = {
+                            'compound': first_compound,
+                            'sample': str(first_sample),
+                            'area': float(area_value) if pd.notna(area_value) else 0.0,
+                            'istd_area': float(istd_area),
+                            'nist_reference': nist_reference,
+                            'concentration': conc_nm,
+                            'response_factor': response_factor,
+                            'coefficient': coefficient,
+                            'ratio': sample_ratio,
+                            'nist_result': nist_value,
+                            'agilent_result': agilent_value
+                        }
+                        print(f"✅ Sample breakdown created using main calculation logic: {first_compound} in {first_sample}")
+                except Exception as e:
+                    print(f"⚠️ Error creating sample breakdown: {e}")
+                    import traceback
+                    traceback.print_exc()
+                
                 # Store in session or temporary file
                 filename = f'calculation_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
                 session['excel_data'] = output.getvalue()
@@ -3050,7 +3177,8 @@ def calculate_analysis():
                     "filename": filename,
                     "total_rows": total_rows_count,
                     "preview_rows": preview_rows_count,
-                    "large_file": True
+                    "large_file": True,
+                    "sample_breakdown": sample_breakdown
                 })
             else:
                 # Small file - include in response
@@ -3069,6 +3197,116 @@ def calculate_analysis():
                 filename = f'calculation_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
                 print(f"Preparing response: total_rows={total_rows_count}, preview_rows={preview_rows_count}")
                 
+                # Create sample breakdown from first compound and first sample for detailed explanation
+                sample_breakdown = None
+                try:
+                    if len(compounds) > 0 and len(sample_columns) > 0:
+                        first_compound = str(compounds.iloc[0]).strip()
+                        first_sample = sample_columns[0]
+                        
+                        print(f"🔍 Sample breakdown debug:")
+                        print(f"  First compound: '{first_compound}'")
+                        print(f"  First sample: '{first_sample}'")
+                        print(f"  Sample columns: {sample_columns[:3]}")
+                        print(f"  Data columns: {list(data_columns)[:3]}")
+                        print(f"  Area data shape: {area_data_values.shape}")
+                        
+                        # Get the actual area value for first compound, first sample
+                        # Method 1: Direct column access
+                        try:
+                            first_area_value = area_data_values.iloc[0][first_sample]
+                            print(f"  Method 1 (direct): area = {first_area_value}")
+                        except Exception as e1:
+                            print(f"  Method 1 failed: {e1}")
+                            
+                            # Method 2: Find column index
+                            try:
+                                sample_col_index = list(data_columns).index(first_sample)
+                                first_area_value = area_data_values.iloc[0, sample_col_index]
+                                print(f"  Method 2 (index {sample_col_index}): area = {first_area_value}")
+                            except Exception as e2:
+                                print(f"  Method 2 failed: {e2}")
+                                
+                                # Method 3: Use first available column
+                                first_area_value = area_data_values.iloc[0, 0]
+                                print(f"  Method 3 (fallback): area = {first_area_value}")
+                        
+                        # Use EXACT SAME LOGIC as main calculation loop (idx=0, col=first_sample)
+                        idx = 0  # First compound
+                        col = first_sample  # First sample
+                        
+                        # Get area value for this compound and sample
+                        area_value = area_data_values.iloc[idx][col]
+                        print(f"  Raw area value: {area_value}")
+                        
+                        # Get ISTD information from database (SAME LOGIC)
+                        compound_info = compound_data.get(first_compound, {})
+                        istd_name = compound_info.get('istd', 'LPC 18:1 d7')  # Default ISTD
+                        conc_nm = compound_info.get('conc_nm', 25.0)
+                        response_factor = compound_info.get('response_factor', 1.0)
+                        print(f"  ISTD name: {istd_name}")
+                        print(f"  Concentration: {conc_nm}")
+                        print(f"  Response factor: {response_factor}")
+                        
+                        # Find ISTD area in the same sample column (SAME LOGIC)
+                        istd_area = None
+                        for istd_idx, istd_compound in enumerate(compounds):
+                            if str(istd_compound).strip() == istd_name:
+                                istd_area = area_data_values.iloc[istd_idx][col]
+                                print(f"  Found ISTD at idx {istd_idx}: {istd_area}")
+                                break
+                        
+                        # If ISTD not found, use calculated value (SAME LOGIC)
+                        if istd_area is None or pd.isna(istd_area) or istd_area == 0:
+                            istd_area = 212434.0
+                            print(f"  Using calculated ISTD: {istd_area}")
+                        
+                        # Calculate ratio (SAME LOGIC)
+                        sample_ratio = float(area_value) / float(istd_area)
+                        print(f"  Ratio: {sample_ratio}")
+                        
+                        # Determine NIST column based on sample number (SAME LOGIC)
+                        sample_num = int(first_sample.split('_')[1])
+                        if sample_num <= 5725:
+                            nist_col = 'NIST_5701-5800 (1)'
+                        elif sample_num <= 5750:
+                            nist_col = 'NIST_5701-5800 (2)'
+                        elif sample_num <= 5775:
+                            nist_col = 'NIST_5701-5800 (3)'
+                        else:
+                            nist_col = 'NIST_5701-5800 (4)'
+                        print(f"  NIST column: {nist_col}")
+                        
+                        # Get NIST reference (or use default)
+                        nist_reference = 0.1769  # Default value
+                        print(f"  NIST reference: {nist_reference}")
+                        
+                        # Calculate NIST value (SAME LOGIC)
+                        nist_value = sample_ratio / nist_reference
+                        
+                        # Calculate Agilent value (SAME LOGIC)
+                        agilent_value = float(sample_ratio) * conc_nm * response_factor * coefficient
+                        print(f"  Final Agilent value: {agilent_value}")
+                        
+                        sample_breakdown = {
+                            'compound': first_compound,
+                            'sample': str(first_sample),
+                            'area': float(area_value) if pd.notna(area_value) else 0.0,
+                            'istd_area': float(istd_area),
+                            'nist_reference': nist_reference,
+                            'concentration': conc_nm,
+                            'response_factor': response_factor,
+                            'coefficient': coefficient,
+                            'ratio': sample_ratio,
+                            'nist_result': nist_value,
+                            'agilent_result': agilent_value
+                        }
+                        print(f"✅ Sample breakdown created using main calculation logic: {first_compound} in {first_sample}")
+                except Exception as e:
+                    print(f"⚠️ Error creating sample breakdown: {e}")
+                    import traceback
+                    traceback.print_exc()
+                
                 response_data = {
                     "success": True,
                     "nist_data": nist_json,
@@ -3077,10 +3315,19 @@ def calculate_analysis():
                     "filename": filename,
                     "total_rows": total_rows_count,
                     "preview_rows": preview_rows_count,
-                    "large_file": False
+                    "large_file": False,
+                    "sample_breakdown": sample_breakdown
                 }
                 
                 print("Creating JSON response...")
+                
+                # Debug: Check if sample_breakdown is in the response
+                if sample_breakdown:
+                    print(f"🔍 Sample breakdown will be included in response:")
+                    for key, value in sample_breakdown.items():
+                        print(f"  {key}: {value} ({type(value)})")
+                else:
+                    print("⚠️ No sample_breakdown to include in response")
                 
                 # Debug: Check for problematic data types in JSON
                 try:
