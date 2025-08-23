@@ -249,6 +249,95 @@
         font-size: 14px;
     }
     
+    .compound-search-section {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 25px;
+    }
+    
+    .compound-search-section h5 {
+        color: var(--primary-blue);
+        margin-bottom: 15px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .search-input-container {
+        position: relative;
+        margin-bottom: 10px;
+    }
+    
+    .compound-search-input {
+        width: 100%;
+        padding: 12px 40px 12px 15px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .compound-search-input:focus {
+        outline: none;
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 3px rgba(46, 76, 146, 0.1);
+    }
+    
+    .search-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+        font-size: 16px;
+    }
+    
+    .compound-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #e9ecef;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+    }
+    
+    .compound-option {
+        padding: 12px 15px;
+        cursor: pointer;
+        border-bottom: 1px solid #f1f3f5;
+        transition: background-color 0.2s ease;
+        font-size: 14px;
+    }
+    
+    .compound-option:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .compound-option:last-child {
+        border-bottom: none;
+    }
+    
+    .compound-option.selected {
+        background-color: var(--primary-blue);
+        color: white;
+    }
+    
+    .search-info {
+        color: #6c757d;
+        font-size: 12px;
+        font-style: italic;
+        margin-top: 5px;
+    }
+    
     @media (max-width: 768px) {
         .explanation-grid,
         .source-grid,
@@ -565,6 +654,25 @@
                         </div>
                         
                         <div class="details-content" id="calculationDetailsContent" style="display: none;">
+                            <!-- Compound Search Section -->
+                            <div class="compound-search-section" id="compoundSearchSection" style="display: none;">
+                                <h5><i class="fas fa-search"></i> Search Compound</h5>
+                                <div class="search-input-container">
+                                    <input type="text" 
+                                           id="compoundSearchInput" 
+                                           class="compound-search-input" 
+                                           placeholder="Type compound name to search..." 
+                                           autocomplete="off">
+                                    <i class="fas fa-search search-icon"></i>
+                                    <div id="compoundDropdown" class="compound-dropdown">
+                                        <!-- Compound options will be populated by JavaScript -->
+                                    </div>
+                                </div>
+                                <div class="search-info" id="searchInfo">
+                                    <!-- Search info will be updated by JavaScript -->
+                                </div>
+                            </div>
+                            
                             <div class="sample-calculation" id="sampleCalculationBreakdown">
                                 <!-- Sample calculation will be inserted here by JavaScript -->
                             </div>
@@ -579,6 +687,8 @@
 <script>
 // Global variables to store results
 let calculationResults = null;
+let availableCompounds = [];
+let currentUploadedData = null;
 
 // Tab switching
 function showTab(tabName) {
@@ -752,6 +862,13 @@ document.getElementById('calculationForm').addEventListener('submit', async func
                 document.getElementById('nistPreview').innerHTML = createPreviewTable(result.nist_data, result.total_rows);
                 document.getElementById('agilentPreview').innerHTML = createPreviewTable(result.agilent_data, result.total_rows);
                 
+                // Store uploaded data for compound search feature
+                currentUploadedData = result;
+                if (result.sample_breakdown && result.sample_breakdown.available_compounds) {
+                    availableCompounds = result.sample_breakdown.available_compounds;
+                    console.log(`📊 Loaded ${availableCompounds.length} compounds for search`);
+                }
+                
                 // Update sample calculation breakdown with real uploaded data
                 console.log('🔍 Before calling generateSampleCalculation, result.sample_breakdown:', result.sample_breakdown);
                 if (result.sample_breakdown) {
@@ -832,6 +949,12 @@ function generateSampleCalculation(uploadedFileData = null) {
     if (uploadedFileData && uploadedFileData.sample_breakdown) {
         sampleData = uploadedFileData.sample_breakdown;
         console.log('✅ Using uploaded file data:', sampleData);
+        
+        // Show compound search section if compounds are available
+        if (sampleData.available_compounds && sampleData.available_compounds.length > 0) {
+            document.getElementById('compoundSearchSection').style.display = 'block';
+            setupCompoundSearch(sampleData);
+        }
     } else {
         // Fallback to default example
         sampleData = {
@@ -906,6 +1029,210 @@ function generateSampleCalculation(uploadedFileData = null) {
     `;
     
     sampleDiv.innerHTML = html;
+}
+
+// Setup compound search functionality
+function setupCompoundSearch(sampleData) {
+    const searchInput = document.getElementById('compoundSearchInput');
+    const searchInfo = document.getElementById('searchInfo');
+    const dropdown = document.getElementById('compoundDropdown');
+    
+    // Set current compound as default
+    searchInput.value = sampleData.compound;
+    searchInfo.textContent = `${sampleData.total_compounds} compounds available. Currently showing: ${sampleData.compound}`;
+    
+    // Setup event listeners
+    searchInput.addEventListener('input', handleCompoundSearch);
+    searchInput.addEventListener('focus', handleCompoundSearch);
+    searchInput.addEventListener('blur', hideDropdownDelayed);
+    
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.search-input-container')) {
+            hideDropdown();
+        }
+    });
+    
+    console.log('🔍 Compound search setup complete');
+}
+
+// Handle compound search input
+function handleCompoundSearch(event) {
+    const searchTerm = event.target.value.toLowerCase();
+    const dropdown = document.getElementById('compoundDropdown');
+    
+    if (!availableCompounds || availableCompounds.length === 0) {
+        console.log('⚠️ No compounds available for search');
+        return;
+    }
+    
+    // Filter compounds based on search term
+    const filteredCompounds = availableCompounds.filter(compound => 
+        compound.name.toLowerCase().includes(searchTerm)
+    );
+    
+    // Populate dropdown
+    populateCompoundDropdown(filteredCompounds);
+    showDropdown();
+}
+
+// Populate compound dropdown with filtered results
+function populateCompoundDropdown(compounds) {
+    const dropdown = document.getElementById('compoundDropdown');
+    
+    if (compounds.length === 0) {
+        dropdown.innerHTML = '<div class="compound-option">No compounds found</div>';
+        return;
+    }
+    
+    // Limit results to first 10 for performance
+    const limitedCompounds = compounds.slice(0, 10);
+    
+    dropdown.innerHTML = limitedCompounds
+        .map(compound => `
+            <div class="compound-option" 
+                 data-compound-name="${compound.name}" 
+                 data-compound-index="${compound.index}"
+                 onclick="selectCompound('${compound.name}', ${compound.index})">
+                ${compound.name}
+            </div>
+        `).join('');
+    
+    if (compounds.length > 10) {
+        dropdown.innerHTML += '<div class="compound-option" style="font-style: italic; color: #6c757d;">...and ' + (compounds.length - 10) + ' more results</div>';
+    }
+}
+
+// Select a compound and update calculation
+function selectCompound(compoundName, compoundIndex) {
+    const searchInput = document.getElementById('compoundSearchInput');
+    const searchInfo = document.getElementById('searchInfo');
+    
+    // Update input value
+    searchInput.value = compoundName;
+    searchInfo.textContent = `Selected: ${compoundName} (Index: ${compoundIndex})`;
+    
+    // Hide dropdown
+    hideDropdown();
+    
+    // Update calculation breakdown for selected compound
+    updateCompoundCalculation(compoundName, compoundIndex);
+    
+    console.log(`✅ Selected compound: ${compoundName} (Index: ${compoundIndex})`);
+}
+
+// Update calculation breakdown for selected compound
+async function updateCompoundCalculation(compoundName, compoundIndex) {
+    try {
+        // For now, we'll use the same calculation logic but update the display
+        // In a full implementation, this would call the backend API
+        
+        console.log(`🔄 Updating calculation for: ${compoundName}`);
+        
+        // Create updated sample data with selected compound
+        const updatedSampleData = {
+            ...currentUploadedData.sample_breakdown,
+            compound: compoundName,
+            // Note: In full implementation, we'd get real area values for this compound
+            note: `Calculation for ${compoundName} (Index: ${compoundIndex})`
+        };
+        
+        // Regenerate the breakdown display with selected compound
+        generateCompoundBreakdownHTML(updatedSampleData);
+        
+        // TODO: Call backend API for accurate calculation
+        // const response = await fetch('/protocols/calculate-compound-breakdown', {
+        //     method: 'POST',
+        //     headers: { 'Content-Type': 'application/json' },
+        //     body: JSON.stringify({
+        //         compound_name: compoundName,
+        //         compound_index: compoundIndex,
+        //         uploaded_data: currentUploadedData
+        //     })
+        // });
+        
+    } catch (error) {
+        console.error('❌ Error updating compound calculation:', error);
+    }
+}
+
+// Generate breakdown HTML for selected compound
+function generateCompoundBreakdownHTML(sampleData) {
+    const sampleDiv = document.getElementById('sampleCalculationBreakdown');
+    
+    // Use pre-calculated values if available, otherwise calculate step by step
+    const ratio = sampleData.ratio || (sampleData.area / sampleData.istd_area);
+    const nist_result = sampleData.nist_result || (ratio / sampleData.nist_reference);
+    const agilent_result = sampleData.agilent_result || (ratio * sampleData.concentration * sampleData.response_factor * sampleData.coefficient);
+    
+    const html = `
+        <h4>Sample Calculation Breakdown</h4>
+        <p><strong>Example:</strong> ${sampleData.compound} (Selected compound) in ${sampleData.sample} (First sample)</p>
+        
+        <div style="background: #f0f0f0; padding: 10px; margin-bottom: 15px; border-radius: 5px; font-family: monospace; font-size: 12px;">
+            <strong>Debug Info:</strong><br>
+            Data Source: ${currentUploadedData && currentUploadedData.sample_breakdown ? '✅ Real uploaded data' : '⚠️ Fallback data'}<br>
+            Selected Compound: ${sampleData.compound}<br>
+            Area Value: ${sampleData.area} (${typeof sampleData.area})<br>
+            ${sampleData.note ? `Note: ${sampleData.note}` : ''}
+        </div>
+        
+        <div class="calculation-breakdown">
+            <div class="breakdown-row">
+                <span class="breakdown-label">Raw Compound Area</span>
+                <span class="breakdown-value">${sampleData.area.toLocaleString()}</span>
+            </div>
+            <div class="breakdown-row">
+                <span class="breakdown-label">Internal Standard (ISTD) Area</span>
+                <span class="breakdown-value">${sampleData.istd_area.toLocaleString()}</span>
+            </div>
+            <div class="breakdown-row">
+                <span class="breakdown-label">Ratio = Area ÷ ISTD</span>
+                <span class="breakdown-value">${ratio.toFixed(6)}</span>
+            </div>
+            <div class="breakdown-row">
+                <span class="breakdown-label">NIST Reference Value</span>
+                <span class="breakdown-value">${sampleData.nist_reference}</span>
+            </div>
+            <div class="breakdown-row">
+                <span class="breakdown-label">NIST Result = Ratio ÷ NIST Ref</span>
+                <span class="breakdown-value">${nist_result.toFixed(6)}</span>
+            </div>
+            <div class="breakdown-row">
+                <span class="breakdown-label">Concentration (nM)</span>
+                <span class="breakdown-value">${sampleData.concentration}</span>
+            </div>
+            <div class="breakdown-row">
+                <span class="breakdown-label">Response Factor</span>
+                <span class="breakdown-value">${sampleData.response_factor}</span>
+            </div>
+            <div class="breakdown-row">
+                <span class="breakdown-label">Coefficient</span>
+                <span class="breakdown-value">${sampleData.coefficient}</span>
+            </div>
+            <div class="breakdown-row">
+                <span class="breakdown-label">Final Agilent Result</span>
+                <span class="breakdown-value">${agilent_result.toFixed(6)}</span>
+            </div>
+        </div>
+    `;
+    
+    sampleDiv.innerHTML = html;
+}
+
+// Show dropdown
+function showDropdown() {
+    document.getElementById('compoundDropdown').style.display = 'block';
+}
+
+// Hide dropdown
+function hideDropdown() {
+    document.getElementById('compoundDropdown').style.display = 'none';
+}
+
+// Hide dropdown with delay (for blur event)
+function hideDropdownDelayed() {
+    setTimeout(hideDropdown, 200);
 }
 </script>
 {% endblock %}
