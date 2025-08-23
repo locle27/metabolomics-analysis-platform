@@ -3582,7 +3582,7 @@ def download_excel():
 @app.route('/quantitative-analysis')
 def quantitative_analysis():
     """Redirect old quantitative-analysis to new streamlined calculator"""
-    return redirect(url_for('streamlined_calculator'))
+    return redirect(url_for('streamlined_calculator_page'))
 
 @app.route('/protocols/calculate-compound-breakdown', methods=['POST'])
 # @csrf.exempt  # CSRF protection unavailable - commented out
