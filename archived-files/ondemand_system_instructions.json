@@ -1,0 +1,43 @@
+{
+  "timestamp": "2025-08-23T10:39:12.358155",
+  "steps": [
+    {
+      "step": 1,
+      "action": "Upload Excel file",
+      "description": "Upload your Excel file through the web interface",
+      "technical": "Raw data stored in session['raw_calculation_data']"
+    },
+    {
+      "step": 2,
+      "action": "Search compounds",
+      "description": "Search for any compound by name (all compounds searchable)",
+      "technical": "Frontend shows \ud83d\ude80 indicator for on-demand compounds"
+    },
+    {
+      "step": 3,
+      "action": "Select compound",
+      "description": "Click on any compound from search results",
+      "technical": "Triggers updateCompoundCalculation() with API call"
+    },
+    {
+      "step": 4,
+      "action": "View real-time calculation",
+      "description": "See loading spinner, then fresh calculation results",
+      "technical": "API endpoint processes compound at specified index"
+    },
+    {
+      "step": 5,
+      "action": "Verify accuracy",
+      "description": "Compare with original Excel file calculations",
+      "technical": "Uses identical logic as main calculation loop"
+    }
+  ],
+  "advantages": [
+    "Complete compound coverage (not limited to first 50-100)",
+    "Fast initial page loading",
+    "Real-time calculation accuracy",
+    "Scalable to any dataset size",
+    "Memory efficient operation",
+    "Session-based data persistence"
+  ]
+}

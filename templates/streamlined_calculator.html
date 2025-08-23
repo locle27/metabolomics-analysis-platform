@@ -1,0 +1,1116 @@
+{% extends "base.html" %}
+
+{% block title %}Streamlined Metabolomics Calculator - Professional System{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Professional calculator styling */
+    body {
+        overflow-x: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .calculator-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        padding: 40px;
+        margin: 20px;
+        max-width: none;
+    }
+    
+    .formula-card {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        border-left: 5px solid var(--primary-blue);
+        padding: 25px;
+        margin-bottom: 30px;
+        border-radius: 8px;
+    }
+    
+    .step-formula {
+        background: white;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 6px;
+        font-family: 'Courier New', monospace;
+        border: 1px solid #dee2e6;
+    }
+    
+    .upload-zone {
+        background: #f8f9fa;
+        border: 3px dashed #6c757d;
+        border-radius: 12px;
+        padding: 50px 30px;
+        text-align: center;
+        margin: 30px 0;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .upload-zone:hover {
+        border-color: var(--primary-blue);
+        background: #f0f4f8;
+    }
+    
+    .upload-zone.dragover {
+        border-color: var(--primary-orange);
+        background: #fff3e0;
+        transform: scale(1.02);
+    }
+    
+    .file-input {
+        display: none;
+    }
+    
+    .upload-button {
+        background: linear-gradient(135deg, var(--primary-blue), var(--primary-orange));
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin: 10px;
+    }
+    
+    .upload-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(46, 76, 146, 0.3);
+    }
+    
+    .coefficient-section {
+        background: #fff;
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 25px;
+        margin: 25px 0;
+    }
+    
+    .coefficient-input {
+        width: 150px;
+        padding: 12px 15px;
+        border: 2px solid #dee2e6;
+        border-radius: 6px;
+        text-align: center;
+        font-size: 18px;
+        font-weight: 600;
+    }
+    
+    .process-button {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+        border: none;
+        padding: 18px 40px;
+        border-radius: 8px;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        margin: 20px 0;
+        transition: all 0.3s ease;
+    }
+    
+    .process-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+    }
+    
+    .process-button:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .results-section {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 30px;
+        margin: 30px 0;
+        border: 1px solid #dee2e6;
+    }
+    
+    .preview-tabs {
+        display: flex;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .preview-tab {
+        background: none;
+        border: none;
+        padding: 12px 25px;
+        cursor: pointer;
+        font-weight: 500;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s ease;
+    }
+    
+    .preview-tab.active {
+        color: var(--primary-blue);
+        border-bottom-color: var(--primary-blue);
+        font-weight: 600;
+    }
+    
+    .preview-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .preview-table th {
+        background: #495057;
+        color: white;
+        padding: 15px 12px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 13px;
+    }
+    
+    .preview-table td {
+        padding: 12px;
+        text-align: center;
+        border-bottom: 1px solid #dee2e6;
+        font-size: 13px;
+    }
+    
+    .preview-table tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .compound-name {
+        background: #f8f9fa !important;
+        font-weight: 600;
+        color: var(--primary-blue);
+        text-align: left !important;
+        border-right: 2px solid #dee2e6;
+    }
+    
+    .download-section {
+        text-align: center;
+        padding: 30px;
+        background: white;
+        border-radius: 10px;
+        margin: 20px 0;
+        border: 2px dashed var(--primary-blue);
+    }
+    
+    .download-button {
+        background: linear-gradient(135deg, var(--primary-orange), #ff6b1a);
+        color: white;
+        border: none;
+        padding: 15px 35px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin: 10px;
+    }
+    
+    .download-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(233, 75, 0, 0.3);
+    }
+    
+    .calculation-info {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 15px 0;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary-blue), var(--primary-orange));
+        width: 0%;
+        transition: width 0.5s ease;
+    }
+
+    .info-badge {
+        display: inline-block;
+        background: var(--primary-blue);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 15px;
+        font-size: 12px;
+        font-weight: 500;
+        margin: 5px;
+    }
+
+    /* Clickable cell styling */
+    .clickable-cell {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+    }
+    
+    .clickable-cell:hover {
+        background-color: #e3f2fd !important;
+        transform: scale(1.02);
+        font-weight: bold;
+    }
+    
+    .clickable-cell:hover::after {
+        content: '🔍 Click for details';
+        position: absolute;
+        bottom: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        white-space: nowrap;
+        z-index: 1000;
+    }
+
+    /* Detailed calculation modal */
+    .calculation-modal {
+        display: none;
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+    }
+
+    .calculation-modal-content {
+        background-color: white;
+        margin: 5% auto;
+        padding: 0;
+        border: none;
+        border-radius: 15px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 50px rgba(0,0,0,0.3);
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, var(--primary-blue), var(--primary-orange));
+        color: white;
+        padding: 20px;
+        border-radius: 15px 15px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-body {
+        padding: 30px;
+    }
+
+    .calculation-step {
+        background: #f8f9fa;
+        border-left: 5px solid var(--primary-blue);
+        padding: 20px;
+        margin: 15px 0;
+        border-radius: 0 8px 8px 0;
+    }
+
+    .step-title {
+        font-weight: 600;
+        color: var(--primary-blue);
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
+
+    .step-formula {
+        background: white;
+        padding: 10px;
+        border-radius: 5px;
+        font-family: 'Courier New', monospace;
+        border: 1px solid #e9ecef;
+        margin: 8px 0;
+    }
+
+    .step-result {
+        background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
+        padding: 12px;
+        border-radius: 5px;
+        border: 2px solid #28a745;
+        font-weight: bold;
+        color: #155724;
+    }
+
+    .data-source {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 15px 0;
+    }
+
+    .source-title {
+        font-weight: 600;
+        color: #856404;
+        margin-bottom: 10px;
+    }
+
+    .close {
+        color: white;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .close:hover {
+        opacity: 0.7;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0" style="width: 100vw; margin: 0; padding: 0;">
+    <div class="row g-0">
+        <div class="col-12">
+            <div class="calculator-container">
+                <div class="text-center mb-5">
+                    <h1 class="text-metabolomics-blue mb-3">
+                        <i class="fas fa-calculator me-3"></i>
+                        Streamlined Metabolomics Calculator
+                    </h1>
+                    <p class="lead text-muted">
+                        Professional 3-Step Calculation System: Ratio → NIST → Agilent
+                    </p>
+                </div>
+
+                <!-- Formula Explanation -->
+                <div class="formula-card">
+                    <h3 class="text-primary mb-4">
+                        <i class="fas fa-flask me-2"></i>
+                        Calculation Formula Overview
+                    </h3>
+                    
+                    <div class="step-formula">
+                        <strong>Step 1 - Calculate Ratio:</strong><br>
+                        Ratio = Area of Substance ÷ Area of ISTD<br>
+                        <small class="text-muted">Example: Area(AcylCarnitine 10:0) ÷ Area(LPC 18:1 d7)</small>
+                    </div>
+                    
+                    <div class="step-formula">
+                        <strong>Step 2 - Calculate NIST:</strong><br>
+                        NIST Result = Substance Ratio ÷ NIST Standard Ratio<br>
+                        <small class="text-muted">Example: 0.9987 ÷ 0.0951 (from Ratio-database)</small>
+                    </div>
+                    
+                    <div class="step-formula">
+                        <strong>Step 3 - Calculate Agilent:</strong><br>
+                        Agilent = Ratio × Conc.(nM) × Response Factor × Coefficient<br>
+                        <small class="text-muted">Example: 0.9987 × 90.029 × 1.00 × 500</small>
+                    </div>
+                </div>
+
+                <!-- File Upload Section -->
+                <div class="upload-zone" onclick="document.getElementById('areaFile').click()">
+                    <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: #6c757d; margin-bottom: 20px;"></i>
+                    <h4>Upload Area-Compound Excel File</h4>
+                    <p class="text-muted mb-3">
+                        Single file with compound area data<br>
+                        <strong>Required:</strong> Only the area-compound.xlsx file needed
+                    </p>
+                    
+                    <input type="file" id="areaFile" class="file-input" accept=".xlsx,.xls">
+                    <button type="button" class="upload-button">
+                        <i class="fas fa-file-excel me-2"></i>Choose Excel File
+                    </button>
+                    
+                    <div id="fileInfo" class="mt-3" style="display: none;">
+                        <!-- File info will be displayed here -->
+                    </div>
+                </div>
+
+                <!-- Coefficient Setting -->
+                <div class="coefficient-section text-center">
+                    <h5 class="mb-3">
+                        <i class="fas fa-cog me-2"></i>
+                        Self-Adaptive Coefficient
+                    </h5>
+                    <p class="text-muted mb-3">
+                        This coefficient will be applied to all Agilent calculations
+                    </p>
+                    
+                    <div class="d-flex justify-content-center align-items-center gap-3">
+                        <label for="coefficient" class="fw-bold">Coefficient:</label>
+                        <input type="number" id="coefficient" class="coefficient-input" value="500" min="1" max="10000" step="1">
+                        <span class="info-badge">Default: 500</span>
+                    </div>
+                </div>
+
+                <!-- Process Button -->
+                <div class="text-center">
+                    <button id="debugButton" class="btn btn-outline-info me-3" onclick="debugExcelStructure()" disabled>
+                        <i class="fas fa-bug me-2"></i>
+                        Debug File Structure
+                    </button>
+                    <button id="processButton" class="process-button" onclick="processCalculation()" disabled>
+                        <i class="fas fa-calculator me-2"></i>
+                        Process Calculation
+                    </button>
+                    
+                    <div id="progressSection" style="display: none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <p id="progressText" class="text-muted">Initializing...</p>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div id="resultsSection" class="results-section" style="display: none;">
+                    <h4 class="mb-4">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Calculation Results
+                    </h4>
+                    
+                    <!-- Calculation Info -->
+                    <div class="calculation-info">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>Substances Processed:</strong>
+                                <span id="substanceCount" class="text-primary">0</span>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Samples Processed:</strong>
+                                <span id="sampleCount" class="text-primary">0</span>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Sample Range:</strong>
+                                <span id="sampleRange" class="text-primary">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview Tabs -->
+                    <div class="preview-tabs">
+                        <button class="preview-tab active" onclick="showPreviewTab('nist')">
+                            <i class="fas fa-flask me-1"></i>NIST Results
+                        </button>
+                        <button class="preview-tab" onclick="showPreviewTab('agilent')">
+                            <i class="fas fa-atom me-1"></i>Agilent Results
+                        </button>
+                    </div>
+
+                    <!-- Preview Content -->
+                    <div id="nistPreview" class="preview-content">
+                        <!-- NIST preview table will be inserted here -->
+                    </div>
+                    
+                    <div id="agilentPreview" class="preview-content" style="display: none;">
+                        <!-- Agilent preview table will be inserted here -->
+                    </div>
+
+                    <!-- Download Section -->
+                    <div class="download-section">
+                        <h5 class="mb-3">
+                            <i class="fas fa-download me-2"></i>
+                            Download Results
+                        </h5>
+                        <p class="text-muted mb-4">
+                            Complete Excel file with both NIST and Agilent results sheets
+                        </p>
+                        
+                        <button id="downloadButton" class="download-button" onclick="downloadResults()" disabled>
+                            <i class="fas fa-file-excel me-2"></i>
+                            Download Excel Results
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Calculation Modal -->
+<div id="calculationModal" class="calculation-modal">
+    <div class="calculation-modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Detailed Calculation Breakdown</h2>
+            <span class="close" onclick="closeCalculationModal()">&times;</span>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <!-- Calculation details will be inserted here -->
+        </div>
+    </div>
+</div>
+
+<script>
+// Global variables
+let calculationResults = null;
+let currentFileName = null;
+
+// File upload handling
+document.getElementById('areaFile').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        currentFileName = file.name;
+        
+        // Show file info
+        const fileInfo = document.getElementById('fileInfo');
+        fileInfo.style.display = 'block';
+        fileInfo.innerHTML = `
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle me-2"></i>
+                <strong>${file.name}</strong> selected
+                <br><small>Size: ${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+            </div>
+        `;
+        
+        // Enable process and debug buttons
+        document.getElementById('processButton').disabled = false;
+        document.getElementById('debugButton').disabled = false;
+    }
+});
+
+// Drag and drop functionality
+const uploadZone = document.querySelector('.upload-zone');
+
+uploadZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    this.classList.add('dragover');
+});
+
+uploadZone.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    this.classList.remove('dragover');
+});
+
+uploadZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    this.classList.remove('dragover');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        document.getElementById('areaFile').files = files;
+        document.getElementById('areaFile').dispatchEvent(new Event('change'));
+    }
+});
+
+// Debug Excel structure
+async function debugExcelStructure() {
+    const fileInput = document.getElementById('areaFile');
+    
+    if (!fileInput.files[0]) {
+        alert('Please select an Excel file first.');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('area_file', fileInput.files[0]);
+    
+    try {
+        document.getElementById('debugButton').disabled = true;
+        document.getElementById('debugButton').innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Analyzing...';
+        
+        const response = await fetch('/api/debug-excel-structure', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            const debug = result.debug_info;
+            
+            let debugOutput = `
+📊 EXCEL FILE ANALYSIS: ${result.filename}
+
+📏 Shape: ${debug.shape[0]} rows × ${debug.shape[1]} columns
+
+📋 All Columns (${debug.columns.length}):
+${debug.columns.map((col, i) => `  ${i+1}. ${col}`).join('\n')}
+
+🧬 Potential Compound Columns:
+${debug.compound_candidates.length > 0 ? debug.compound_candidates.join(', ') : 'None found - will use first column'}
+
+🔬 Sample Columns (PH-HC):
+Found ${debug.sample_candidates.length} sample columns
+${debug.sample_candidates.slice(0, 10).join(', ')}${debug.sample_candidates.length > 10 ? '...' : ''}
+
+📝 First 3 Rows Sample:
+${JSON.stringify(debug.first_rows, null, 2)}
+            `;
+            
+            // Show in a modal or alert
+            alert(debugOutput);
+            
+        } else {
+            alert(`Debug error: ${result.error}`);
+        }
+        
+    } catch (error) {
+        console.error('Debug error:', error);
+        alert(`Debug error: ${error.message}`);
+    }
+    
+    document.getElementById('debugButton').disabled = false;
+    document.getElementById('debugButton').innerHTML = '<i class="fas fa-bug me-2"></i>Debug File Structure';
+}
+
+// Process calculation
+async function processCalculation() {
+    const fileInput = document.getElementById('areaFile');
+    const coefficient = document.getElementById('coefficient').value;
+    
+    if (!fileInput.files[0]) {
+        alert('Please select an Excel file first.');
+        return;
+    }
+    
+    // Show progress
+    document.getElementById('progressSection').style.display = 'block';
+    document.getElementById('processButton').disabled = true;
+    
+    const formData = new FormData();
+    formData.append('area_file', fileInput.files[0]);
+    formData.append('coefficient', coefficient);
+    formData.append('csrf_token', '{{ csrf_token() }}');
+    
+    try {
+        // Update progress
+        updateProgress(20, 'Reading Excel file...');
+        
+        const response = await fetch('/api/streamlined-calculate', {
+            method: 'POST',
+            body: formData
+        });
+        
+        updateProgress(60, 'Processing calculations...');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        updateProgress(80, 'Generating preview...');
+        
+        if (result.success) {
+            calculationResults = result;
+            showResults(result);
+            updateProgress(100, 'Complete!');
+            
+            setTimeout(() => {
+                document.getElementById('progressSection').style.display = 'none';
+            }, 1000);
+        } else {
+            throw new Error(result.error || 'Calculation failed');
+        }
+        
+    } catch (error) {
+        console.error('Calculation error:', error);
+        alert(`Calculation error: ${error.message}`);
+        document.getElementById('progressSection').style.display = 'none';
+    }
+    
+    document.getElementById('processButton').disabled = false;
+}
+
+// Update progress bar
+function updateProgress(percent, text) {
+    document.getElementById('progressFill').style.width = percent + '%';
+    document.getElementById('progressText').textContent = text;
+}
+
+// Show results
+function showResults(result) {
+    const resultsSection = document.getElementById('resultsSection');
+    resultsSection.style.display = 'block';
+    
+    // Update calculation info
+    document.getElementById('substanceCount').textContent = result.substance_count || 0;
+    document.getElementById('sampleCount').textContent = result.sample_count || 0;
+    document.getElementById('sampleRange').textContent = result.sample_range || '-';
+    
+    // Generate preview tables with proper column ordering
+    document.getElementById('nistPreview').innerHTML = createPreviewTable(result.nist_data, 'NIST', result.column_order);
+    document.getElementById('agilentPreview').innerHTML = createPreviewTable(result.agilent_data, 'Agilent', result.column_order);
+    
+    // Enable download
+    document.getElementById('downloadButton').disabled = false;
+    
+    // Scroll to results
+    resultsSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Create preview table
+function createPreviewTable(data, type, columnOrder = null) {
+    if (!data || data.length === 0) {
+        return '<p class="text-muted text-center">No data available</p>';
+    }
+    
+    // Use explicit column order if provided, otherwise fall back to Object.keys
+    const headers = columnOrder || Object.keys(data[0]);
+    const maxRows = Math.min(data.length, 20); // Show first 20 rows
+    
+    let html = `
+        <div class="mb-3">
+            <h5>
+                <i class="fas fa-table me-2"></i>
+                ${type} Results Preview (First ${maxRows} of ${data.length} rows)
+            </h5>
+        </div>
+        <div class="table-responsive">
+            <table class="preview-table">
+                <thead>
+                    <tr>
+    `;
+    
+    headers.forEach(header => {
+        const icon = header === 'Substance' ? '<i class="fas fa-molecule me-1"></i>' : 
+                    header.startsWith('PH-HC') ? '<i class="fas fa-vial me-1"></i>' : '';
+        html += `<th>${icon}${header}</th>`;
+    });
+    
+    html += '</tr></thead><tbody>';
+    
+    for (let i = 0; i < maxRows; i++) {
+        html += '<tr>';
+        headers.forEach(header => {
+            const value = data[i][header] || '';
+            const substance = data[i]['Substance'] || 'Unknown';
+            
+            if (header === 'Substance') {
+                html += `<td class="compound-name">${value}</td>`;
+            } else if (typeof value === 'number' && value !== 0) {
+                // Make numerical cells clickable for detailed breakdown
+                html += `<td class="clickable-cell" onclick="showCalculationDetails('${substance}', '${header}', '${type}')" title="Click for detailed calculation breakdown">${value.toFixed(4)}</td>`;
+            } else {
+                html += `<td>${typeof value === 'number' ? value.toFixed(4) : value}</td>`;
+            }
+        });
+        html += '</tr>';
+    }
+    
+    html += '</tbody></table></div>';
+    
+    if (data.length > maxRows) {
+        html += `
+            <div class="alert alert-info mt-3">
+                <i class="fas fa-info-circle me-2"></i>
+                Showing ${maxRows} of ${data.length} total rows. Download Excel for complete results.
+            </div>
+        `;
+    }
+    
+    return html;
+}
+
+// Show preview tab
+function showPreviewTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.preview-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Show/hide content
+    document.getElementById('nistPreview').style.display = tabName === 'nist' ? 'block' : 'none';
+    document.getElementById('agilentPreview').style.display = tabName === 'agilent' ? 'block' : 'none';
+}
+
+// Download results
+async function downloadResults() {
+    if (!calculationResults || !calculationResults.session_id) {
+        alert('No calculation results available to download.');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/download-streamlined/${calculationResults.session_id}`, {
+            method: 'GET'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Download failed: ${response.status}`);
+        }
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `metabolomics_results_${new Date().toISOString().slice(0,10)}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+    } catch (error) {
+        console.error('Download error:', error);
+        alert(`Download error: ${error.message}`);
+    }
+}
+
+// Initialize coefficient input validation
+document.getElementById('coefficient').addEventListener('input', function() {
+    const value = parseFloat(this.value);
+    if (isNaN(value) || value <= 0) {
+        this.style.borderColor = '#dc3545';
+    } else {
+        this.style.borderColor = '#28a745';
+    }
+});
+
+console.log('🚀 Streamlined Metabolomics Calculator initialized');
+
+// Show detailed calculation breakdown
+async function showCalculationDetails(substance, sample, calculationType) {
+    if (!calculationResults || !calculationResults.session_id) {
+        alert('No calculation session found. Please process a calculation first.');
+        return;
+    }
+    
+    try {
+        console.log(`🔍 Fetching calculation details for ${substance} in ${sample}`);
+        
+        // Show loading modal
+        document.getElementById('modalTitle').textContent = `Loading calculation details...`;
+        document.getElementById('modalBody').innerHTML = `
+            <div class="text-center p-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3">Fetching detailed calculation breakdown...</p>
+            </div>
+        `;
+        document.getElementById('calculationModal').style.display = 'block';
+        
+        // Fetch detailed calculation
+        const response = await fetch(`/api/calculation-details/${calculationResults.session_id}?substance=${encodeURIComponent(substance)}&sample=${encodeURIComponent(sample)}`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            displayCalculationDetails(result.details, calculationType);
+        } else {
+            throw new Error(result.error || 'Failed to get calculation details');
+        }
+        
+    } catch (error) {
+        console.error('Error fetching calculation details:', error);
+        document.getElementById('modalBody').innerHTML = `
+            <div class="alert alert-danger">
+                <h6>Error Loading Details</h6>
+                <p>${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+// Display detailed calculation breakdown in modal
+function displayCalculationDetails(details, calculationType) {
+    const substance = details.substance;
+    const sample = details.sample;
+    
+    document.getElementById('modalTitle').textContent = `${substance} in ${sample}`;
+    
+    let html = `
+        <div class="mb-4">
+            <h4 class="text-primary">
+                <i class="fas fa-flask me-2"></i>
+                Complete Calculation Breakdown
+            </h4>
+            <p class="text-muted">
+                Detailed step-by-step calculation for <strong>${substance}</strong> in sample <strong>${sample}</strong>
+                ${calculationType ? `(${calculationType} Results)` : ''}
+            </p>
+        </div>
+    `;
+    
+    // Check for errors
+    if (details.error) {
+        html += `
+            <div class="alert alert-danger">
+                <h6><i class="fas fa-exclamation-triangle me-2"></i>Calculation Error</h6>
+                <p>${details.error}</p>
+            </div>
+        `;
+        document.getElementById('modalBody').innerHTML = html;
+        return;
+    }
+    
+    // Source Data Section
+    html += `
+        <div class="data-source">
+            <div class="source-title">
+                <i class="fas fa-database me-2"></i>Source Data (Excel File)
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Substance Area:</strong><br>
+                    <code>${details.source_data.substance_area_raw}</code> → <code>${details.source_data.substance_area}</code>
+                    <small class="text-muted d-block">Substance Index: ${details.substance_index}</small>
+                </div>
+                <div class="col-md-6">
+                    <strong>ISTD Area (${details.database_info.istd_name}):</strong><br>
+                    <code>${details.source_data.istd_area_raw}</code> → <code>${details.source_data.istd_area}</code>
+                    <small class="text-muted d-block">
+                        ${details.source_data.istd_found ? 
+                          `✅ Found at row ${details.source_data.istd_row_index}` : 
+                          '❌ Not found (fallback used)'}
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="data-source">
+            <div class="source-title">
+                <i class="fas fa-server me-2"></i>Database References
+            </div>
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>ISTD Name:</strong><br>
+                    <code>${details.database_info.istd_name}</code>
+                </div>
+                <div class="col-md-3">
+                    <strong>NIST Standard:</strong><br>
+                    <code>${details.database_info.nist_standard}</code>
+                    <small class="text-muted d-block">Pattern: ${details.database_info.nist_pattern}</small>
+                </div>
+                <div class="col-md-3">
+                    <strong>Concentration:</strong><br>
+                    <code>${details.database_info.concentration_nm} nM</code>
+                </div>
+                <div class="col-md-3">
+                    <strong>Response Factor:</strong><br>
+                    <code>${details.database_info.response_factor}</code>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-12">
+                    <strong>Coefficient (User Input):</strong> <code>${details.database_info.coefficient}</code>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Step-by-Step Calculations
+    if (details.calculations) {
+        html += `<h5 class="mt-4 mb-3 text-primary"><i class="fas fa-calculator me-2"></i>Step-by-Step Calculations</h5>`;
+        
+        // Step 1: Ratio
+        if (details.calculations.step_1_ratio) {
+            const step1 = details.calculations.step_1_ratio;
+            html += `
+                <div class="calculation-step">
+                    <div class="step-title">Step 1: Calculate Ratio</div>
+                    <div class="step-formula">
+                        <strong>Formula:</strong> ${step1.formula}
+                    </div>
+                    <div class="step-formula">
+                        <strong>Calculation:</strong> ${step1.calculation}
+                    </div>
+                    <div class="step-result">
+                        <strong>Result:</strong> ${step1.result.toFixed(8)}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Step 2: NIST
+        if (details.calculations.step_2_nist) {
+            const step2 = details.calculations.step_2_nist;
+            html += `
+                <div class="calculation-step">
+                    <div class="step-title">Step 2: Calculate NIST Result</div>
+                    <div class="step-formula">
+                        <strong>Formula:</strong> ${step2.formula}
+                    </div>
+                    <div class="step-formula">
+                        <strong>Calculation:</strong> ${step2.calculation}
+                    </div>
+                    <div class="step-result">
+                        <strong>Result:</strong> ${step2.result.toFixed(8)}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Step 3: Agilent
+        if (details.calculations.step_3_agilent) {
+            const step3 = details.calculations.step_3_agilent;
+            html += `
+                <div class="calculation-step">
+                    <div class="step-title">Step 3: Calculate Agilent Result</div>
+                    <div class="step-formula">
+                        <strong>Formula:</strong> ${step3.formula}
+                    </div>
+                    <div class="step-formula">
+                        <strong>Calculation:</strong> ${step3.calculation}
+                    </div>
+                    <div class="step-result">
+                        <strong>Result:</strong> ${step3.result.toFixed(8)}
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    // Final Results Summary
+    if (details.final_results) {
+        html += `
+            <div class="mt-4 p-4" style="background: linear-gradient(135deg, #e8f5e8, #f0f8f0); border-radius: 10px; border: 2px solid #28a745;">
+                <h5 class="text-success mb-3">
+                    <i class="fas fa-check-circle me-2"></i>Final Results Summary
+                </h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>Ratio:</strong><br>
+                        <span class="h6 text-primary">${details.final_results.ratio.toFixed(8)}</span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>NIST Result:</strong><br>
+                        <span class="h6 text-success">${details.final_results.nist_result.toFixed(8)}</span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Agilent Result:</strong><br>
+                        <span class="h6 text-warning">${details.final_results.agilent_result.toFixed(8)}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    document.getElementById('modalBody').innerHTML = html;
+}
+
+// Close calculation modal
+function closeCalculationModal() {
+    document.getElementById('calculationModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('calculationModal');
+    if (event.target === modal) {
+        closeCalculationModal();
+    }
+}
+
+console.log('🚀 Streamlined Metabolomics Calculator initialized');
+</script>
+{% endblock %}

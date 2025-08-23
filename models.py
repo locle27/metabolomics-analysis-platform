@@ -830,6 +830,7 @@ class CompoundIndex(db.Model):
     conc_nm = db.Column(db.Float)  # Concentration in nM
     response_factor = db.Column(db.Float, default=1.0)
     nist_conc_nm = db.Column(db.Float)  # NIST concentration in nM
+    nist_standard = db.Column(db.Float, default=0.1769)  # NIST standard reference value
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
     
@@ -844,6 +845,7 @@ class CompoundIndex(db.Model):
             'conc_nm': self.conc_nm,
             'response_factor': self.response_factor,
             'nist_conc_nm': self.nist_conc_nm,
+            'nist_standard': self.nist_standard,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

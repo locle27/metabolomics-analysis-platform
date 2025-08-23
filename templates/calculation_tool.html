@@ -4,6 +4,19 @@
 
 {% block extra_css %}
 <style>
+    /* Override any Bootstrap container constraints */
+    body {
+        overflow-x: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .container-fluid {
+        max-width: none !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
     .tool-container {
         background: white;
         border-radius: 10px;
@@ -496,6 +509,11 @@
         z-index: 10;
     }
     
+    .compound-name {
+        font-weight: 500;
+        color: var(--phenikaa-dark-blue);
+    }
+    
     .preview-table tr:hover td {
         background: #f1f3f5;
     }
@@ -547,14 +565,122 @@
     .requirements-list li {
         margin-bottom: 8px;
     }
+
+    /* Professional quality indicator styles for NIST table */
+    .high-quality {
+        background-color: #f8f9fa !important;
+        color: #495057;
+        font-weight: 600;
+        border-left: 3px solid #28a745;
+    }
+    
+    .medium-quality {
+        background-color: #f8f9fa !important;
+        color: #495057;
+        font-weight: 500;
+        border-left: 3px solid #ffc107;
+    }
+    
+    .low-quality {
+        background-color: #f8f9fa !important;
+        color: #495057;
+        font-weight: 500;
+        border-left: 3px solid #dc3545;
+    }
+    
+    .compound-header {
+        background: #6c757d !important;
+        color: white !important;
+        font-weight: 600;
+    }
+    
+    .sample-header {
+        background: #495057 !important;
+        color: white !important;
+        font-weight: 500;
+        font-size: 12px;
+    }
+    
+    .compound-name {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+        border-right: 2px solid #dee2e6;
+    }
+    
+    .preview-table {
+        width: 100%;
+        font-size: 13px;
+    }
+    
+    .preview-table td {
+        padding: 8px 12px;
+        text-align: center;
+        vertical-align: middle;
+    }
+    
+    .preview-table th {
+        padding: 12px 8px;
+        text-align: center;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .table-responsive {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    /* Search template styling */
+    .search-templates {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 15px;
+    }
+    
+    .template-buttons .btn {
+        font-size: 12px;
+        padding: 6px 12px;
+        border-width: 1px;
+        transition: all 0.2s ease;
+    }
+    
+    .template-buttons .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .compound-search-input {
+        border: 2px solid #e9ecef;
+        transition: border-color 0.3s ease;
+    }
+    
+    .compound-search-input:focus {
+        border-color: #6c757d;
+        box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.25);
+    }
+    
+    /* Less colorful alert styles */
+    .alert-info {
+        background-color: #f8f9fa;
+        border-color: #dee2e6;
+        color: #495057;
+    }
+    
+    .alert-info .alert-heading {
+        color: #495057;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="col-lg-10 mx-auto">
-            <div class="tool-container">
+<div class="container-fluid px-0" style="width: 100vw; margin: 0; padding: 0;">
+    <div class="row g-0">
+        <div class="col-12">
+            <div class="tool-container" style="margin: 20px; padding: 30px; border-radius: 10px;">
                 <h1 class="text-center text-metabolomics-blue mb-4">NIST/Agilent Calculation Tool</h1>
                 
                 <!-- Formula Section -->
@@ -623,6 +749,7 @@
                     <div class="preview-tabs">
                         <button class="preview-tab active" onclick="showTab('nist')">NIST Results</button>
                         <button class="preview-tab" onclick="showTab('agilent')">Agilent Results</button>
+                        <button class="preview-tab" onclick="showTab('ratio')">Sample Normalization</button>
                     </div>
                     
                     <div class="preview-content">
@@ -631,6 +758,9 @@
                         </div>
                         <div id="agilentPreview" class="tab-content" style="display: none;">
                             <!-- Agilent table will be inserted here -->
+                        </div>
+                        <div id="ratioPreview" class="tab-content" style="display: none;">
+                            <!-- Ratio matrix table will be inserted here -->
                         </div>
                     </div>
                     
@@ -641,6 +771,14 @@
                         <button class="recalculate-btn" onclick="resetCalculator()">
                             <i class="fas fa-redo"></i> Calculate Another File
                         </button>
+                    </div>
+                    
+                    <!-- Ratio Analysis Info -->
+                    <div class="ratio-info-section" style="margin-top: 20px;">
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-chart-line me-2"></i>Sample Normalization Analysis</h6>
+                            <p class="mb-0">View the complete sample normalization showing Sample Ratio, NIST Ratio, and normalized results in the "Sample Normalization" tab above.</p>
+                        </div>
                     </div>
                     
                     <!-- Detailed Calculation Preview Section -->
@@ -657,11 +795,55 @@
                             <!-- Compound Search Section -->
                             <div class="compound-search-section" id="compoundSearchSection" style="display: none;">
                                 <h5><i class="fas fa-search"></i> Search Compound</h5>
+                                
+                                <!-- Search Templates -->
+                                <div class="search-templates mb-3">
+                                    <h6 class="small text-muted mb-2"><i class="fas fa-templates me-1"></i>Quick Search Templates:</h6>
+                                    <div class="template-buttons">
+                                        <button type="button" class="btn btn-outline-primary btn-sm me-2 mb-2" onclick="searchTemplate('AcylCarnitine')">
+                                            <i class="fas fa-molecule me-1"></i>AcylCarnitine
+                                        </button>
+                                        <button type="button" class="btn btn-outline-primary btn-sm me-2 mb-2" onclick="searchTemplate('TG')">
+                                            <i class="fas fa-flask me-1"></i>Triacylglycerol (TG)
+                                        </button>
+                                        <button type="button" class="btn btn-outline-primary btn-sm me-2 mb-2" onclick="searchTemplate('PC')">
+                                            <i class="fas fa-atom me-1"></i>Phosphatidylcholine (PC)
+                                        </button>
+                                        <button type="button" class="btn btn-outline-primary btn-sm me-2 mb-2" onclick="searchTemplate('PE')">
+                                            <i class="fas fa-dna me-1"></i>Phosphatidylethanolamine (PE)
+                                        </button>
+                                        <button type="button" class="btn btn-outline-primary btn-sm me-2 mb-2" onclick="searchTemplate('SM')">
+                                            <i class="fas fa-ring me-1"></i>Sphingomyelin (SM)
+                                        </button>
+                                        <button type="button" class="btn btn-outline-primary btn-sm me-2 mb-2" onclick="searchTemplate('Cer')">
+                                            <i class="fas fa-circle-nodes me-1"></i>Ceramide (Cer)
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success btn-sm me-2 mb-2" onclick="searchTemplate('LPC')">
+                                            <i class="fas fa-droplet me-1"></i>Lysophosphatidylcholine (LPC)
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success btn-sm me-2 mb-2" onclick="searchTemplate('LPE')">
+                                            <i class="fas fa-water me-1"></i>Lysophosphatidylethanolamine (LPE)
+                                        </button>
+                                        <button type="button" class="btn btn-outline-info btn-sm me-2 mb-2" onclick="searchTemplate('FA')">
+                                            <i class="fas fa-chain-broken me-1"></i>Fatty Acid (FA)
+                                        </button>
+                                        <button type="button" class="btn btn-outline-warning btn-sm me-2 mb-2" onclick="searchTemplate('MAG')">
+                                            <i class="fas fa-hexagon me-1"></i>Monoacylglycerol (MAG)
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm me-2 mb-2" onclick="searchTemplate('d7')">
+                                            <i class="fas fa-star me-1"></i>Internal Standards (d7)
+                                        </button>
+                                        <button type="button" class="btn btn-outline-dark btn-sm me-2 mb-2" onclick="clearSearch()">
+                                            <i class="fas fa-times me-1"></i>Clear Search
+                                        </button>
+                                    </div>
+                                </div>
+                                
                                 <div class="search-input-container">
                                     <input type="text" 
                                            id="compoundSearchInput" 
                                            class="compound-search-input" 
-                                           placeholder="Type compound name to search..." 
+                                           placeholder="Type compound name or use templates above..." 
                                            autocomplete="off">
                                     <i class="fas fa-search search-icon"></i>
                                     <div id="compoundDropdown" class="compound-dropdown">
@@ -701,31 +883,109 @@ function showTab(tabName) {
     // Show/hide content
     document.getElementById('nistPreview').style.display = tabName === 'nist' ? 'block' : 'none';
     document.getElementById('agilentPreview').style.display = tabName === 'agilent' ? 'block' : 'none';
+    document.getElementById('ratioPreview').style.display = tabName === 'ratio' ? 'block' : 'none';
 }
 
-// Create preview table
-function createPreviewTable(data, totalRows = null) {
+// Create enhanced preview table with quality indicators and NIST ratios
+function createPreviewTable(data, totalRows = null, tableType = 'standard') {
     if (!data || data.length === 0) return '<p>No data available</p>';
     
     const headers = Object.keys(data[0]);
-    let html = '<table class="preview-table"><thead><tr>';
     
-    // Headers
+    // Enhanced header for NIST table
+    let html = '';
+    if (tableType === 'nist') {
+        html += `
+            <div class="mb-3">
+                <h5 class="text-muted"><i class="fas fa-table me-2"></i>NIST Results with Database Ratio Standards</h5>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="border border-secondary rounded p-3 bg-light" role="alert">
+                            <i class="fas fa-database me-2 text-muted"></i>
+                            <strong>Database Standards:</strong> Values calculated using permanent ratio standards from Ratio-database.xlsx. 
+                            Each compound uses its specific database reference ratio for normalization.
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end d-flex align-items-center justify-content-end gap-2">
+                        <span class="badge bg-secondary p-2">Standards Active</span>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="showNistRatioInfo()" title="View NIST ratio information">
+                            <i class="fas fa-info-circle me-1"></i>Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    html += '<div class="table-responsive"><table class="preview-table"><thead><tr>';
+    
+    // Headers with enhanced styling for NIST table
     headers.forEach(header => {
-        html += `<th>${header}</th>`;
+        if (header === 'Compound') {
+            html += `<th class="compound-header"><i class="fas fa-molecule me-1"></i>${header}</th>`;
+        } else {
+            // Add quality indicator for sample columns
+            const qualityBadge = tableType === 'nist' ? ' <span class="badge bg-primary ms-1">Q✓</span>' : '';
+            html += `<th class="sample-header">${header}${qualityBadge}</th>`;
+        }
     });
     html += '</tr></thead><tbody>';
     
-    // Data rows
+    // Data rows with enhanced formatting
     for (let i = 0; i < data.length; i++) {
         html += '<tr>';
-        headers.forEach(header => {
-            html += `<td>${data[i][header] || ''}</td>`;
+        headers.forEach((header, index) => {
+            const value = data[i][header] || '';
+            
+            if (header === 'Compound') {
+                html += `<td class="compound-name">${value}</td>`;
+            } else {
+                // Format numerical values with quality indicator
+                if (typeof value === 'number' || (!isNaN(parseFloat(value)) && isFinite(value))) {
+                    const numValue = parseFloat(value);
+                    let qualityClass = '';
+                    let qualityIcon = '';
+                    
+                    if (tableType === 'nist') {
+                        // Get NIST standard for this compound to show in tooltip
+                        const compoundName = data[i]['Compound'];
+                        const nistStandard = (calculationResults && calculationResults.nist_standards && 
+                                             calculationResults.nist_standards[compoundName]) ? 
+                                             calculationResults.nist_standards[compoundName].nist_standard : null;
+                        
+                        // Add quality indicators based on value ranges (subtle professional style)
+                        if (numValue >= 2.0) {
+                            qualityClass = 'high-quality';
+                            qualityIcon = '<span class="badge badge-sm bg-success me-1" title="High Quality">H</span>';
+                        } else if (numValue >= 1.0) {
+                            qualityClass = 'medium-quality';
+                            qualityIcon = '<span class="badge badge-sm bg-warning me-1" title="Medium Quality">M</span>';
+                        } else if (numValue > 0) {
+                            qualityClass = 'low-quality';
+                            qualityIcon = '<span class="badge badge-sm bg-secondary me-1" title="Low Quality">L</span>';
+                        }
+                        
+                        // Add tooltip with NIST standard ratio information
+                        const tooltipTitle = nistStandard ? 
+                            `NIST Result: ${numValue.toFixed(4)}\\nDatabase Ratio: ${nistStandard.toFixed(4)}\\nFormula: Sample Ratio ÷ Database Ratio` :
+                            `NIST Result: ${numValue.toFixed(4)}\\nUsing database reference standards`;
+                        
+                        html += `<td class="${qualityClass}" title="${tooltipTitle}" style="cursor: help;">
+                                    ${qualityIcon}${numValue.toFixed(4)}
+                                    ${nistStandard ? `<div class="small text-muted">DB: ${nistStandard.toFixed(4)}</div>` : ''}
+                                 </td>`;
+                    } else {
+                        html += `<td>${numValue.toFixed(4)}</td>`;
+                    }
+                } else {
+                    html += `<td>${value}</td>`;
+                }
+            }
         });
         html += '</tr>';
     }
     
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
     
     if (totalRows && totalRows > data.length) {
         html += `<div class="alert alert-info mt-3">
@@ -752,7 +1012,10 @@ function resetCalculator() {
     
     // Ensure process button is enabled and loading spinner is hidden
     document.getElementById('processBtn').disabled = false;
-    document.getElementById('loadingSpinner').style.display = 'none';
+    const loadingSpinner = document.querySelector('.loading-spinner');
+    if (loadingSpinner) {
+        loadingSpinner.style.display = 'none';
+    }
     
     calculationResults = null;
 }
@@ -774,6 +1037,97 @@ function downloadResults() {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
+    }
+}
+
+// Generate ratio matrix table
+function generateRatioMatrix(result) {
+    try {
+        // Generate sample ratio data from the results
+        const ratioData = [];
+        
+        // Take first few compounds and samples for the ratio matrix
+        const nistData = result.nist_data || [];
+        const maxCompounds = Math.min(nistData.length, 10); // Show first 10 compounds
+        
+        if (maxCompounds > 0) {
+            // Get sample columns (exclude 'Compound' column)
+            const sampleColumns = Object.keys(nistData[0]).filter(key => key !== 'Compound').slice(0, 5); // Show first 5 samples
+            
+            for (let i = 0; i < maxCompounds; i++) {
+                const compound = nistData[i];
+                const compoundName = compound.Compound || `Compound_${i+1}`;
+                
+                for (const sampleCol of sampleColumns) {
+                    // Get actual NIST result from the calculated data
+                    const nistResult = compound[sampleCol] || 0;
+                    
+                    // For Sample Normalization display, we need to show the reverse calculation
+                    // Since NIST Result = Sample Ratio ÷ NIST Standard
+                    // We can display: Sample Ratio ≈ NIST Result × NIST Standard (estimated)
+                    // But the actual important value is the final NIST Result
+                    
+                    ratioData.push({
+                        Compound: compoundName,
+                        Sample: sampleCol,
+                        Sample_Ratio: 'Calculated',  // Don't show confusing intermediate values
+                        NIST_Standard: 'Database',   // NIST standards come from database
+                        NIST_Result: typeof nistResult === 'number' ? nistResult.toFixed(4) : nistResult
+                    });
+                }
+            }
+        }
+        
+        // Create ratio matrix table HTML
+        let html = '';
+        if (ratioData.length > 0) {
+            html = `
+                <div style="margin-bottom: 15px;">
+                    <h6><i class="fas fa-table me-2"></i>Sample Normalization (Sample vs NIST)</h6>
+                    <p class="text-muted small">Showing normalized ratios for compounds relative to NIST standards</p>
+                </div>
+                <table class="preview-table">
+                    <thead>
+                        <tr>
+                            <th>Compound</th>
+                            <th>Sample</th>
+                            <th>Sample Ratio</th>
+                            <th>NIST Standard</th>
+                            <th>Final Result</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            ratioData.forEach(row => {
+                html += `
+                    <tr>
+                        <td class="compound-name">${row.Compound}</td>
+                        <td style="font-family: monospace; color: #555;">${row.Sample}</td>
+                        <td style="font-family: monospace; color: #666;">${row.Sample_Ratio}</td>
+                        <td style="font-family: monospace; color: #666;">${row.NIST_Standard}</td>
+                        <td style="font-family: monospace; font-weight: bold; color: #E94B00;">${row.NIST_Result}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+                <div class="alert alert-info mt-3" style="font-size: 0.85rem;">
+                    <i class="fas fa-info-circle"></i> 
+                    Normalization shows ${ratioData.length} compound-sample combinations. Download Excel for complete data.
+                </div>
+            `;
+        } else {
+            html = '<p class="text-muted">No ratio data available</p>';
+        }
+        
+        document.getElementById('ratioPreview').innerHTML = html;
+        
+    } catch (error) {
+        console.error('Error generating sample normalization:', error);
+        document.getElementById('ratioPreview').innerHTML = '<p class="text-danger">Error generating sample normalization</p>';
     }
 }
 
@@ -858,9 +1212,12 @@ document.getElementById('calculationForm').addEventListener('submit', async func
                 // Store filename for download
                 window.downloadFilename = result.filename;
                 
-                // Display preview
-                document.getElementById('nistPreview').innerHTML = createPreviewTable(result.nist_data, result.total_rows);
-                document.getElementById('agilentPreview').innerHTML = createPreviewTable(result.agilent_data, result.total_rows);
+                // Display enhanced preview with quality indicators
+                document.getElementById('nistPreview').innerHTML = createPreviewTable(result.nist_data, result.total_rows, 'nist');
+                document.getElementById('agilentPreview').innerHTML = createPreviewTable(result.agilent_data, result.total_rows, 'agilent');
+                
+                // Generate and display ratio matrix
+                generateRatioMatrix(result);
                 
                 // Store uploaded data for compound search feature
                 currentUploadedData = result;
@@ -949,6 +1306,7 @@ function generateSampleCalculation(uploadedFileData = null) {
     if (uploadedFileData && uploadedFileData.sample_breakdown) {
         sampleData = uploadedFileData.sample_breakdown;
         console.log('✅ Using uploaded file data:', sampleData);
+        console.log(`📊 Detailed data available for ${sampleData.detailed_compounds_count || 0} compounds`);
         
         // Show compound search section if compounds are available
         if (sampleData.available_compounds && sampleData.available_compounds.length > 0) {
@@ -962,7 +1320,7 @@ function generateSampleCalculation(uploadedFileData = null) {
             sample: 'First sample from uploaded file',
             area: 0,
             istd_area: 212434.0,
-            nist_reference: 0.1769,
+            nist_standard: 0.1769,
             concentration: 25.0,
             response_factor: 1.0,
             coefficient: parseInt(document.getElementById('coefficient')?.value) || 500
@@ -975,7 +1333,7 @@ function generateSampleCalculation(uploadedFileData = null) {
     
     // Use pre-calculated values if available, otherwise calculate step by step
     const ratio = sampleData.ratio || (sampleData.area / sampleData.istd_area);
-    const nist_result = sampleData.nist_result || (ratio / sampleData.nist_reference);
+    const nist_result = sampleData.nist_result || (ratio / sampleData.nist_standard);
     const agilent_result = sampleData.agilent_result || (ratio * sampleData.concentration * sampleData.response_factor * sampleData.coefficient);
     
     const html = `
@@ -985,7 +1343,10 @@ function generateSampleCalculation(uploadedFileData = null) {
         <div style="background: #f0f0f0; padding: 10px; margin-bottom: 15px; border-radius: 5px; font-family: monospace; font-size: 12px;">
             <strong>Debug Info:</strong><br>
             Data Source: ${uploadedFileData && uploadedFileData.sample_breakdown ? '✅ Real uploaded data' : '⚠️ Fallback data'}<br>
-            Area Value: ${sampleData.area} (${typeof sampleData.area})
+            Current Compound: ${sampleData.compound}<br>
+            Area Value: ${sampleData.area} (${typeof sampleData.area})<br>
+            ${sampleData.istd_name ? `ISTD: ${sampleData.istd_name}<br>` : ''}
+            ${uploadedFileData?.sample_breakdown?.detailed_compounds_count ? `Detailed data available for first ${uploadedFileData.sample_breakdown.detailed_compounds_count} compounds` : ''}
         </div>
         
         <div class="calculation-breakdown">
@@ -997,17 +1358,34 @@ function generateSampleCalculation(uploadedFileData = null) {
                 <span class="breakdown-label">Internal Standard (ISTD) Area</span>
                 <span class="breakdown-value">${sampleData.istd_area.toLocaleString()}</span>
             </div>
+            ${sampleData.istd_warning ? `
+            <div class="breakdown-row" style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding-left: 15px;">
+                <span class="breakdown-label" style="color: #856404; font-weight: bold;">⚠️ ISTD Notice</span>
+                <span class="breakdown-value" style="color: #856404;">${sampleData.istd_warning}</span>
+            </div>
+            ` : ''}
             <div class="breakdown-row">
                 <span class="breakdown-label">Ratio = Area ÷ ISTD</span>
-                <span class="breakdown-value">${ratio.toFixed(6)}</span>
+                <span class="breakdown-value">${sampleData.area.toLocaleString()} ÷ ${sampleData.istd_area.toLocaleString()} (= ${ratio.toFixed(6)})</span>
             </div>
             <div class="breakdown-row">
-                <span class="breakdown-label">NIST Reference Value</span>
-                <span class="breakdown-value">${sampleData.nist_reference}</span>
+                <span class="breakdown-label">NIST Ratio (same substance)</span>
+                <span class="breakdown-value">${sampleData.nist_standard} (from ${sampleData.nist_column || 'Standard NIST'})</span>
             </div>
+            ${sampleData.matrix_info ? `
+            <div class="breakdown-row" style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px;">
+                <span class="breakdown-label">🎯 Matrix Lookup Info</span>
+                <div style="font-size: 12px; margin-top: 5px;">
+                    <div><strong>Position:</strong> Row[${sampleData.matrix_info.compound_index}] × Column[${sampleData.matrix_info.matched_nist_column || 'NOT_FOUND'}]</div>
+                    <div><strong>Success:</strong> ${sampleData.matrix_info.matrix_lookup_success ? '✅ YES' : '❌ NO'}</div>
+                    ${sampleData.matrix_info.fallback_reason ? `<div><strong>Issue:</strong> ${sampleData.matrix_info.fallback_reason}</div>` : ''}
+                    <div><strong>Source:</strong> ${sampleData.matrix_info.mapping_source} mapping</div>
+                </div>
+            </div>
+            ` : ''}
             <div class="breakdown-row">
-                <span class="breakdown-label">NIST Result = Ratio ÷ NIST Ref</span>
-                <span class="breakdown-value">${nist_result.toFixed(6)}</span>
+                <span class="breakdown-label">NIST Result = Sample Ratio ÷ NIST Ratio</span>
+                <span class="breakdown-value">${ratio.toFixed(6)} ÷ ${sampleData.nist_standard} (= ${nist_result.toFixed(6)})</span>
             </div>
             <div class="breakdown-row">
                 <span class="breakdown-label">Concentration (nM)</span>
@@ -1023,7 +1401,7 @@ function generateSampleCalculation(uploadedFileData = null) {
             </div>
             <div class="breakdown-row">
                 <span class="breakdown-label">Final Agilent Result</span>
-                <span class="breakdown-value">${agilent_result.toFixed(6)}</span>
+                <span class="breakdown-value">${ratio.toFixed(6)} × ${sampleData.concentration} × ${sampleData.response_factor} × ${sampleData.coefficient} (= ${agilent_result.toFixed(6)})</span>
             </div>
         </div>
     `;
@@ -1039,7 +1417,16 @@ function setupCompoundSearch(sampleData) {
     
     // Set current compound as default
     searchInput.value = sampleData.compound;
-    searchInfo.textContent = `${sampleData.total_compounds} compounds available. Currently showing: ${sampleData.compound}`;
+    
+    // Update info text to show detailed data availability
+    const detailedCount = sampleData.detailed_compounds_count || 0;
+    const totalCount = sampleData.total_compounds || 0;
+    
+    if (detailedCount > 0) {
+        searchInfo.textContent = `${totalCount} compounds available (${detailedCount} with detailed data). Currently: ${sampleData.compound}`;
+    } else {
+        searchInfo.textContent = `${totalCount} compounds available. Currently showing: ${sampleData.compound}`;
+    }
     
     // Setup event listeners
     searchInput.addEventListener('input', handleCompoundSearch);
@@ -1076,7 +1463,7 @@ function handleCompoundSearch(event) {
     showDropdown();
 }
 
-// Populate compound dropdown with filtered results
+// 🚀 ON-DEMAND: Populate compound dropdown with filtered results (all compounds supported)
 function populateCompoundDropdown(compounds) {
     const dropdown = document.getElementById('compoundDropdown');
     
@@ -1085,21 +1472,37 @@ function populateCompoundDropdown(compounds) {
         return;
     }
     
+    // Check if on-demand calculation is available
+    const onDemandAvailable = currentUploadedData?.sample_breakdown?.on_demand_calculation || false;
+    
     // Limit results to first 10 for performance
     const limitedCompounds = compounds.slice(0, 10);
     
     dropdown.innerHTML = limitedCompounds
-        .map(compound => `
-            <div class="compound-option" 
-                 data-compound-name="${compound.name}" 
-                 data-compound-index="${compound.index}"
-                 onclick="selectCompound('${compound.name}', ${compound.index})">
-                ${compound.name}
-            </div>
-        `).join('');
+        .map(compound => {
+            // With on-demand calculation, all compounds have real-time data
+            const indicator = onDemandAvailable ? '🚀 ' : '✅ ';
+            const title = onDemandAvailable ? 
+                'Real-time calculation available' : 
+                'Real calculation data available';
+            
+            return `
+                <div class="compound-option" 
+                     data-compound-name="${compound.name}" 
+                     data-compound-index="${compound.index}"
+                     title="${title}"
+                     onclick="selectCompound('${compound.name}', ${compound.index})">
+                    ${indicator}${compound.name}
+                </div>
+            `;
+        }).join('');
     
     if (compounds.length > 10) {
-        dropdown.innerHTML += '<div class="compound-option" style="font-style: italic; color: #6c757d;">...and ' + (compounds.length - 10) + ' more results</div>';
+        const remainingCount = compounds.length - 10;
+        const moreMessage = onDemandAvailable ? 
+            `...and ${remainingCount} more compounds (all with real-time calculation)` :
+            `...and ${remainingCount} more results`;
+        dropdown.innerHTML += `<div class="compound-option" style="font-style: italic; color: #6c757d;">${moreMessage}</div>`;
     }
 }
 
@@ -1121,38 +1524,155 @@ function selectCompound(compoundName, compoundIndex) {
     console.log(`✅ Selected compound: ${compoundName} (Index: ${compoundIndex})`);
 }
 
-// Update calculation breakdown for selected compound
+// 🚀 ON-DEMAND: Update calculation breakdown for selected compound via real-time API
 async function updateCompoundCalculation(compoundName, compoundIndex) {
     try {
-        // For now, we'll use the same calculation logic but update the display
-        // In a full implementation, this would call the backend API
+        console.log(`🔄 ON-DEMAND CALCULATION: ${compoundName} (Index: ${compoundIndex})`);
         
-        console.log(`🔄 Updating calculation for: ${compoundName}`);
+        // Show loading state
+        const sampleDiv = document.getElementById('sampleCalculationBreakdown');
+        if (sampleDiv) {
+            sampleDiv.innerHTML = `
+                <div class="text-center p-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Calculating...</span>
+                    </div>
+                    <p class="mt-2">🔄 Calculating real-time data for <strong>${compoundName}</strong>...</p>
+                </div>
+            `;
+        }
         
-        // Create updated sample data with selected compound
-        const updatedSampleData = {
-            ...currentUploadedData.sample_breakdown,
-            compound: compoundName,
-            // Note: In full implementation, we'd get real area values for this compound
-            note: `Calculation for ${compoundName} (Index: ${compoundIndex})`
-        };
-        
-        // Regenerate the breakdown display with selected compound
-        generateCompoundBreakdownHTML(updatedSampleData);
-        
-        // TODO: Call backend API for accurate calculation
-        // const response = await fetch('/protocols/calculate-compound-breakdown', {
-        //     method: 'POST',
-        //     headers: { 'Content-Type': 'application/json' },
-        //     body: JSON.stringify({
-        //         compound_name: compoundName,
-        //         compound_index: compoundIndex,
-        //         uploaded_data: currentUploadedData
-        //     })
-        // });
+        // Check if we should use on-demand calculation
+        if (currentUploadedData.sample_breakdown && currentUploadedData.sample_breakdown.on_demand_calculation) {
+            console.log(`🚀 Using ON-DEMAND API calculation for ${compoundName}`);
+            
+            // Make API call to calculate compound breakdown in real-time
+            const requestData = {
+                compound_index: compoundIndex,
+                compound_name: compoundName,
+                coefficient: currentUploadedData.sample_breakdown.coefficient || 500
+            };
+            
+            console.log(`📡 API Request:`, requestData);
+            
+            const response = await fetch('/protocols/calculate-compound-breakdown', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData)
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error(`❌ API Error: ${response.status}`, errorData);
+                
+                if (errorData.requires_upload) {
+                    // Session expired or no data
+                    generateCompoundBreakdownHTML({
+                        compound: compoundName,
+                        note: `❌ Session expired. Please upload your Excel file again.`
+                    });
+                    return;
+                }
+                
+                throw new Error(`API Error: ${errorData.error || 'Unknown error'}`);
+            }
+            
+            const result = await response.json();
+            console.log(`✅ ON-DEMAND API Response:`, result);
+            
+            if (result.success && result.breakdown) {
+                // Use real-time calculated data
+                const apiData = result.breakdown;
+                const updatedSampleData = {
+                    compound: apiData.compound,
+                    sample: apiData.sample,
+                    area: apiData.area,
+                    istd_area: apiData.istd_area,
+                    istd_name: apiData.istd_name,
+                    nist_standard: apiData.nist_standard,
+                    concentration: apiData.concentration,
+                    response_factor: apiData.response_factor,
+                    coefficient: apiData.coefficient,
+                    ratio: apiData.ratio,
+                    nist_result: apiData.nist_result,
+                    agilent_result: apiData.agilent_result,
+                    compound_index: apiData.compound_index,
+                    note: `🚀 ${apiData.note || 'Real-time calculation complete'}`
+                };
+                
+                console.log(`✅ Using real-time calculated data for ${compoundName}`, updatedSampleData);
+                generateCompoundBreakdownHTML(updatedSampleData);
+            } else {
+                throw new Error('Invalid API response format');
+            }
+            
+        } else {
+            // Fallback to old method for backwards compatibility
+            console.log(`📋 Using legacy pre-calculated data for ${compoundName}`);
+            
+            let updatedSampleData = null;
+            
+            // Check if we have detailed data for this compound (legacy)
+            if (currentUploadedData.sample_breakdown.compound_data_list) {
+                const compoundData = currentUploadedData.sample_breakdown.compound_data_list.find(
+                    comp => comp.name === compoundName && comp.index === compoundIndex
+                );
+                
+                if (compoundData) {
+                    updatedSampleData = {
+                        compound: compoundData.name,
+                        sample: currentUploadedData.sample_breakdown.sample,
+                        area: compoundData.area,
+                        istd_area: compoundData.istd_area,
+                        istd_name: compoundData.istd_name,
+                        nist_standard: currentUploadedData.sample_breakdown.nist_standard,
+                        concentration: compoundData.concentration,
+                        response_factor: compoundData.response_factor,
+                        coefficient: currentUploadedData.sample_breakdown.coefficient,
+                        ratio: compoundData.ratio,
+                        nist_result: compoundData.nist_result,
+                        agilent_result: compoundData.agilent_result,
+                        note: `✅ Pre-calculated data for ${compoundData.name}`
+                    };
+                } else {
+                    updatedSampleData = {
+                        ...currentUploadedData.sample_breakdown,
+                        compound: compoundName,
+                        note: `⚠️ Legacy mode: Detailed data not available.`
+                    };
+                }
+            } else {
+                updatedSampleData = {
+                    ...currentUploadedData.sample_breakdown,
+                    compound: compoundName,
+                    note: `⚠️ Legacy mode: Using placeholder data`
+                };
+            }
+            
+            generateCompoundBreakdownHTML(updatedSampleData);
+        }
         
     } catch (error) {
-        console.error('❌ Error updating compound calculation:', error);
+        console.error('❌ Error in on-demand calculation:', error);
+        
+        // Error fallback display
+        const fallbackData = {
+            compound: compoundName,
+            sample: currentUploadedData?.sample_breakdown?.sample || 'Unknown',
+            area: 0,
+            istd_area: 212434.0,
+            nist_standard: 0.1769,
+            concentration: 25.0,
+            response_factor: 1.0,
+            coefficient: 500,
+            ratio: 0,
+            nist_result: 0,
+            agilent_result: 0,
+            note: `❌ Error calculating ${compoundName}: ${error.message}`
+        };
+        generateCompoundBreakdownHTML(fallbackData);
     }
 }
 
@@ -1162,7 +1682,7 @@ function generateCompoundBreakdownHTML(sampleData) {
     
     // Use pre-calculated values if available, otherwise calculate step by step
     const ratio = sampleData.ratio || (sampleData.area / sampleData.istd_area);
-    const nist_result = sampleData.nist_result || (ratio / sampleData.nist_reference);
+    const nist_result = sampleData.nist_result || (ratio / sampleData.nist_standard);
     const agilent_result = sampleData.agilent_result || (ratio * sampleData.concentration * sampleData.response_factor * sampleData.coefficient);
     
     const html = `
@@ -1174,6 +1694,7 @@ function generateCompoundBreakdownHTML(sampleData) {
             Data Source: ${currentUploadedData && currentUploadedData.sample_breakdown ? '✅ Real uploaded data' : '⚠️ Fallback data'}<br>
             Selected Compound: ${sampleData.compound}<br>
             Area Value: ${sampleData.area} (${typeof sampleData.area})<br>
+            ${sampleData.istd_name ? `ISTD: ${sampleData.istd_name}<br>` : ''}
             ${sampleData.note ? `Note: ${sampleData.note}` : ''}
         </div>
         
@@ -1186,17 +1707,34 @@ function generateCompoundBreakdownHTML(sampleData) {
                 <span class="breakdown-label">Internal Standard (ISTD) Area</span>
                 <span class="breakdown-value">${sampleData.istd_area.toLocaleString()}</span>
             </div>
+            ${sampleData.istd_warning ? `
+            <div class="breakdown-row" style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding-left: 15px;">
+                <span class="breakdown-label" style="color: #856404; font-weight: bold;">⚠️ ISTD Notice</span>
+                <span class="breakdown-value" style="color: #856404;">${sampleData.istd_warning}</span>
+            </div>
+            ` : ''}
             <div class="breakdown-row">
                 <span class="breakdown-label">Ratio = Area ÷ ISTD</span>
-                <span class="breakdown-value">${ratio.toFixed(6)}</span>
+                <span class="breakdown-value">${sampleData.area.toLocaleString()} ÷ ${sampleData.istd_area.toLocaleString()} (= ${ratio.toFixed(6)})</span>
             </div>
             <div class="breakdown-row">
-                <span class="breakdown-label">NIST Reference Value</span>
-                <span class="breakdown-value">${sampleData.nist_reference}</span>
+                <span class="breakdown-label">NIST Ratio (same substance)</span>
+                <span class="breakdown-value">${sampleData.nist_standard} (from ${sampleData.nist_column || 'Standard NIST'})</span>
             </div>
+            ${sampleData.matrix_info ? `
+            <div class="breakdown-row" style="background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px;">
+                <span class="breakdown-label">🎯 Matrix Lookup Info</span>
+                <div style="font-size: 12px; margin-top: 5px;">
+                    <div><strong>Position:</strong> Row[${sampleData.matrix_info.compound_index}] × Column[${sampleData.matrix_info.matched_nist_column || 'NOT_FOUND'}]</div>
+                    <div><strong>Success:</strong> ${sampleData.matrix_info.matrix_lookup_success ? '✅ YES' : '❌ NO'}</div>
+                    ${sampleData.matrix_info.fallback_reason ? `<div><strong>Issue:</strong> ${sampleData.matrix_info.fallback_reason}</div>` : ''}
+                    <div><strong>Source:</strong> ${sampleData.matrix_info.mapping_source} mapping</div>
+                </div>
+            </div>
+            ` : ''}
             <div class="breakdown-row">
-                <span class="breakdown-label">NIST Result = Ratio ÷ NIST Ref</span>
-                <span class="breakdown-value">${nist_result.toFixed(6)}</span>
+                <span class="breakdown-label">NIST Result = Sample Ratio ÷ NIST Ratio</span>
+                <span class="breakdown-value">${ratio.toFixed(6)} ÷ ${sampleData.nist_standard} (= ${nist_result.toFixed(6)})</span>
             </div>
             <div class="breakdown-row">
                 <span class="breakdown-label">Concentration (nM)</span>
@@ -1212,7 +1750,7 @@ function generateCompoundBreakdownHTML(sampleData) {
             </div>
             <div class="breakdown-row">
                 <span class="breakdown-label">Final Agilent Result</span>
-                <span class="breakdown-value">${agilent_result.toFixed(6)}</span>
+                <span class="breakdown-value">${ratio.toFixed(6)} × ${sampleData.concentration} × ${sampleData.response_factor} × ${sampleData.coefficient} (= ${agilent_result.toFixed(6)})</span>
             </div>
         </div>
     `;
@@ -1233,6 +1771,148 @@ function hideDropdown() {
 // Hide dropdown with delay (for blur event)
 function hideDropdownDelayed() {
     setTimeout(hideDropdown, 200);
+}
+
+// Search template functions
+function searchTemplate(templateTerm) {
+    const searchInput = document.getElementById('compoundSearchInput');
+    if (searchInput) {
+        searchInput.value = templateTerm;
+        handleCompoundSearch({ target: searchInput });
+        searchInput.focus();
+        
+        // Update search info
+        const searchInfo = document.getElementById('searchInfo');
+        if (searchInfo) {
+            const templateDescriptions = {
+                'AcylCarnitine': 'Acyl carnitines - fatty acid transport molecules',
+                'TG': 'Triacylglycerols - neutral lipids with three fatty acids',
+                'PC': 'Phosphatidylcholines - major membrane phospholipids',
+                'PE': 'Phosphatidylethanolamines - membrane building blocks',
+                'SM': 'Sphingomyelins - sphingolipid membrane components',
+                'Cer': 'Ceramides - bioactive sphingolipid signaling molecules',
+                'LPC': 'Lysophosphatidylcholines - signaling and membrane remodeling',
+                'LPE': 'Lysophosphatidylethanolamines - bioactive lysolipids',
+                'FA': 'Fatty acids - fundamental building blocks',
+                'MAG': 'Monoacylglycerols - partial glyceride lipids',
+                'd7': 'Deuterated internal standards - stable isotope references'
+            };
+            
+            const description = templateDescriptions[templateTerm] || 'Searching for compounds containing this term';
+            searchInfo.innerHTML = `
+                <div class="alert alert-info alert-sm mt-2">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <strong>${templateTerm}</strong>: ${description}
+                </div>
+            `;
+        }
+    }
+}
+
+function clearSearch() {
+    const searchInput = document.getElementById('compoundSearchInput');
+    const searchInfo = document.getElementById('searchInfo');
+    
+    if (searchInput) {
+        searchInput.value = '';
+        hideDropdown();
+    }
+    
+    if (searchInfo) {
+        searchInfo.innerHTML = `
+            <div class="text-muted small mt-2">
+                <i class="fas fa-lightbulb me-1"></i>
+                Use the template buttons above or type to search through all available compounds
+            </div>
+        `;
+    }
+}
+
+// Show detailed NIST ratio information modal
+function showNistRatioInfo() {
+    if (!calculationResults || !calculationResults.nist_standards) {
+        alert('No NIST standards data available. Please upload and process an Excel file first.');
+        return;
+    }
+    
+    const nistStandards = calculationResults.nist_standards;
+    const compounds = Object.keys(nistStandards);
+    
+    let modalContent = `
+        <div class="modal fade" id="nistRatioModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-database me-2"></i>Database NIST Ratio Standards
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            These ratio standards are permanently stored in the database from your Ratio-database.xlsx file. 
+                            They are used to normalize all NIST calculations.
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-sm">
+                                <thead class="table-primary">
+                                    <tr>
+                                        <th>Compound</th>
+                                        <th>NIST Standard Ratio</th>
+                                        <th>ISTD</th>
+                                        <th>Concentration (nM)</th>
+                                        <th>Response Factor</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+    `;
+    
+    compounds.forEach(compound => {
+        const info = nistStandards[compound];
+        modalContent += `
+            <tr>
+                <td class="fw-bold text-primary">${compound}</td>
+                <td class="fw-bold text-success">${info.nist_standard.toFixed(6)}</td>
+                <td class="text-muted">${info.istd}</td>
+                <td>${info.conc_nm.toFixed(1)}</td>
+                <td>${info.response_factor.toFixed(2)}</td>
+            </tr>
+        `;
+    });
+    
+    modalContent += `
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-3">
+                            <h6 class="text-primary">Calculation Formula:</h6>
+                            <div class="bg-light p-3 rounded">
+                                <code>NIST Result = Sample Ratio ÷ Database NIST Standard</code>
+                                <br><small class="text-muted">Where Sample Ratio = Compound Area ÷ ISTD Area</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if present
+    const existingModal = document.getElementById('nistRatioModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalContent);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('nistRatioModal'));
+    modal.show();
 }
 </script>
 {% endblock %}

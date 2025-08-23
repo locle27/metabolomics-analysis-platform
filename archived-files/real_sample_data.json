@@ -1,0 +1,10 @@
+{
+  "compound": "AcylCarnitine 10:0",
+  "sample": "PH-HC_5601",
+  "area": 212159.810425247,
+  "istd_area": 212434.0,
+  "nist_reference": 0.1769,
+  "concentration": 25.0,
+  "response_factor": 1.0,
+  "coefficient": 500
+}

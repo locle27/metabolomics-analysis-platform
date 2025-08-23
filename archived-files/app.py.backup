@@ -2772,7 +2772,7 @@ def calculation_tool():
         return redirect(url_for('protocols'))
 
 @app.route('/protocols/calculate', methods=['POST'])
-# @csrf.exempt  # CSRF protection unavailable - commented out
+@csrf.exempt  # Exempt this route from CSRF protection
 def calculate_analysis():
     """Process single Excel file and calculate NIST and Agilent values using database reference data"""
     try:
@@ -3557,7 +3557,7 @@ def calculate_analysis():
 # This eliminates NaN JSON serialization errors and provides complete compound coverage
 
 @app.route('/protocols/download-excel')
-# @csrf.exempt  # CSRF protection unavailable - commented out
+@csrf.exempt  # Exempt this route from CSRF protection
 def download_excel():
     """Download generated Excel file from temp file"""
     try:
@@ -3583,9 +3583,192 @@ def download_excel():
 def quantitative_analysis():
     """Redirect old quantitative-analysis to new streamlined calculator"""
     return redirect(url_for('streamlined_calculator'))
+        
+        # Store raw Excel data in temp file
+        file.seek(0)
+        raw_excel_bytes = file.read()
+        
+        # Create unique temp file
+        import tempfile, uuid
+        session_id = session.get('session_id') or str(uuid.uuid4())
+        session['session_id'] = session_id
+        
+        temp_dir = tempfile.gettempdir()
+        temp_file_path = os.path.join(temp_dir, f"metabolomics_enhanced_{session_id}.xlsx")
+        
+        with open(temp_file_path, 'wb') as temp_file:
+            temp_file.write(raw_excel_bytes)
+        
+        # Store in session
+        session['calculation_temp_file'] = temp_file_path
+        session['calculation_coefficient'] = coefficient
+        session['calculation_timestamp'] = time.time()
+        
+        print(f"✅ Stored Excel data: {temp_file_path}")
+        
+        # Generate comprehensive ratio analysis using our accurate system
+        print("🧮 GENERATING COMPREHENSIVE RATIO ANALYSIS...")
+        ratio_result = generate_ratio_preview_table(temp_file_path, max_compounds=100, max_samples=100)
+        
+        if not ratio_result['success']:
+            return jsonify({"error": f"Ratio calculation failed: {ratio_result['error']}"}), 400
+        
+        # Process the ratio data into NIST and Agilent results
+        print("📊 CONVERTING TO NIST/AGILENT FORMAT...")
+        
+        # Load database reference data
+        sample_mapping = SampleIndex.get_sample_mapping()
+        compound_records = CompoundIndex.query.all()
+        compound_data = {record.compound: record for record in compound_records}
+        
+        # Create NIST and Agilent result tables
+        nist_results = []
+        agilent_results = []
+        
+        # Group ratio data by compound
+        compounds_processed = {}
+        for row in ratio_result['full_data']:
+            compound = row['Compound']
+            sample = row['Sample'] 
+            
+            if compound not in compounds_processed:
+                compounds_processed[compound] = {
+                    'compound': compound,
+                    'istd': row['ISTD'],
+                    'samples': {}
+                }
+            
+            # Store sample data
+            if row['NIST_Result'] != 0:  # Only include valid results
+                compounds_processed[compound]['samples'][sample] = {
+                    'nist_result': row['NIST_Result'],
+                    'sample_ratio': row['Sample_Ratio'],
+                    'nist_ratio': row['NIST_Ratio']
+                }
+        
+        # Convert to NIST and Agilent format
+        for compound, data in compounds_processed.items():
+            if not data['samples']:  # Skip compounds with no valid results
+                continue
+            
+            # Get compound reference data from database
+            compound_record = compound_data.get(compound)
+            if not compound_record:
+                continue
+            
+            conc_nm = compound_record.conc_nm or 100  # Default concentration
+            response_factor = compound_record.response_factor or 1.0
+            
+            # Create NIST row
+            nist_row = {'Compound': compound}
+            agilent_row = {'Compound': compound}
+            
+            for sample, sample_data in data['samples'].items():
+                # NIST value (already calculated correctly)
+                nist_value = sample_data['nist_result']
+                
+                # Agilent value: Sample Ratio × Conc.(nM) × Response Factor × Coefficient
+                agilent_value = sample_data['sample_ratio'] * conc_nm * response_factor * coefficient
+                
+                nist_row[sample] = round(nist_value, 6)
+                agilent_row[sample] = round(agilent_value, 2)
+            
+            nist_results.append(nist_row)
+            agilent_results.append(agilent_row)
+        
+        print(f"✅ Generated {len(nist_results)} NIST results, {len(agilent_results)} Agilent results")
+        
+        # Create Excel output
+        print("📁 CREATING EXCEL OUTPUT...")
+        output = BytesIO()
+        
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            # NIST Results sheet
+            if nist_results:
+                pd.DataFrame(nist_results).to_excel(writer, sheet_name='NIST_Results', index=False)
+            
+            # Agilent Results sheet
+            if agilent_results:
+                pd.DataFrame(agilent_results).to_excel(writer, sheet_name='Agilent_Results', index=False)
+            
+            # Ratio Analysis sheet (detailed breakdown)
+            pd.DataFrame(ratio_result['full_data']).to_excel(writer, sheet_name='Ratio_Analysis', index=False)
+            
+            # Summary sheet
+            summary_data = {
+                'Metric': [
+                    'Total Compounds Processed',
+                    'Valid NIST Results', 
+                    'Samples Analyzed',
+                    'Coefficient Used',
+                    'Calculation Method',
+                    'Data Sources',
+                    'Average NIST Result'
+                ],
+                'Value': [
+                    len(compounds_processed),
+                    len(nist_results),
+                    len(ratio_result['samples']),
+                    coefficient,
+                    'Sample_Ratio ÷ NIST_Ratio (Excel + Database)',
+                    'Excel (Area Data) + Database (Sample/Compound Index)',
+                    f"{ratio_result['summary_stats'].get('avg_nist_result', 0):.6f}"
+                ]
+            }
+            pd.DataFrame(summary_data).to_excel(writer, sheet_name='Calculation_Summary', index=False)
+        
+        # Store Excel file in temp directory
+        filename = f'enhanced_calculation_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+        temp_session_id = str(uuid.uuid4())
+        temp_excel_path = os.path.join(temp_dir, f"metabolomics_result_enhanced_{temp_session_id}.xlsx")
+        
+        with open(temp_excel_path, 'wb') as temp_file:
+            temp_file.write(output.getvalue())
+        
+        # Store in session
+        session['result_excel_path'] = temp_excel_path
+        session['excel_filename'] = filename
+        session['result_session_id'] = temp_session_id
+        
+        # Create sample breakdown for frontend display
+        first_compound = next(iter(compounds_processed.keys())) if compounds_processed else "No compounds"
+        first_sample = ratio_result['samples'][0] if ratio_result['samples'] else "No samples"
+        
+        sample_breakdown = {
+            'compound': first_compound,
+            'sample': first_sample,
+            'calculation_method': 'Enhanced Excel + Database',
+            'total_compounds': len(compounds_processed),
+            'valid_results': len(nist_results),
+            'data_sources': 'Excel (Area) + Database (Sample/Compound Index)',
+            'formula_used': 'Sample_Ratio ÷ NIST_Ratio',
+            'coefficient': coefficient,
+            'accuracy_note': 'Using verified ratio calculation with database reference data'
+        }
+        
+        # Convert results to JSON format for frontend
+        nist_json = json.dumps(nist_results[:50])  # Limit for display
+        agilent_json = json.dumps(agilent_results[:50])  # Limit for display
+        
+        return jsonify({
+            "success": True,
+            "nist_data": nist_json,
+            "agilent_data": agilent_json,
+            "sample_breakdown": sample_breakdown,
+            "summary_stats": ratio_result['summary_stats'],
+            "excel_filename": filename,
+            "method": "enhanced_accurate_calculation",
+            "message": f"✅ Enhanced calculation completed: {len(nist_results)} compounds with accurate ratio analysis"
+        })
+        
+    except Exception as e:
+        print(f"❌ Enhanced calculation error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Enhanced calculation failed: {str(e)}"}), 500
 
 @app.route('/protocols/calculate-compound-breakdown', methods=['POST'])
-# @csrf.exempt  # CSRF protection unavailable - commented out
+@csrf.exempt  # Exempt this route from CSRF protection
 def calculate_compound_breakdown():
     """🚀 ON-DEMAND: Calculate breakdown for a specific compound by index from uploaded data"""
     # Set response headers to prevent caching and reduce size issues
@@ -4384,7 +4567,7 @@ def streamlined_calculator_page():
         return redirect(url_for('clean_dashboard'))
 
 @app.route('/api/debug-excel-structure', methods=['POST'])
-# @csrf.exempt  # CSRF protection unavailable - commented out
+@csrf.exempt
 def api_debug_excel_structure():
     """Debug endpoint to analyze Excel file structure"""
     try:
@@ -4431,7 +4614,7 @@ def api_debug_excel_structure():
         return jsonify({"success": False, "error": f"Debug error: {str(e)}"}), 500
 
 @app.route('/api/streamlined-calculate', methods=['POST'])
-# @csrf.exempt  # CSRF protection unavailable - commented out
+@csrf.exempt
 def api_streamlined_calculate():
     """API endpoint for streamlined calculation"""
     try:

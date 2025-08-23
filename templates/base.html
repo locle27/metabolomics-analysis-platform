@@ -625,7 +625,7 @@
                                     
                                     <!-- Lipidomics Section with Dropdown -->
                                     <li class="nav-item has-submenu">
-                                        <a class="nav-link {% if request.endpoint in ['clean_dashboard', 'dual_chart_view', 'manage_lipids', 'excel_generator', 'lcms_tools', 'protocols'] %}active{% endif %}" href="#">
+                                        <a class="nav-link {% if request.endpoint in ['clean_dashboard', 'dual_chart_view', 'browse_lipids', 'excel_generator', 'lcms_tools', 'protocols'] %}active{% endif %}" href="#">
                                             LIPIDOMICS
                                             <span class="sub-nav-toggler"></span>
                                         </a>
@@ -641,7 +641,7 @@
                                                         <div class="sub-links">
                                                             <ul>
                                                                 <li><a href="{{ url_for('clean_dashboard') }}"><i class="fas fa-search"></i> Lipid Selection</a></li>
-                                                                <li><a href="{{ url_for('manage_lipids') }}"><i class="fas fa-database"></i> Database Management</a></li>
+                                                                <li><a href="{{ url_for('browse_lipids') }}"><i class="fas fa-database"></i> Browse Lipids</a></li>
                                                             </ul>
                                                         </div>
                                                     </div>
@@ -656,7 +656,7 @@
                                                     <div class="col-lg-4">
                                                         <div class="sub-links no-border">
                                                             <ul>
-                                                                <li><a href="{{ url_for('quantitative_analysis') }}"><i class="fas fa-calculator"></i> Quantitative Analysis</a></li>
+                                                                <li><a href="{{ url_for('streamlined_calculator') }}"><i class="fas fa-rocket"></i> Streamlined Calculator</a></li>
                                                                 <li><a href="{{ url_for('protocols') }}"><i class="fas fa-file-alt"></i> Protocols</a></li>
                                                                 <li><a href="{{ url_for('browse_lipids') }}"><i class="fas fa-list"></i> Browse Lipids</a></li>
                                                             </ul>
