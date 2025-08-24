@@ -4088,12 +4088,24 @@ def backup_management():
         return "Backup management temporarily unavailable", 503
 
 @app.route('/manage-users')
+@login_required
 def manage_users():
-    """User management - placeholder route"""
+    """User management - view and manage platform users"""
     try:
-        return render_template('auth/manage_users.html')
-    except:
-        return "User management temporarily unavailable", 503
+        # Check if user has admin privileges
+        user_can_edit = current_user.role == 'admin'
+        
+        # Get all users from database
+        users = User.query.all()
+        
+        # Pass data to template
+        return render_template('auth/manage_users.html',
+                             users=users,
+                             user_can_edit=user_can_edit)
+    except Exception as e:
+        print(f"❌ Error in manage_users: {e}")
+        flash("Error loading user management page", "error")
+        return redirect(url_for('clean_dashboard'))
 
 @app.route('/admin-add-member')
 def admin_add_member():
@@ -4373,6 +4385,55 @@ def check_database_references():
 # ============================================================================
 # STREAMLINED CALCULATOR ROUTES
 # ============================================================================
+
+@app.route('/api/load-lipids')
+def api_load_lipids():
+    """API endpoint to load lipids asynchronously for dashboard"""
+    import time
+    start_time = time.time()
+    
+    try:
+        # Check database availability
+        if not db or not MainLipid:
+            return jsonify({
+                'status': 'error',
+                'message': 'Database not available'
+            })
+        
+        # Get all lipids with their classes
+        lipids = MainLipid.query.options(
+            selectinload(MainLipid.lipid_class),
+            selectinload(MainLipid.annotated_ions)
+        ).all()
+        
+        # Convert to JSON format
+        lipids_data = []
+        for lipid in lipids:
+            lipid_dict = {
+                'lipid_id': lipid.lipid_id,
+                'lipid_name': lipid.lipid_name,
+                'api_code': lipid.api_code,
+                'retention_time': lipid.retention_time,
+                'class_name': lipid.lipid_class.class_name if lipid.lipid_class else 'Unknown',
+                'annotated_ions_count': len(lipid.annotated_ions)
+            }
+            lipids_data.append(lipid_dict)
+        
+        query_time = time.time() - start_time
+        
+        return jsonify({
+            'status': 'success',
+            'lipids': lipids_data,
+            'count': len(lipids_data),
+            'query_time': f"{query_time:.3f}s"
+        })
+        
+    except Exception as e:
+        print(f"❌ Error loading lipids: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Database error: {str(e)}'
+        })
 
 @app.route('/streamlined-calculator')
 def streamlined_calculator_page():
