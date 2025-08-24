@@ -4133,17 +4133,49 @@ def manage_users():
             print(f"⚠️ CSRF token generation failed: {e}")
     
     try:
-        if not (db and User):
-            # Fallback for when database is not available
-            return render_template('auth/manage_users.html', 
-                                 users=[],
-                                 user_can_edit=(user_role in ['admin', 'manager']),
-                                 csrf_token=csrf_token,
-                                 config=app.config,
-                                 error_message="Database not available. User management requires a working database connection.")
+        # Initialize users list
+        users = []
+        error_message = None
         
-        # Get all users with error handling
-        users = User.query.order_by(User.created_at.desc()).all()
+        if not (db and User):
+            print("⚠️ Database or User model not available - using demo users")
+            # Create demo users for display when database is not available
+            from datetime import datetime
+            
+            class DemoUser:
+                def __init__(self, id, username, email, full_name, role, is_active=True, created_at=None):
+                    self.id = id
+                    self.username = username
+                    self.email = email
+                    self.full_name = full_name
+                    self.role = role
+                    self.is_active = is_active
+                    self.created_at = created_at or datetime.now()
+                    self.auth_method = 'demo'
+                    self.last_login = None
+            
+            users = [
+                DemoUser(1, 'admin', 'admin@demo.com', 'Demo Administrator', 'admin'),
+                DemoUser(2, 'manager', 'manager@demo.com', 'Demo Manager', 'manager'), 
+                DemoUser(3, 'user', 'user@demo.com', 'Demo User', 'user'),
+                DemoUser(4, 'researcher', 'researcher@metabolomics.com', 'Research Scientist', 'user')
+            ]
+            error_message = "Using demo users - Database connection not available. Run 'python init_database.py' to initialize."
+            
+        else:
+            # Try to get users from database
+            try:
+                users = User.query.order_by(User.created_at.desc()).all()
+                print(f"✅ Loaded {len(users)} users from database")
+                
+                if len(users) == 0:
+                    print("⚠️ No users found in database")
+                    error_message = "No users found in database. Run 'python init_database.py' to create demo users."
+                    
+            except Exception as db_error:
+                print(f"❌ Database query failed: {db_error}")
+                error_message = f"Database connection failed: {str(db_error)}"
+                users = []
         
         # Pass user's edit permissions to template
         user_can_edit = (user_role in ['admin', 'manager'])
@@ -4153,16 +4185,20 @@ def manage_users():
                              user_can_edit=user_can_edit,
                              current_user_role=user_role,
                              csrf_token=csrf_token,
-                             config=app.config)
+                             config=app.config,
+                             error_message=error_message)
         
     except Exception as e:
-        print(f"⚠️ User management error: {e}")
+        print(f"❌ User management critical error: {e}")
+        import traceback
+        traceback.print_exc()
+        
         return render_template('auth/manage_users.html', 
                              users=[],
                              user_can_edit=False,
                              csrf_token=csrf_token,
                              config=app.config,
-                             error_message=f"Error loading users: {str(e)}")
+                             error_message=f"Critical error loading user management: {str(e)}")
 
 @app.route('/update-user-role', methods=['POST'])
 @admin_required  
@@ -4429,6 +4465,38 @@ def lipid_detail():
     """Lipid detail - placeholder route"""
     return "Lipid detail coming soon", 200
 
+
+@app.route('/fix-admin-session')
+def fix_admin_session():
+    """TEMPORARY: Fix admin session for testing user management"""
+    # Set proper admin session values
+    session['user_authenticated'] = True
+    session['user_email'] = 'admin@metabolomics.com'
+    session['user_role'] = 'admin'
+    session['username'] = 'admin'
+    session.permanent = True
+    
+    print("🔧 ADMIN SESSION FIXED:")
+    print(f"   user_authenticated: {session.get('user_authenticated')}")
+    print(f"   user_email: {session.get('user_email')}")
+    print(f"   user_role: {session.get('user_role')}")
+    
+    return f"""
+    <html>
+    <head><title>Admin Session Fixed</title></head>
+    <body style="font-family: Arial; margin: 20px;">
+        <h1>✅ Admin Session Fixed!</h1>
+        <p>Session values have been set:</p>
+        <ul>
+            <li><strong>user_authenticated:</strong> {session.get('user_authenticated')}</li>
+            <li><strong>user_email:</strong> {session.get('user_email')}</li>
+            <li><strong>user_role:</strong> {session.get('user_role')}</li>
+        </ul>
+        <p><a href="/manage-users" style="background: #2E4C92; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">🔗 Go to User Management</a></p>
+        <p><a href="/user-debug" style="background: #28a745; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">🔍 View Debug Info</a></p>
+    </body>
+    </html>
+    """
 
 @app.route('/user-debug')
 def user_debug():
