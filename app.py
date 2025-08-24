@@ -248,6 +248,25 @@ def global_csrf_token():
         print(f"⚠️ Global CSRF token error: {e}")
         return dict(csrf_token=lambda: "")
 
+# Admin Required Decorator
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Check session-based authentication first
+        user_authenticated = session.get('user_authenticated', False)
+        user_role = session.get('user_role', 'user')
+        
+        if not user_authenticated:
+            flash('Please log in to access this page.', 'warning')
+            return redirect(url_for('login_page'))
+        
+        if user_role not in ['admin', 'manager']:
+            flash('Access denied. Administrator privileges required.', 'error')
+            return redirect(url_for('homepage'))
+            
+        return f(*args, **kwargs)
+    return decorated_function
+
 # Test route for CSRF token
 @app.route('/test-csrf')
 def test_csrf():
@@ -4088,32 +4107,307 @@ def backup_management():
         return "Backup management temporarily unavailable", 503
 
 @app.route('/manage-users')
-@login_required
 def manage_users():
-    """User management - view and manage platform users"""
+    """User Management - RESTRICTED to managers and admins only"""
+    # Check if user is authenticated and has proper role
+    user_authenticated = session.get('user_authenticated', False)
+    user_role = session.get('user_role', 'user')
+    
+    if not user_authenticated:
+        flash('Please log in to access user management.', 'warning')
+        return redirect(url_for('login_page'))
+    
+    # SECURITY: Only managers and admins can access user management
+    if user_role not in ['admin', 'manager']:
+        flash('Access denied. User management requires manager or administrator privileges.', 'error')
+        return redirect(url_for('homepage'))
+    
+    # Generate CSRF token for forms
+    csrf_token = ''
+    if CSRF_AVAILABLE:
+        try:
+            from flask_wtf.csrf import generate_csrf
+            csrf_token = generate_csrf()
+            print("✅ User management CSRF token generated")
+        except Exception as e:
+            print(f"⚠️ CSRF token generation failed: {e}")
+    
     try:
-        # Check if user has admin privileges
-        user_can_edit = current_user.role == 'admin'
+        if not (db and User):
+            # Fallback for when database is not available
+            return render_template('auth/manage_users.html', 
+                                 users=[],
+                                 user_can_edit=(user_role in ['admin', 'manager']),
+                                 csrf_token=csrf_token,
+                                 config=app.config,
+                                 error_message="Database not available. User management requires a working database connection.")
         
-        # Get all users from database
-        users = User.query.all()
+        # Get all users with error handling
+        users = User.query.order_by(User.created_at.desc()).all()
         
-        # Pass data to template
-        return render_template('auth/manage_users.html',
+        # Pass user's edit permissions to template
+        user_can_edit = (user_role in ['admin', 'manager'])
+        
+        return render_template('auth/manage_users.html', 
                              users=users,
-                             user_can_edit=user_can_edit)
+                             user_can_edit=user_can_edit,
+                             current_user_role=user_role,
+                             csrf_token=csrf_token,
+                             config=app.config)
+        
     except Exception as e:
-        print(f"❌ Error in manage_users: {e}")
-        flash("Error loading user management page", "error")
-        return redirect(url_for('clean_dashboard'))
+        print(f"⚠️ User management error: {e}")
+        return render_template('auth/manage_users.html', 
+                             users=[],
+                             user_can_edit=False,
+                             csrf_token=csrf_token,
+                             config=app.config,
+                             error_message=f"Error loading users: {str(e)}")
 
-@app.route('/admin-add-member')
+@app.route('/update-user-role', methods=['POST'])
+@admin_required  
+def update_user_role():
+    """Update user role - Admin only"""
+    try:
+        if not (db and User):
+            flash("Database not available", "error")
+            return redirect(url_for('manage_users'))
+            
+        user_id = request.form.get('user_id')
+        new_role = request.form.get('role')
+        
+        print(f"🔧 Role update debug - Form data received:")
+        print(f"   user_id: '{user_id}'")
+        print(f"   role: '{new_role}'")
+        
+        if not user_id or not new_role:
+            print(f"❌ Missing fields - user_id: {user_id}, role: {new_role}")
+            flash(f"Missing required fields", "error")
+            return redirect(url_for('manage_users'))
+            
+        if new_role not in ['user', 'manager', 'admin']:
+            flash("Invalid role specified", "error")
+            return redirect(url_for('manage_users'))
+        
+        user = User.query.get(user_id)
+        if not user:
+            flash("User not found", "error")
+            return redirect(url_for('manage_users'))
+            
+        # Prevent changing your own role
+        current_user_email = session.get('user_email')
+        if user.email == current_user_email:
+            flash("Cannot change your own role", "warning")
+            return redirect(url_for('manage_users'))
+            
+        # Update the user's role
+        old_role = user.role
+        user.role = new_role
+        db.session.commit()
+        
+        flash(f"Successfully updated {user.email} from {old_role} to {new_role}", "success")
+        print(f"✅ Role updated: {user.email} from {old_role} to {new_role}")
+        
+        return redirect(url_for('manage_users'))
+        
+    except Exception as e:
+        print(f"❌ Error updating user role: {e}")
+        flash(f"Error updating user role: {str(e)}", "error")
+        db.session.rollback()
+        return redirect(url_for('manage_users'))
+
+@app.route('/update-user-notifications', methods=['POST'])
+@admin_required
+def update_user_notifications():
+    """Update user notification settings - Admin/Manager only"""
+    try:
+        if not (db and User):
+            return jsonify({'success': False, 'message': 'Database not available'}), 500
+            
+        user_id = request.form.get('user_id')
+        notifications_enabled = request.form.get('notifications_enabled') == 'true'
+        
+        if not user_id:
+            return jsonify({'success': False, 'message': 'Missing user_id'}), 400
+            
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+            
+        # Load current notification settings
+        current_emails = set(app.config.get('NOTIFICATION_EMAILS', []))
+        
+        if notifications_enabled:
+            # Add user's email to notifications
+            current_emails.add(user.email)
+            action = 'enabled'
+        else:
+            # Remove user's email from notifications
+            current_emails.discard(user.email)
+            action = 'disabled'
+            
+        # Update config (in production, this would update the database/config file)
+        app.config['NOTIFICATION_EMAILS'] = list(current_emails)
+        
+        print(f"✅ Notifications {action} for {user.email}")
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Notifications {action} for {user.email}',
+            'user_id': user_id,
+            'notifications_enabled': notifications_enabled
+        })
+        
+    except Exception as e:
+        print(f"❌ Error updating user notifications: {e}")
+        return jsonify({'success': False, 'message': f'Error updating notifications: {str(e)}'}), 500
+
+@app.route('/bulk-user-actions', methods=['POST'])
+@admin_required
+def bulk_user_actions():
+    """Handle bulk user actions - Admin only"""
+    try:
+        if not (db and User):
+            return jsonify({'success': False, 'message': 'Database not available'}), 500
+            
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'No data provided'}), 400
+            
+        action = data.get('action')
+        user_ids = data.get('user_ids', [])
+        
+        if not action or not user_ids:
+            return jsonify({'success': False, 'message': 'Missing action or user_ids'}), 400
+            
+        if len(user_ids) == 0:
+            return jsonify({'success': False, 'message': 'No users selected'}), 400
+            
+        # Prevent modifying your own account in bulk
+        current_user_email = session.get('user_email')
+        current_user = User.query.filter_by(email=current_user_email).first()
+        if current_user and str(current_user.id) in user_ids:
+            return jsonify({'success': False, 'message': 'Cannot modify your own account in bulk operations'}), 400
+            
+        affected_users = 0
+        
+        if action == 'change_role':
+            new_role = data.get('new_role')
+            if new_role not in ['user', 'manager', 'admin']:
+                return jsonify({'success': False, 'message': 'Invalid role specified'}), 400
+                
+            # Update roles
+            users_to_update = User.query.filter(User.id.in_(user_ids)).all()
+            for user in users_to_update:
+                # Skip super admin protection
+                if user.email == 'loc22100302@gmail.com':
+                    continue
+                    
+                # Only super admin can modify other admins
+                if user.role == 'admin' and current_user_email != 'loc22100302@gmail.com':
+                    continue
+                    
+                user.role = new_role
+                affected_users += 1
+                
+            db.session.commit()
+            print(f"✅ Bulk role change: {affected_users} users updated to {new_role}")
+            
+        elif action == 'enable_notifications':
+            users = User.query.filter(User.id.in_(user_ids)).all()
+            current_emails = set(app.config.get('NOTIFICATION_EMAILS', []))
+            
+            for user in users:
+                current_emails.add(user.email)
+                affected_users += 1
+                
+            app.config['NOTIFICATION_EMAILS'] = list(current_emails)
+            print(f"✅ Bulk notifications enabled: {affected_users} users")
+            
+        elif action == 'disable_notifications':
+            users = User.query.filter(User.id.in_(user_ids)).all()
+            current_emails = set(app.config.get('NOTIFICATION_EMAILS', []))
+            
+            for user in users:
+                current_emails.discard(user.email)
+                affected_users += 1
+                
+            app.config['NOTIFICATION_EMAILS'] = list(current_emails)
+            print(f"✅ Bulk notifications disabled: {affected_users} users")
+            
+        else:
+            return jsonify({'success': False, 'message': 'Unknown action'}), 400
+            
+        return jsonify({
+            'success': True, 
+            'message': f'Bulk action completed successfully',
+            'affected_users': affected_users,
+            'action': action
+        })
+        
+    except Exception as e:
+        print(f"❌ Error in bulk user actions: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error performing bulk action: {str(e)}'}), 500
+
+@app.route('/admin-add-member', methods=['GET', 'POST'])
+@admin_required
 def admin_add_member():
-    """Add member - placeholder route"""
+    """Add new member - Admin only"""
+    if request.method == 'POST':
+        try:
+            if not (db and User):
+                flash("Database not available", "error")
+                return redirect(url_for('manage_users'))
+                
+            email = request.form.get('email', '').strip()
+            username = request.form.get('username', '').strip()
+            full_name = request.form.get('full_name', '').strip()
+            role = request.form.get('role', 'user')
+            
+            if not email or not username:
+                flash("Email and username are required", "error")
+                return render_template('auth/admin_add_member.html')
+                
+            # Check if user already exists
+            existing_user = User.query.filter(
+                (User.email == email) | (User.username == username)
+            ).first()
+            
+            if existing_user:
+                flash("User with this email or username already exists", "error")
+                return render_template('auth/admin_add_member.html')
+                
+            # Create new user
+            new_user = User(
+                username=username,
+                email=email,
+                full_name=full_name,
+                role=role,
+                is_active=True,
+                created_at=datetime.utcnow()
+            )
+            
+            db.session.add(new_user)
+            db.session.commit()
+            
+            flash(f"Successfully added new member: {full_name or username} ({email})", "success")
+            print(f"✅ New member added: {email} with role {role}")
+            
+            return redirect(url_for('manage_users'))
+            
+        except Exception as e:
+            print(f"❌ Error adding member: {e}")
+            flash(f"Error adding member: {str(e)}", "error")
+            db.session.rollback()
+            return render_template('auth/admin_add_member.html')
+    
+    # GET request - show form
     try:
         return render_template('auth/admin_add_member.html')
-    except:
-        return "Add member temporarily unavailable", 503
+    except Exception as e:
+        print(f"❌ Error loading add member page: {e}")
+        return "Add member page temporarily unavailable", 503
 
 @app.route('/notification-settings')
 def notification_settings():
@@ -4135,15 +4429,168 @@ def lipid_detail():
     """Lipid detail - placeholder route"""
     return "Lipid detail coming soon", 200
 
-@app.route('/update-user-role')
-def update_user_role():
-    """Update user role - placeholder route"""
-    return "Update user role coming soon", 200
 
 @app.route('/user-debug')
 def user_debug():
-    """User debug - placeholder route"""
-    return "User debug coming soon", 200
+    """User debug information - shows current user status and system info"""
+    try:
+        debug_info = {
+            'session_info': {
+                'user_email': session.get('user_email', 'Not logged in'),
+                'user_authenticated': session.get('user_authenticated', False),
+                'session_keys': list(session.keys()),
+                'session_permanent': session.permanent if hasattr(session, 'permanent') else 'Unknown'
+            },
+            'system_info': {
+                'database_available': bool(db and User),
+                'csrf_available': CSRF_AVAILABLE,
+                'login_manager_available': LOGIN_MANAGER_AVAILABLE,
+                'oauth_available': OAUTH_AVAILABLE,
+                'mail_available': MAIL_AVAILABLE
+            },
+            'user_info': {},
+            'permissions': {}
+        }
+        
+        # Get user information if logged in
+        if session.get('user_email'):
+            try:
+                current_user = User.query.filter_by(email=session.get('user_email')).first()
+                if current_user:
+                    debug_info['user_info'] = {
+                        'id': current_user.id,
+                        'username': current_user.username,
+                        'email': current_user.email,
+                        'role': current_user.role,
+                        'is_active': current_user.is_active,
+                        'created_at': str(current_user.created_at) if current_user.created_at else 'Unknown',
+                        'full_name': current_user.full_name
+                    }
+                    
+                    # Check permissions
+                    debug_info['permissions'] = {
+                        'can_manage_users': current_user.role in ['admin', 'manager'],
+                        'is_admin': current_user.role == 'admin',
+                        'is_super_admin': current_user.email == 'loc22100302@gmail.com',
+                        'can_view_stats': current_user.role in ['admin', 'manager']
+                    }
+            except Exception as e:
+                debug_info['user_info'] = {'error': f'Error loading user info: {str(e)}'}
+        
+        # Get system statistics
+        if db and User:
+            try:
+                debug_info['database_stats'] = {
+                    'total_users': User.query.count(),
+                    'admin_users': User.query.filter_by(role='admin').count(),
+                    'manager_users': User.query.filter_by(role='manager').count(),
+                    'regular_users': User.query.filter_by(role='user').count(),
+                    'active_users': User.query.filter_by(is_active=True).count()
+                }
+                
+                if MainLipid:
+                    debug_info['database_stats']['total_lipids'] = MainLipid.query.count()
+            except Exception as e:
+                debug_info['database_stats'] = {'error': f'Error loading database stats: {str(e)}'}
+        
+        # Format as HTML for easy reading
+        html_output = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>User Debug Information</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .debug-section { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+                .debug-title { color: #2E4C92; font-weight: bold; margin-bottom: 10px; }
+                .debug-item { margin: 5px 0; }
+                .success { color: green; }
+                .error { color: red; }
+                .warning { color: orange; }
+                pre { background: #eee; padding: 10px; border-radius: 3px; }
+                .back-btn { background: #2E4C92; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; }
+            </style>
+        </head>
+        <body>
+            <h1>🔍 User Debug Information</h1>
+            <p><a href="/" class="back-btn">← Back to Dashboard</a></p>
+        """
+        
+        # Session Information
+        html_output += """
+        <div class="debug-section">
+            <div class="debug-title">Session Information</div>
+        """
+        for key, value in debug_info['session_info'].items():
+            status_class = 'success' if (key == 'user_authenticated' and value) else ''
+            html_output += f'<div class="debug-item {status_class}"><strong>{key}:</strong> {value}</div>'
+        
+        # System Information  
+        html_output += """
+        </div>
+        <div class="debug-section">
+            <div class="debug-title">System Information</div>
+        """
+        for key, value in debug_info['system_info'].items():
+            status_class = 'success' if value else 'error'
+            status_text = '✅' if value else '❌'
+            html_output += f'<div class="debug-item {status_class}"><strong>{key}:</strong> {status_text} {value}</div>'
+        
+        # User Information
+        if debug_info['user_info']:
+            html_output += """
+            </div>
+            <div class="debug-section">
+                <div class="debug-title">Current User Information</div>
+            """
+            for key, value in debug_info['user_info'].items():
+                html_output += f'<div class="debug-item"><strong>{key}:</strong> {value}</div>'
+        
+        # Permissions
+        if debug_info['permissions']:
+            html_output += """
+            </div>
+            <div class="debug-section">
+                <div class="debug-title">User Permissions</div>
+            """
+            for key, value in debug_info['permissions'].items():
+                status_class = 'success' if value else ''
+                status_text = '✅' if value else '❌'
+                html_output += f'<div class="debug-item {status_class}"><strong>{key}:</strong> {status_text} {value}</div>'
+        
+        # Database Statistics
+        if 'database_stats' in debug_info:
+            html_output += """
+            </div>
+            <div class="debug-section">
+                <div class="debug-title">Database Statistics</div>
+            """
+            for key, value in debug_info['database_stats'].items():
+                html_output += f'<div class="debug-item"><strong>{key}:</strong> {value}</div>'
+        
+        html_output += """
+            </div>
+            <div class="debug-section">
+                <div class="debug-title">Raw Debug Data (JSON)</div>
+                <pre>{}</pre>
+            </div>
+        </body>
+        </html>
+        """.format(json.dumps(debug_info, indent=2, default=str))
+        
+        return html_output
+        
+    except Exception as e:
+        print(f"❌ Error in user_debug: {e}")
+        return f"""
+        <html>
+        <body>
+            <h1>User Debug Error</h1>
+            <p>Error generating debug information: {str(e)}</p>
+            <p><a href="/">← Back to Dashboard</a></p>
+        </body>
+        </html>
+        """, 500
 
 # ============================================================================
 # CALCULATION RESULTS PREVIEW ROUTES
