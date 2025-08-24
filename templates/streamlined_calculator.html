@@ -460,10 +460,6 @@
 
                 <!-- Process Button -->
                 <div class="text-center">
-                    <button id="debugButton" class="btn btn-outline-info me-3" onclick="debugExcelStructure()" disabled>
-                        <i class="fas fa-bug me-2"></i>
-                        Debug File Structure
-                    </button>
                     <button id="processButton" class="process-button" onclick="processCalculation()" disabled>
                         <i class="fas fa-calculator me-2"></i>
                         Process Calculation
@@ -577,9 +573,8 @@ document.getElementById('areaFile').addEventListener('change', function(e) {
             </div>
         `;
         
-        // Enable process and debug buttons
+        // Enable process button
         document.getElementById('processButton').disabled = false;
-        document.getElementById('debugButton').disabled = false;
     }
 });
 
@@ -607,66 +602,7 @@ uploadZone.addEventListener('drop', function(e) {
     }
 });
 
-// Debug Excel structure
-async function debugExcelStructure() {
-    const fileInput = document.getElementById('areaFile');
-    
-    if (!fileInput.files[0]) {
-        alert('Please select an Excel file first.');
-        return;
-    }
-    
-    const formData = new FormData();
-    formData.append('area_file', fileInput.files[0]);
-    
-    try {
-        document.getElementById('debugButton').disabled = true;
-        document.getElementById('debugButton').innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Analyzing...';
-        
-        const response = await fetch('/api/debug-excel-structure', {
-            method: 'POST',
-            body: formData
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            const debug = result.debug_info;
-            
-            let debugOutput = `
-📊 EXCEL FILE ANALYSIS: ${result.filename}
-
-📏 Shape: ${debug.shape[0]} rows × ${debug.shape[1]} columns
-
-📋 All Columns (${debug.columns.length}):
-${debug.columns.map((col, i) => `  ${i+1}. ${col}`).join('\n')}
-
-🧬 Potential Compound Columns:
-${debug.compound_candidates.length > 0 ? debug.compound_candidates.join(', ') : 'None found - will use first column'}
-
-🔬 Sample Columns (PH-HC):
-Found ${debug.sample_candidates.length} sample columns
-${debug.sample_candidates.slice(0, 10).join(', ')}${debug.sample_candidates.length > 10 ? '...' : ''}
-
-📝 First 3 Rows Sample:
-${JSON.stringify(debug.first_rows, null, 2)}
-            `;
-            
-            // Show in a modal or alert
-            alert(debugOutput);
-            
-        } else {
-            alert(`Debug error: ${result.error}`);
-        }
-        
-    } catch (error) {
-        console.error('Debug error:', error);
-        alert(`Debug error: ${error.message}`);
-    }
-    
-    document.getElementById('debugButton').disabled = false;
-    document.getElementById('debugButton').innerHTML = '<i class="fas fa-bug me-2"></i>Debug File Structure';
-}
+// Debug function removed for cleaner interface
 
 // Process calculation
 async function processCalculation() {
@@ -962,12 +898,12 @@ function displayCalculationDetails(details, calculationType) {
             <div class="row">
                 <div class="col-md-6">
                     <strong>Substance Area:</strong><br>
-                    <code>${details.source_data.substance_area_raw}</code> → <code>${details.source_data.substance_area}</code>
+                    <code>${details.source_data.substance_area}</code>
                     <small class="text-muted d-block">Substance Index: ${details.substance_index}</small>
                 </div>
                 <div class="col-md-6">
                     <strong>ISTD Area (${details.database_info.istd_name}):</strong><br>
-                    <code>${details.source_data.istd_area_raw}</code> → <code>${details.source_data.istd_area}</code>
+                    <code>${details.source_data.istd_area}</code>
                     <small class="text-muted d-block">
                         ${details.source_data.istd_found ? 
                           `✅ Found at row ${details.source_data.istd_row_index}` : 
