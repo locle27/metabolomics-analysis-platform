@@ -130,10 +130,36 @@
                                 <td class="user-info">
                                     <div class="d-flex align-items-center">
                                         {% if user.picture %}
-                                        <img src="{{ user.picture }}" class="user-avatar me-2" alt="Avatar">
+                                        <img src="{{ user.picture }}" 
+                                             class="user-avatar me-2" 
+                                             alt="{{ user.full_name or user.username }}"
+                                             onerror="this.style.display='none'; this.parentElement.querySelector('.user-avatar-placeholder').style.display='flex';">
+                                        <div class="user-avatar-placeholder me-2" style="display: none;">
+                                            {% set name = user.full_name or user.username or '' %}
+                                            {% if name %}
+                                                {% set parts = name.split() %}
+                                                {% if parts|length > 1 %}
+                                                    {{ parts[0][0].upper() }}{{ parts[-1][0].upper() }}
+                                                {% else %}
+                                                    {{ name[0].upper() }}
+                                                {% endif %}
+                                            {% else %}
+                                                <i class="fas fa-user"></i>
+                                            {% endif %}
+                                        </div>
                                         {% else %}
                                         <div class="user-avatar-placeholder me-2">
-                                            <i class="fas fa-user"></i>
+                                            {% set name = user.full_name or user.username or '' %}
+                                            {% if name %}
+                                                {% set parts = name.split() %}
+                                                {% if parts|length > 1 %}
+                                                    {{ parts[0][0].upper() }}{{ parts[-1][0].upper() }}
+                                                {% else %}
+                                                    {{ name[0].upper() }}
+                                                {% endif %}
+                                            {% else %}
+                                                <i class="fas fa-user"></i>
+                                            {% endif %}
                                         </div>
                                         {% endif %}
                                         <div>
@@ -397,12 +423,14 @@
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: var(--phenikaa-blue);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 16px;
+    font-weight: 600;
+    text-transform: uppercase;
 }
 
 .role-select {
@@ -867,8 +895,11 @@ function performBulkAction(action) {
 }
 
 .user-avatar-placeholder {
-    background: #e9ecef;
-    color: #6c757d;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+    text-transform: uppercase;
 }
 
 .users-table-container {

@@ -4469,11 +4469,11 @@ def lipid_detail():
 @app.route('/fix-admin-session')
 def fix_admin_session():
     """TEMPORARY: Fix admin session for testing user management"""
-    # Set proper admin session values
+    # Use the actual admin account from your database
     session['user_authenticated'] = True
-    session['user_email'] = 'admin@metabolomics.com'
+    session['user_email'] = 'loc22100302@gmail.com'  # Your actual admin email
     session['user_role'] = 'admin'
-    session['username'] = 'admin'
+    session['username'] = 'loc2210032'
     session.permanent = True
     
     print("🔧 ADMIN SESSION FIXED:")
@@ -4481,17 +4481,33 @@ def fix_admin_session():
     print(f"   user_email: {session.get('user_email')}")
     print(f"   user_role: {session.get('user_role')}")
     
+    # Also check database status
+    db_status = "❌ Not connected"
+    user_count = 0
+    if db and User:
+        try:
+            user_count = User.query.count()
+            db_status = f"✅ Connected ({user_count} users)"
+        except Exception as e:
+            db_status = f"❌ Error: {str(e)}"
+    
     return f"""
     <html>
     <head><title>Admin Session Fixed</title></head>
     <body style="font-family: Arial; margin: 20px;">
         <h1>✅ Admin Session Fixed!</h1>
-        <p>Session values have been set:</p>
+        <p>Session values have been set to your existing admin account:</p>
         <ul>
             <li><strong>user_authenticated:</strong> {session.get('user_authenticated')}</li>
             <li><strong>user_email:</strong> {session.get('user_email')}</li>
             <li><strong>user_role:</strong> {session.get('user_role')}</li>
+            <li><strong>username:</strong> {session.get('username')}</li>
         </ul>
+        <p><strong>Database Status:</strong> {db_status}</p>
+        <p style="background: #f0f0f0; padding: 10px; border-radius: 5px;">
+            ℹ️ <strong>Note:</strong> Your database already has {user_count} users. The manage-users page was showing "0 users" because your session wasn't properly authenticated as admin.
+        </p>
+        <hr>
         <p><a href="/manage-users" style="background: #2E4C92; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">🔗 Go to User Management</a></p>
         <p><a href="/user-debug" style="background: #28a745; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">🔍 View Debug Info</a></p>
     </body>
