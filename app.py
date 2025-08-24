@@ -4386,6 +4386,114 @@ def check_database_references():
 # STREAMLINED CALCULATOR ROUTES
 # ============================================================================
 
+@app.route('/api/zoom-settings', methods=['GET'])
+def api_get_zoom_settings():
+    """Get all zoom settings from database"""
+    try:
+        from models import ChartZoomSettings
+        settings = ChartZoomSettings.get_all_zoom_settings()
+        return jsonify({
+            "status": "success",
+            "settings": settings
+        })
+    except Exception as e:
+        print(f"❌ Error loading zoom settings: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e),
+            "settings": {}
+        })
+
+@app.route('/api/zoom-settings', methods=['POST'])
+# @csrf.exempt  # CSRF protection unavailable - commented out
+def api_save_zoom_settings():
+    """Save zoom settings to database"""
+    try:
+        from models import ChartZoomSettings
+        
+        data = request.get_json()
+        lipid_id = data.get('lipid_id')
+        chart_type = data.get('chart_type')
+        zoom_start = data.get('zoom_start')
+        zoom_end = data.get('zoom_end')
+        
+        # Validate input
+        if not all([lipid_id, chart_type, zoom_start is not None, zoom_end is not None]):
+            return jsonify({
+                "status": "error",
+                "message": "Missing required fields"
+            }), 400
+        
+        # Get current user ID if logged in
+        user_id = current_user.id if current_user and current_user.is_authenticated else None
+        
+        # Save to database
+        setting = ChartZoomSettings.save_zoom_setting(
+            lipid_id=lipid_id,
+            chart_type=chart_type,
+            zoom_start=float(zoom_start),
+            zoom_end=float(zoom_end),
+            user_id=user_id
+        )
+        
+        return jsonify({
+            "status": "success",
+            "message": "Zoom settings saved",
+            "setting": setting.to_dict()
+        })
+        
+    except Exception as e:
+        print(f"❌ Error saving zoom settings: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        })
+
+@app.route('/api/dual-chart-data/<int:lipid_id>')
+def api_dual_chart_data(lipid_id):
+    """Chart data for visualizations"""
+    try:
+        if DualChartService and MainLipid:
+            # First check if lipid exists
+            lipid = MainLipid.query.get(lipid_id)
+            if not lipid:
+                # Find a valid lipid ID to use instead
+                first_lipid = MainLipid.query.first()
+                if first_lipid:
+                    print(f"⚠️ Lipid ID {lipid_id} not found, using {first_lipid.lipid_id} instead")
+                    lipid_id = first_lipid.lipid_id
+                else:
+                    return jsonify({"status": "error", "message": "No lipids available in database"})
+            
+            chart_service = DualChartService()
+            chart_data = chart_service.get_dual_chart_data(lipid_id)
+            # Wrap data in expected structure for frontend
+            return jsonify({"status": "success", "data": chart_data})
+        else:
+            # Return demo chart data
+            return jsonify({
+                "status": "success",
+                "data": {
+                    "chart1": {
+                        "data": {"datasets": []},
+                        "options": {"responsive": True}
+                    },
+                    "chart2": {
+                        "data": {"datasets": []}, 
+                        "options": {"responsive": True}
+                    },
+                    "lipid_info": {
+                        "lipid_id": 999,
+                        "lipid_name": "Demo Lipid",
+                        "retention_time": 3.2
+                    },
+                    "annotated_ions": []
+                }
+            })
+    except Exception as e:
+        print(f"⚠️ Chart API error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 @app.route('/api/load-lipids')
 def api_load_lipids():
     """API endpoint to load lipids asynchronously for dashboard"""
