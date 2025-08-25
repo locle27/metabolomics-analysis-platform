@@ -948,6 +948,54 @@ function displayCalculationDetails(details, calculationType) {
         document.getElementById('modalBody').innerHTML = html;
         return;
     }
+
+    // Special handling for NIST-only calculation details
+    if (details.calculation_type === 'NIST_RATIO') {
+        const nistCalc = details.calculations.nist_ratio_calculation;
+        html += `
+            <div class="alert alert-info">
+                <h6><i class="fas fa-calculator me-2"></i>NIST Ratio Calculation</h6>
+                <p>This shows the NIST standard ratio calculation used for normalizing PH-HC sample calculations.</p>
+            </div>
+
+            <div class="mb-4">
+                <h5><i class="fas fa-step-forward me-2"></i>${nistCalc.step_name}</h5>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="step-formula">
+                            <strong>Formula:</strong> ${nistCalc.formula}
+                        </div>
+                        <div class="step-formula">
+                            <strong>Calculation:</strong> ${nistCalc.calculation}
+                        </div>
+                        <div class="step-result">
+                            <strong>Result:</strong> ${nistCalc.result ? nistCalc.result.toFixed(8) : 'N/A'}
+                        </div>
+                        <div class="step-description">
+                            <small class="text-muted"><i class="fas fa-info-circle me-1"></i>${nistCalc.description}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-success">
+                <h5 class="mb-3">
+                    <i class="fas fa-check-circle me-2"></i>NIST Ratio Result
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>NIST Standard Ratio:</strong><br>
+                        <span class="h6 text-primary">${details.final_results?.nist_ratio ? details.final_results.nist_ratio.toFixed(8) : 'N/A'}</span>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted">${details.final_results?.note || ''}</small>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.getElementById('modalBody').innerHTML = html;
+        return;
+    }
     
     // Source Data Section - Enhanced with both PH-HC and NIST areas
     html += `
@@ -1078,7 +1126,7 @@ function displayCalculationDetails(details, calculationType) {
                         <strong>Calculation:</strong> ${step1.calculation}
                     </div>
                     <div class="step-result">
-                        <strong>Result:</strong> ${step1.result.toFixed(8)}
+                        <strong>Result:</strong> ${step1.result ? step1.result.toFixed(8) : 'N/A'}
                     </div>
                     <div class="step-description">
                         <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Calculate ratio of substance to ISTD in PH-HC sample</small>
@@ -1099,7 +1147,7 @@ function displayCalculationDetails(details, calculationType) {
                         <strong>Calculation:</strong> ${step2.calculation}
                     </div>
                     <div class="step-result">
-                        <strong>Result:</strong> ${step2.result.toFixed(8)}
+                        <strong>Result:</strong> ${step2.result ? step2.result.toFixed(8) : 'N/A'}
                     </div>
                     <div class="step-description">
                         <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Calculate ratio of substance to ISTD in NIST standard sample</small>
@@ -1120,7 +1168,7 @@ function displayCalculationDetails(details, calculationType) {
                         <strong>Calculation:</strong> ${step3.calculation}
                     </div>
                     <div class="step-result">
-                        <strong>Result:</strong> ${step3.result.toFixed(8)}
+                        <strong>Result:</strong> ${step3.result ? step3.result.toFixed(8) : 'N/A'}
                     </div>
                     <div class="step-description">
                         <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Normalize PH-HC ratio against NIST standard ratio</small>
@@ -1141,7 +1189,7 @@ function displayCalculationDetails(details, calculationType) {
                         <strong>Calculation:</strong> ${step4.calculation}
                     </div>
                     <div class="step-result">
-                        <strong>Result:</strong> ${step4.result.toFixed(8)}
+                        <strong>Result:</strong> ${step4.result ? step4.result.toFixed(8) : 'N/A'}
                     </div>
                     <div class="step-description">
                         <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Calculate final concentration using ratio, concentration, response factor, and coefficient</small>
@@ -1169,7 +1217,7 @@ function displayCalculationDetails(details, calculationType) {
                         <strong>Calculation:</strong> ${nistStep.calculation}
                     </div>
                     <div class="step-result">
-                        <strong>Result:</strong> ${nistStep.result.toFixed(8)}
+                        <strong>Result:</strong> ${nistStep.result ? nistStep.result.toFixed(8) : 'N/A'}
                     </div>
                     <div class="step-description">
                         <small class="text-muted"><i class="fas fa-info-circle me-1"></i>${nistStep.description}</small>
@@ -1191,7 +1239,7 @@ function displayCalculationDetails(details, calculationType) {
                         <strong>Calculation:</strong> ${step1.calculation}
                     </div>
                     <div class="step-result">
-                        <strong>Result:</strong> ${step1.result.toFixed(8)}
+                        <strong>Result:</strong> ${step1.result ? step1.result.toFixed(8) : 'N/A'}
                     </div>
                 </div>
             `;
@@ -1209,7 +1257,7 @@ function displayCalculationDetails(details, calculationType) {
                         <strong>Calculation:</strong> ${step2.calculation}
                     </div>
                     <div class="step-result">
-                        <strong>Result:</strong> ${step2.result.toFixed(8)}
+                        <strong>Result:</strong> ${step2.result ? step2.result.toFixed(8) : 'N/A'}
                     </div>
                 </div>
             `;
@@ -1227,7 +1275,7 @@ function displayCalculationDetails(details, calculationType) {
                         <strong>Calculation:</strong> ${step3.calculation}
                     </div>
                     <div class="step-result">
-                        <strong>Result:</strong> ${step3.result.toFixed(8)}
+                        <strong>Result:</strong> ${step3.result ? step3.result.toFixed(8) : 'N/A'}
                     </div>
                 </div>
             `;
@@ -1244,15 +1292,15 @@ function displayCalculationDetails(details, calculationType) {
                 <div class="row">
                     <div class="col-md-4">
                         <strong>Ratio:</strong><br>
-                        <span class="h6 text-primary">${details.final_results.ratio.toFixed(8)}</span>
+                        <span class="h6 text-primary">${details.final_results?.ratio ? details.final_results.ratio.toFixed(8) : 'N/A'}</span>
                     </div>
                     <div class="col-md-4">
                         <strong>NIST Result:</strong><br>
-                        <span class="h6 text-success">${details.final_results.nist_result.toFixed(8)}</span>
+                        <span class="h6 text-success">${details.final_results?.nist_result ? details.final_results.nist_result.toFixed(8) : 'N/A'}</span>
                     </div>
                     <div class="col-md-4">
                         <strong>Agilent Result:</strong><br>
-                        <span class="h6 text-warning">${details.final_results.agilent_result.toFixed(8)}</span>
+                        <span class="h6 text-warning">${details.final_results?.agilent_result ? details.final_results.agilent_result.toFixed(8) : 'N/A'}</span>
                     </div>
                 </div>
             </div>
