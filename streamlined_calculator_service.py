@@ -363,9 +363,8 @@ class StreamlinedCalculatorService:
                 compound_info = self.get_compound_info(substance)
                 istd_name = compound_info['istd']
                 
-                # Get NIST ratio for this substance (using first NIST pattern)
-                nist_pattern = numbering_info['nist_patterns'][0]
-                nist_ratio = self.get_nist_ratio(substance, nist_pattern)
+                # Note: We no longer use pre-calculated NIST ratios from database
+                # All NIST calculations now use only actual area values from input file
                 
                 substance_nist_row = {'Substance': substance}
                 substance_agilent_row = {'Substance': substance}
@@ -426,9 +425,16 @@ class StreamlinedCalculatorService:
                             except Exception as e:
                                 print(f"⚠️ Error getting NIST areas for breakdown: {e}")
                         
-                        # STEP 2: Calculate NIST using actual NIST ratio if available, otherwise use database ratio
-                        final_nist_ratio = calculated_nist_ratio if calculated_nist_ratio != 0 else nist_ratio
-                        nist_result = ratio / final_nist_ratio if final_nist_ratio != 0 else 0.0
+                        # STEP 2: Calculate NIST using ONLY actual NIST area values from input file
+                        if calculated_nist_ratio != 0:
+                            # Use calculated ratio from actual NIST areas in input file
+                            final_nist_ratio = calculated_nist_ratio
+                            nist_result = ratio / final_nist_ratio
+                        else:
+                            # No NIST data available in input file - cannot calculate
+                            final_nist_ratio = 0
+                            nist_result = 0
+                            print(f"⚠️ No NIST data available for {substance} in input file - calculation set to 0")
                         
                         # STEP 3: Calculate Agilent
                         agilent_result = (ratio * 
@@ -443,34 +449,37 @@ class StreamlinedCalculatorService:
                             'sample': sample_col,
                             'substance_index': i + 1,
                             
-                            # Source Data - PH-HC Sample
+                            # Source Data - Complete area information from Excel file
                             'source_data': {
-                                'ph_hc_sample': sample_col,
-                                'substance_area_raw': substance_area_raw,
-                                'substance_area': substance_area,
-                                'istd_area_raw': area_data.loc[istd_row_index, sample_col] if istd_found else 'NOT FOUND',
-                                'istd_area': istd_area,
-                                'istd_found': istd_found,
-                                'istd_row_index': istd_row_index + 1 if istd_found else -1
-                            },
-                            
-                            # NIST Data - For comparison and ratio calculation
-                            'nist_data': {
-                                'nist_column_used': nist_col_used,
+                                # PH-HC Sample Areas
+                                'ph_hc_sample_column': sample_col,
+                                'ph_hc_substance_area_raw': substance_area_raw,
+                                'ph_hc_substance_area': substance_area,
+                                'ph_hc_istd_area_raw': area_data.loc[istd_row_index, sample_col] if istd_found else 'NOT FOUND',
+                                'ph_hc_istd_area': istd_area,
+                                
+                                # NIST Sample Areas
+                                'nist_sample_column': nist_col_used,
+                                'nist_substance_area_raw': area_data.loc[i, nist_col_used] if len(nist_columns) > 0 else 'NO NIST COLUMNS',
                                 'nist_substance_area': nist_substance_area,
+                                'nist_istd_area_raw': area_data.loc[istd_row_index, nist_col_used] if (istd_found and len(nist_columns) > 0) else 'NOT FOUND',
                                 'nist_istd_area': nist_istd_area,
-                                'calculated_nist_ratio': calculated_nist_ratio,
-                                'nist_available': len(nist_columns) > 0
+                                
+                                # Reference Information
+                                'istd_name': istd_name,
+                                'istd_found': istd_found,
+                                'istd_row_index': istd_row_index + 1 if istd_found else -1,
+                                'nist_columns_available': len(nist_columns) > 0,
+                                'total_nist_columns': len(nist_columns)
                             },
                             
-                            # Database References
+                            # Database References (compound info only, no NIST fallback data)
                             'database_info': {
                                 'istd_name': istd_name,
-                                'nist_pattern': nist_pattern,
-                                'nist_standard': nist_ratio,
                                 'concentration_nm': compound_info['conc_nm'],
                                 'response_factor': compound_info['response_factor'],
-                                'coefficient': coefficient
+                                'coefficient': coefficient,
+                                'note': 'NIST calculations use only input file data, no database fallbacks'
                             },
                             
                             # Step-by-Step Calculations
@@ -482,16 +491,16 @@ class StreamlinedCalculatorService:
                                     'description': f'Ratio from {sample_col}'
                                 },
                                 'step_2_nist_ratio': {
-                                    'formula': 'NIST Sample: Substance Area ÷ ISTD Area',
-                                    'calculation': f"{nist_substance_area} ÷ {nist_istd_area}" if calculated_nist_ratio != 0 else f"Database value: {nist_ratio}",
+                                    'formula': 'NIST Sample: Substance Area ÷ ISTD Area (from input file only)',
+                                    'calculation': f"{nist_substance_area} ÷ {nist_istd_area}" if calculated_nist_ratio != 0 else "NIST data not available in input file",
                                     'result': final_nist_ratio,
-                                    'description': f'Ratio from {nist_col_used}' if calculated_nist_ratio != 0 else 'Pre-calculated database value'
+                                    'description': f'Ratio calculated from {nist_col_used} in input file' if calculated_nist_ratio != 0 else 'No NIST data in input file'
                                 },
                                 'step_3_nist_result': {
-                                    'formula': 'PH-HC Ratio ÷ NIST Ratio',
-                                    'calculation': f"{ratio} ÷ {final_nist_ratio}",
+                                    'formula': 'PH-HC Ratio ÷ NIST Ratio (input file data only)',
+                                    'calculation': f"{ratio} ÷ {final_nist_ratio}" if final_nist_ratio != 0 else f"{ratio} ÷ 0 = Cannot calculate (no NIST data)",
                                     'result': nist_result,
-                                    'description': 'Final NIST normalized result'
+                                    'description': 'Final NIST normalized result from input file data' if final_nist_ratio != 0 else 'Cannot calculate - missing NIST data in input file'
                                 },
                                 'step_4_agilent': {
                                     'formula': 'Ratio × Conc.(nM) × Response Factor × Coefficient',
@@ -753,12 +762,32 @@ class StreamlinedCalculatorService:
             with open(details_path, 'r') as f:
                 all_details = json.load(f)
             
-            calculation_key = f"{substance}_{sample}"
+            # Try different key formats
+            possible_keys = [
+                f"{substance}_{sample}",  # Regular PH-HC calculation
+                f"{substance}_{sample}_ratio",  # NIST ratio calculation
+            ]
             
-            if calculation_key in all_details:
-                return all_details[calculation_key]
-            else:
-                return {'error': f'Details not found for {substance} in {sample}'}
+            # Also try exact match for NIST columns
+            for key in all_details.keys():
+                if key.startswith(f"{substance}_{sample}"):
+                    possible_keys.append(key)
+            
+            # Find the first matching key
+            for calculation_key in possible_keys:
+                if calculation_key in all_details:
+                    details = all_details[calculation_key]
+                    # Add the calculation key for reference
+                    details['calculation_key'] = calculation_key
+                    return details
+            
+            # If no match found, return available keys for debugging
+            available_keys = [key for key in all_details.keys() if substance in key]
+            return {
+                'error': f'Details not found for {substance} in {sample}',
+                'available_keys_for_substance': available_keys[:10],  # Show first 10 matches
+                'tried_keys': possible_keys
+            }
                 
         except Exception as e:
             print(f"❌ Error getting calculation details: {e}")
