@@ -399,8 +399,36 @@ class StreamlinedCalculatorService:
                         # STEP 1: Calculate Ratio
                         ratio = substance_area / istd_area
                         
-                        # STEP 2: Calculate NIST
-                        nist_result = ratio / nist_ratio if nist_ratio != 0 else 0.0
+                        # Get NIST area information for detailed breakdown
+                        nist_substance_area = 0.0
+                        nist_istd_area = 0.0
+                        calculated_nist_ratio = 0.0
+                        nist_col_used = "No NIST columns found"
+                        
+                        # Find first available NIST column for reference
+                        if nist_columns:
+                            nist_col_used = nist_columns[0]  # Use first NIST column for reference
+                            try:
+                                # Get substance area from NIST column
+                                nist_substance_area_raw = area_data.loc[i, nist_col_used]
+                                nist_substance_area = float(nist_substance_area_raw) if pd.notna(nist_substance_area_raw) else 0.0
+                                
+                                # Find ISTD area in NIST column
+                                for j, comp_name in enumerate(substances):
+                                    if istd_name in str(comp_name):
+                                        nist_istd_area_raw = area_data.loc[j, nist_col_used]
+                                        nist_istd_area = float(nist_istd_area_raw) if pd.notna(nist_istd_area_raw) else 0.0
+                                        break
+                                
+                                if nist_istd_area != 0:
+                                    calculated_nist_ratio = nist_substance_area / nist_istd_area
+                                    
+                            except Exception as e:
+                                print(f"⚠️ Error getting NIST areas for breakdown: {e}")
+                        
+                        # STEP 2: Calculate NIST using actual NIST ratio if available, otherwise use database ratio
+                        final_nist_ratio = calculated_nist_ratio if calculated_nist_ratio != 0 else nist_ratio
+                        nist_result = ratio / final_nist_ratio if final_nist_ratio != 0 else 0.0
                         
                         # STEP 3: Calculate Agilent
                         agilent_result = (ratio * 
@@ -415,14 +443,24 @@ class StreamlinedCalculatorService:
                             'sample': sample_col,
                             'substance_index': i + 1,
                             
-                            # Source Data
+                            # Source Data - PH-HC Sample
                             'source_data': {
+                                'ph_hc_sample': sample_col,
                                 'substance_area_raw': substance_area_raw,
                                 'substance_area': substance_area,
                                 'istd_area_raw': area_data.loc[istd_row_index, sample_col] if istd_found else 'NOT FOUND',
                                 'istd_area': istd_area,
                                 'istd_found': istd_found,
                                 'istd_row_index': istd_row_index + 1 if istd_found else -1
+                            },
+                            
+                            # NIST Data - For comparison and ratio calculation
+                            'nist_data': {
+                                'nist_column_used': nist_col_used,
+                                'nist_substance_area': nist_substance_area,
+                                'nist_istd_area': nist_istd_area,
+                                'calculated_nist_ratio': calculated_nist_ratio,
+                                'nist_available': len(nist_columns) > 0
                             },
                             
                             # Database References
@@ -437,20 +475,29 @@ class StreamlinedCalculatorService:
                             
                             # Step-by-Step Calculations
                             'calculations': {
-                                'step_1_ratio': {
-                                    'formula': 'Substance Area ÷ ISTD Area',
+                                'step_1_ph_hc_ratio': {
+                                    'formula': 'PH-HC Sample: Substance Area ÷ ISTD Area',
                                     'calculation': f"{substance_area} ÷ {istd_area}",
-                                    'result': ratio
+                                    'result': ratio,
+                                    'description': f'Ratio from {sample_col}'
                                 },
-                                'step_2_nist': {
-                                    'formula': 'Substance Ratio ÷ NIST Standard',
-                                    'calculation': f"{ratio} ÷ {nist_ratio}",
-                                    'result': nist_result
+                                'step_2_nist_ratio': {
+                                    'formula': 'NIST Sample: Substance Area ÷ ISTD Area',
+                                    'calculation': f"{nist_substance_area} ÷ {nist_istd_area}" if calculated_nist_ratio != 0 else f"Database value: {nist_ratio}",
+                                    'result': final_nist_ratio,
+                                    'description': f'Ratio from {nist_col_used}' if calculated_nist_ratio != 0 else 'Pre-calculated database value'
                                 },
-                                'step_3_agilent': {
+                                'step_3_nist_result': {
+                                    'formula': 'PH-HC Ratio ÷ NIST Ratio',
+                                    'calculation': f"{ratio} ÷ {final_nist_ratio}",
+                                    'result': nist_result,
+                                    'description': 'Final NIST normalized result'
+                                },
+                                'step_4_agilent': {
                                     'formula': 'Ratio × Conc.(nM) × Response Factor × Coefficient',
                                     'calculation': f"{ratio} × {compound_info['conc_nm']} × {compound_info['response_factor']} × {coefficient}",
-                                    'result': agilent_result
+                                    'result': agilent_result,
+                                    'description': 'Final Agilent concentration'
                                 }
                             },
                             
@@ -471,11 +518,19 @@ class StreamlinedCalculatorService:
                         substance_nist_row[sample_col] = 0.0
                         substance_agilent_row[sample_col] = 0.0
                         
-                        # Store error details
+                        # Store error details with NIST info attempt
+                        nist_error_info = "Error retrieving NIST data"
+                        try:
+                            if nist_columns:
+                                nist_error_info = f"NIST columns available: {nist_columns[:3]}..."
+                        except:
+                            pass
+                            
                         detailed_calculations[calculation_key] = {
                             'substance': substance,
                             'sample': sample_col,
                             'error': str(e),
+                            'nist_info': nist_error_info,
                             'final_results': {
                                 'ratio': 0.0,
                                 'nist_result': 0.0,
