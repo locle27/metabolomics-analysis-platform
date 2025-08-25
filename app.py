@@ -5240,15 +5240,43 @@ def api_get_calculation_details(session_id):
         substance = request.args.get('substance')
         sample = request.args.get('sample')
         
-        if not substance or not sample:
-            return jsonify({"error": "Missing substance or sample parameter"}), 400
+        # Enhanced debugging for URL parameter handling
+        print(f"🔍 Raw URL parameters - substance: '{substance}', sample: '{sample}'")
+        print(f"🔍 URL query string: '{request.query_string.decode()}'")
+        print(f"🔍 All request args: {dict(request.args)}")
         
-        print(f"🔍 Getting calculation details for {substance} in {sample}")
+        if not substance or not sample:
+            return jsonify({
+                "error": "Missing substance or sample parameter",
+                "received_params": {
+                    "substance": substance,
+                    "sample": sample,
+                    "query_string": request.query_string.decode()
+                }
+            }), 400
+        
+        print(f"🔍 Getting calculation details for substance='{substance}' in sample='{sample}'")
         
         details = streamlined_calculator.get_calculation_details(session_id, substance, sample)
         
         if 'error' in details:
-            return jsonify({"success": False, "error": details['error']}), 404
+            print(f"❌ Details lookup failed: {details['error']}")
+            
+            # Return enhanced error info for debugging
+            return jsonify({
+                "success": False, 
+                "error": details['error'],
+                "debug_info": {
+                    "session_id": session_id,
+                    "requested_substance": substance,
+                    "requested_sample": sample,
+                    "available_keys_for_substance": details.get('available_keys_for_substance', []),
+                    "available_keys_for_sample": details.get('available_keys_for_sample', []),
+                    "tried_keys": details.get('tried_keys', []),
+                    "total_details": details.get('total_details', 0),
+                    "url_params": dict(request.args)
+                }
+            }), 404
         
         return jsonify({
             "success": True,
@@ -5257,7 +5285,16 @@ def api_get_calculation_details(session_id):
         
     except Exception as e:
         print(f"❌ Calculation details error: {e}")
-        return jsonify({"error": f"Details error: {str(e)}"}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "error": f"Details error: {str(e)}",
+            "debug_info": {
+                "session_id": session_id,
+                "substance": substance,
+                "sample": sample
+            }
+        }), 500
 
 @app.route('/api/download-streamlined/<session_id>')
 def api_download_streamlined(session_id):

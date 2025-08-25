@@ -1067,7 +1067,7 @@ class StreamlinedCalculatorService:
                 
                 # Generate detailed calculations for more samples (first 25 for better coverage)
                 if i < 100:  # Only for first 100 substances to avoid performance impact
-                    # ⚡ ENHANCED: Generate details for first 25 samples instead of 10 for better coverage
+                    # ⚡ ENHANCED: Generate details for first 25 PH-HC samples
                     for sample_idx in range(min(25, len(sample_columns))):
                         sample = sample_columns[sample_idx]
                         try:
@@ -1080,6 +1080,19 @@ class StreamlinedCalculatorService:
                         except Exception as detail_error:
                             # Don't fail the whole calculation for detail errors
                             print(f"⚠️ Failed to create details for {substance}_{sample}: {detail_error}")
+                    
+                    # ⚡ NEW: Generate details for NIST columns (first 10 to avoid performance impact)
+                    for nist_idx in range(min(10, len(nist_columns))):
+                        nist_col = nist_columns[nist_idx]
+                        try:
+                            nist_details = self.create_nist_calculation_details_on_demand(
+                                area_data, substance, nist_col, i, istd_index_map,
+                                compound_info_map, coefficient
+                            )
+                            nist_detail_key = f"{substance}_{nist_col}"
+                            detailed_calculations[nist_detail_key] = nist_details
+                        except Exception as nist_detail_error:
+                            print(f"⚠️ Failed to create NIST details for {substance}_{nist_col}: {nist_detail_error}")
             
             print(f"⚡ Performance optimized calculation completed in batches")
             print(f"📊 Generated {len(detailed_calculations)} detailed calculation entries")
@@ -1354,6 +1367,70 @@ class StreamlinedCalculatorService:
         except Exception as e:
             return {'error': f'Error creating calculation details: {str(e)}'}
 
+    def create_nist_calculation_details_on_demand(self, area_data, substance, nist_col, substance_index, istd_index_map, compound_info_map, coefficient):
+        """Create detailed NIST calculation breakdown on-demand for NIST columns"""
+        try:
+            compound_info = compound_info_map[substance]
+            istd_name = compound_info['istd']
+            istd_row_index = istd_index_map[substance]
+            istd_found = istd_row_index >= 0
+            
+            # Get NIST column area data
+            nist_substance_area_raw = area_data.loc[substance_index, nist_col]
+            nist_substance_area = self._clean_area_values([nist_substance_area_raw])[0]
+            
+            if istd_found:
+                nist_istd_area_raw = area_data.loc[istd_row_index, nist_col]
+                nist_istd_area = self._clean_area_values([nist_istd_area_raw])[0]
+                if nist_istd_area == 0:
+                    nist_istd_area = 1.0  # Avoid division by zero
+            else:
+                nist_istd_area_raw = 'NOT FOUND'
+                nist_istd_area = 1.0
+            
+            # Calculate NIST ratio
+            nist_ratio = nist_substance_area / nist_istd_area
+            
+            # Create detailed breakdown for NIST ratio calculation
+            return {
+                'substance': substance,
+                'sample': nist_col,
+                'substance_index': substance_index + 1,
+                'calculation_type': 'NIST_RATIO',
+                'source_data': {
+                    'nist_sample_column': nist_col,
+                    'nist_substance_area_raw': nist_substance_area_raw,
+                    'nist_substance_area': nist_substance_area,
+                    'nist_istd_area_raw': nist_istd_area_raw,
+                    'nist_istd_area': nist_istd_area,
+                    'istd_name': istd_name,
+                    'istd_found': istd_found,
+                    'istd_row_index': istd_row_index + 1 if istd_found else -1,
+                },
+                'database_info': {
+                    'istd_name': istd_name,
+                    'concentration_nm': compound_info['conc_nm'],
+                    'response_factor': compound_info['response_factor'],
+                    'coefficient': coefficient,
+                    'note': 'NIST ratio calculation uses only input file data'
+                },
+                'calculations': {
+                    'nist_ratio_calculation': {
+                        'formula': 'NIST Ratio = Substance Area ÷ ISTD Area',
+                        'calculation': f"{nist_substance_area} ÷ {nist_istd_area}",
+                        'result': nist_ratio,
+                        'description': f'Calculate ratio of {substance} to {istd_name} in {nist_col}',
+                        'step_name': 'Calculate NIST Standard Ratio'
+                    }
+                },
+                'final_results': {
+                    'nist_ratio': nist_ratio,
+                    'note': 'This ratio is used as the NIST standard for normalizing PH-HC calculations'
+                }
+            }
+        except Exception as e:
+            return {'error': f'Error creating NIST calculation details: {str(e)}'}
+
     def get_calculation_details(self, session_id, substance, sample):
         """Get detailed calculation breakdown for a specific substance-sample combination"""
         try:
@@ -1362,6 +1439,7 @@ class StreamlinedCalculatorService:
             details_path = os.path.join(session_dir, f"details_{session_id}.json")
             
             print(f"🔍 Looking for details at: {details_path}")
+            print(f"🔍 Searching for substance='{substance}', sample='{sample}'")
             
             if not os.path.exists(details_path):
                 print(f"❌ Details file not found: {details_path}")
@@ -1371,17 +1449,58 @@ class StreamlinedCalculatorService:
                 all_details = json.load(f)
             
             print(f"📊 Found {len(all_details)} total detail entries")
+            print(f"📊 First 5 keys in details: {list(all_details.keys())[:5]}")
             
-            # Try different key formats
-            possible_keys = [
-                f"{substance}_{sample}",  # Regular PH-HC calculation
-                f"{substance}_{sample}_ratio",  # NIST ratio calculation
-            ]
+            # Create comprehensive list of possible key formats to try
+            possible_keys = []
             
-            # Also try exact match for NIST columns
+            # Standard formats
+            possible_keys.append(f"{substance}_{sample}")  # Regular PH-HC calculation
+            possible_keys.append(f"{substance}_{sample}_ratio")  # NIST ratio calculation
+            
+            # URL encoding variations (in case of encoding issues)
+            import urllib.parse
+            encoded_sample = urllib.parse.quote(sample)
+            decoded_sample = urllib.parse.unquote(sample)
+            possible_keys.append(f"{substance}_{encoded_sample}")
+            possible_keys.append(f"{substance}_{decoded_sample}")
+            
+            # Handle NIST column variations with parentheses and spaces
+            if 'NIST' in sample:
+                # Try variations with and without spaces around parentheses
+                variations = [
+                    sample,  # Original
+                    sample.replace(' (', '_('),  # Space before paren to underscore
+                    sample.replace('(', ' ('),  # Ensure space before paren
+                    sample.replace(' ', '_'),  # All spaces to underscores
+                    sample.replace('(', '').replace(')', ''),  # Remove parentheses
+                ]
+                
+                for variation in variations:
+                    possible_keys.append(f"{substance}_{variation}")
+                    possible_keys.append(f"{substance}_{variation}_ratio")
+            
+            # Fuzzy matching - find keys that contain both substance and sample parts
+            sample_parts = sample.replace('(', '').replace(')', '').replace('_', ' ').split()
             for key in all_details.keys():
-                if key.startswith(f"{substance}_{sample}"):
-                    possible_keys.append(key)
+                if substance in key:
+                    # Check if key contains major parts of the sample name
+                    key_matches_sample = False
+                    if 'NIST' in sample and 'NIST' in key:
+                        # For NIST columns, check if the range matches
+                        if any(part in key for part in sample_parts if part.replace('-', '').isdigit() or '-' in part):
+                            key_matches_sample = True
+                    elif sample in key or any(part in key for part in sample_parts if len(part) > 3):
+                        key_matches_sample = True
+                    
+                    if key_matches_sample and key not in possible_keys:
+                        possible_keys.append(key)
+            
+            # Remove duplicates while preserving order
+            seen = set()
+            possible_keys = [key for key in possible_keys if not (key in seen or seen.add(key))]
+            
+            print(f"📊 Trying {len(possible_keys)} possible keys: {possible_keys[:10]}...")
             
             # Find the first matching key
             for calculation_key in possible_keys:
@@ -1389,27 +1508,36 @@ class StreamlinedCalculatorService:
                     details = all_details[calculation_key]
                     # Add the calculation key for reference
                     details['calculation_key'] = calculation_key
+                    print(f"✅ Found details with key: '{calculation_key}'")
                     return details
             
             # If no match found, return available keys for debugging
             available_keys = [key for key in all_details.keys() if substance in key]
-            all_sample_keys = [key for key in all_details.keys() if sample in key]
+            all_sample_keys = [key for key in all_details.keys() if any(part in key for part in sample.split() if len(part) > 2)]
             
             print(f"❌ No details found for {substance}_{sample}")
             print(f"📊 Available keys for {substance}: {available_keys[:5]}")
-            print(f"📊 Available keys for {sample}: {all_sample_keys[:5]}")
-            print(f"📊 Tried keys: {possible_keys}")
+            print(f"📊 Available keys containing sample parts: {all_sample_keys[:5]}")
+            print(f"📊 Tried keys: {possible_keys[:10]}")
             
             return {
                 'error': f'Details not found for {substance} in {sample}',
                 'available_keys_for_substance': available_keys[:10],  # Show first 10 matches
                 'available_keys_for_sample': all_sample_keys[:10],
-                'tried_keys': possible_keys,
-                'total_details': len(all_details)
+                'tried_keys': possible_keys[:15],  # Show first 15 tried keys
+                'total_details': len(all_details),
+                'debug_info': {
+                    'substance_param': substance,
+                    'sample_param': sample,
+                    'sample_parts': sample.split(),
+                    'all_keys_sample': list(all_details.keys())
+                }
             }
                 
         except Exception as e:
             print(f"❌ Error getting calculation details: {e}")
+            import traceback
+            traceback.print_exc()
             return {'error': str(e)}
 
     def debug_compound_results(self, session_id, compound_name):

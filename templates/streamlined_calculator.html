@@ -859,15 +859,59 @@ async function showCalculationDetails(substance, sample, calculationType) {
         if (result.success) {
             displayCalculationDetails(result.details, calculationType);
         } else {
-            throw new Error(result.error || 'Failed to get calculation details');
+            // Enhanced error handling with debugging information
+            console.error('Calculation details API failed:', result);
+            
+            let debugInfo = '';
+            if (result.debug_info) {
+                const debug = result.debug_info;
+                debugInfo = `
+                    <div class="mt-3">
+                        <h6 class="text-muted">Debug Information:</h6>
+                        <div class="small">
+                            <p><strong>Requested:</strong> ${debug.requested_substance} in ${debug.requested_sample}</p>
+                            ${debug.tried_keys && debug.tried_keys.length > 0 ? 
+                                `<p><strong>Tried Keys:</strong> ${debug.tried_keys.slice(0, 5).join(', ')}${debug.tried_keys.length > 5 ? '...' : ''}</p>` : ''
+                            }
+                            ${debug.available_keys_for_substance && debug.available_keys_for_substance.length > 0 ? 
+                                `<p><strong>Available for substance:</strong> ${debug.available_keys_for_substance.slice(0, 3).join(', ')}${debug.available_keys_for_substance.length > 3 ? '...' : ''}</p>` : ''
+                            }
+                            ${debug.available_keys_for_sample && debug.available_keys_for_sample.length > 0 ? 
+                                `<p><strong>Available for sample:</strong> ${debug.available_keys_for_sample.slice(0, 3).join(', ')}${debug.available_keys_for_sample.length > 3 ? '...' : ''}</p>` : ''
+                            }
+                            <p><strong>Total details:</strong> ${debug.total_details || 'Unknown'}</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('modalBody').innerHTML = `
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-exclamation-triangle me-2"></i>Calculation Details Not Found</h6>
+                    <p>${result.error || 'Failed to get calculation details'}</p>
+                    ${debugInfo}
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            This might happen if the calculation used a different column format than expected. 
+                            Please try running the calculation again or contact support if the issue persists.
+                        </small>
+                    </div>
+                </div>
+            `;
+            return; // Don't throw error, just show the message
         }
         
     } catch (error) {
         console.error('Error fetching calculation details:', error);
         document.getElementById('modalBody').innerHTML = `
             <div class="alert alert-danger">
-                <h6>Error Loading Details</h6>
+                <h6><i class="fas fa-times-circle me-2"></i>Error Loading Details</h6>
                 <p>${error.message}</p>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        Please check the console for more technical details or try refreshing the page.
+                    </small>
+                </div>
             </div>
         `;
     }
@@ -985,20 +1029,15 @@ function displayCalculationDetails(details, calculationType) {
                 <i class="fas fa-server me-2"></i>Database References
             </div>
             <div class="row">
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <strong>ISTD Name:</strong><br>
                     <code>${dbInfo.istd_name || 'N/A'}</code>
                 </div>
-                <div class="col-md-3">
-                    <strong>NIST Standard:</strong><br>
-                    <code>${dbInfo.nist_standard || 'Calculated from input file'}</code>
-                    <small class="text-muted d-block">Pattern: ${dbInfo.nist_pattern || 'N/A (input file only)'}</small>
-                </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <strong>Concentration:</strong><br>
                     <code>${dbInfo.concentration_nm || 'N/A'} nM</code>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <strong>Response Factor:</strong><br>
                     <code>${dbInfo.response_factor || 'N/A'}</code>
                 </div>
