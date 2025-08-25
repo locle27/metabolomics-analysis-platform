@@ -1014,7 +1014,15 @@ function displayCalculationDetails(details, calculationType) {
     
     // Step-by-Step Calculations
     if (details.calculations) {
-        html += `<h5 class="mt-4 mb-3 text-primary"><i class="fas fa-calculator me-2"></i>Step-by-Step Calculations</h5>`;
+        html += `
+            <h5 class="mt-4 mb-3 text-primary">
+                <i class="fas fa-calculator me-2"></i>Step-by-Step Calculations
+            </h5>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Complete 4-Step Formula Process:</strong> This shows the detailed calculation breakdown using actual area values from your Excel file.
+            </div>
+        `;
         
         const calc = details.calculations;
         
@@ -1023,7 +1031,7 @@ function displayCalculationDetails(details, calculationType) {
             const step1 = calc.step_1_ph_hc_ratio;
             html += `
                 <div class="calculation-step">
-                    <div class="step-title">Step 1: ${step1.description || 'PH-HC Ratio'}</div>
+                    <div class="step-title">Step 1: Calculate PH-HC Sample Ratio</div>
                     <div class="step-formula">
                         <strong>Formula:</strong> ${step1.formula}
                     </div>
@@ -1033,6 +1041,9 @@ function displayCalculationDetails(details, calculationType) {
                     <div class="step-result">
                         <strong>Result:</strong> ${step1.result.toFixed(8)}
                     </div>
+                    <div class="step-description">
+                        <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Calculate ratio of substance to ISTD in PH-HC sample</small>
+                    </div>
                 </div>
             `;
         }
@@ -1041,7 +1052,7 @@ function displayCalculationDetails(details, calculationType) {
             const step2 = calc.step_2_nist_ratio;
             html += `
                 <div class="calculation-step">
-                    <div class="step-title">Step 2: ${step2.description || 'NIST Ratio'}</div>
+                    <div class="step-title">Step 2: Calculate NIST Sample Ratio</div>
                     <div class="step-formula">
                         <strong>Formula:</strong> ${step2.formula}
                     </div>
@@ -1051,6 +1062,9 @@ function displayCalculationDetails(details, calculationType) {
                     <div class="step-result">
                         <strong>Result:</strong> ${step2.result.toFixed(8)}
                     </div>
+                    <div class="step-description">
+                        <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Calculate ratio of substance to ISTD in NIST standard sample</small>
+                    </div>
                 </div>
             `;
         }
@@ -1059,7 +1073,7 @@ function displayCalculationDetails(details, calculationType) {
             const step3 = calc.step_3_nist_result;
             html += `
                 <div class="calculation-step">
-                    <div class="step-title">Step 3: ${step3.description || 'NIST Result'}</div>
+                    <div class="step-title">Step 3: Calculate Normalized NIST Result</div>
                     <div class="step-formula">
                         <strong>Formula:</strong> ${step3.formula}
                     </div>
@@ -1069,6 +1083,9 @@ function displayCalculationDetails(details, calculationType) {
                     <div class="step-result">
                         <strong>Result:</strong> ${step3.result.toFixed(8)}
                     </div>
+                    <div class="step-description">
+                        <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Normalize PH-HC ratio against NIST standard ratio</small>
+                    </div>
                 </div>
             `;
         }
@@ -1077,7 +1094,7 @@ function displayCalculationDetails(details, calculationType) {
             const step4 = calc.step_4_agilent;
             html += `
                 <div class="calculation-step">
-                    <div class="step-title">Step 4: ${step4.description || 'Agilent Result'}</div>
+                    <div class="step-title">Step 4: Calculate Final Concentration (Agilent)</div>
                     <div class="step-formula">
                         <strong>Formula:</strong> ${step4.formula}
                     </div>
@@ -1087,16 +1104,25 @@ function displayCalculationDetails(details, calculationType) {
                     <div class="step-result">
                         <strong>Result:</strong> ${step4.result.toFixed(8)}
                     </div>
+                    <div class="step-description">
+                        <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Calculate final concentration using ratio, concentration, response factor, and coefficient</small>
+                    </div>
                 </div>
             `;
         }
         
-        // Handle NIST-only calculations
-        if (calc.step_1_nist_ratio) {
+        // Handle NIST-only calculations (when viewing NIST Ratios tab)
+        if (calc.step_1_nist_ratio && !calc.step_1_ph_hc_ratio) {
+            html += `
+                <div class="alert alert-warning">
+                    <i class="fas fa-vial me-2"></i>
+                    <strong>NIST Standard Calculation Only:</strong> This shows the direct ratio calculation from NIST standard samples.
+                </div>
+            `;
             const nistStep = calc.step_1_nist_ratio;
             html += `
                 <div class="calculation-step">
-                    <div class="step-title">NIST Ratio Calculation</div>
+                    <div class="step-title">${nistStep.step_name || 'NIST Ratio Calculation'}</div>
                     <div class="step-formula">
                         <strong>Formula:</strong> ${nistStep.formula}
                     </div>

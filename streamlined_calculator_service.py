@@ -592,25 +592,29 @@ class StreamlinedCalculatorService:
                                     'formula': 'PH-HC Sample: Substance Area ÷ ISTD Area',
                                     'calculation': f"{substance_area} ÷ {istd_area}",
                                     'result': ratio,
-                                    'description': f'Ratio from {sample_col}'
+                                    'description': f'Calculate ratio of substance to ISTD in {sample_col}',
+                                    'step_name': 'Calculate PH-HC Sample Ratio'
                                 },
                                 'step_2_nist_ratio': {
                                     'formula': 'NIST Sample: Substance Area ÷ ISTD Area (from input file only)',
                                     'calculation': f"{nist_substance_area} ÷ {nist_istd_area}" if calculated_nist_ratio != 0 else "NIST data not available in input file",
                                     'result': final_nist_ratio,
-                                    'description': f'Ratio calculated from {nist_col_used} (auto-matched for {sample_col})' if calculated_nist_ratio != 0 else 'No NIST data in input file'
+                                    'description': f'Calculate ratio of substance to ISTD in {nist_col_used} (auto-matched)' if calculated_nist_ratio != 0 else 'No NIST data available in input file',
+                                    'step_name': 'Calculate NIST Sample Ratio'
                                 },
                                 'step_3_nist_result': {
                                     'formula': 'PH-HC Ratio ÷ NIST Ratio (input file data only)',
                                     'calculation': f"{ratio} ÷ {final_nist_ratio}" if final_nist_ratio != 0 else f"{ratio} ÷ 0 = Cannot calculate (no NIST data)",
                                     'result': nist_result,
-                                    'description': 'Final NIST normalized result from input file data' if final_nist_ratio != 0 else 'Cannot calculate - missing NIST data in input file'
+                                    'description': 'Normalize PH-HC ratio against NIST standard ratio' if final_nist_ratio != 0 else 'Cannot calculate - missing NIST data in input file',
+                                    'step_name': 'Calculate Normalized NIST Result'
                                 },
                                 'step_4_agilent': {
-                                    'formula': 'Ratio × Conc.(nM) × Response Factor × Coefficient',
+                                    'formula': 'PH-HC Ratio × Conc.(nM) × Response Factor × Coefficient',
                                     'calculation': f"{ratio} × {compound_info['conc_nm']} × {compound_info['response_factor']} × {coefficient}",
                                     'result': agilent_result,
-                                    'description': 'Final Agilent concentration'
+                                    'description': 'Calculate final concentration using compound database parameters',
+                                    'step_name': 'Calculate Final Concentration (Agilent)'
                                 }
                             },
                             
@@ -725,7 +729,8 @@ class StreamlinedCalculatorService:
                                     'formula': f'NIST Sample ({nist_col}): Substance Area ÷ ISTD Area',
                                     'calculation': f"{substance_area} ÷ {istd_area}",
                                     'result': nist_ratio_result,
-                                    'description': f'Direct ratio calculation from {nist_col}'
+                                    'description': f'Calculate ratio of substance to ISTD in NIST standard sample {nist_col}',
+                                    'step_name': 'Calculate NIST Sample Ratio (Direct)'
                                 }
                             },
                             
