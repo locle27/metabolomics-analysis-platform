@@ -905,29 +905,80 @@ function displayCalculationDetails(details, calculationType) {
         return;
     }
     
-    // Source Data Section
+    // Source Data Section - Enhanced with both PH-HC and NIST areas
     html += `
         <div class="data-source">
             <div class="source-title">
                 <i class="fas fa-database me-2"></i>Source Data (Excel File)
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <strong>Substance Area:</strong><br>
-                    <code>${details.source_data.substance_area}</code>
-                    <small class="text-muted d-block">Substance Index: ${details.substance_index}</small>
+            </div>`;
+    
+    // Check if we have new detailed structure or old structure
+    const sourceData = details.source_data || {};
+    const dbInfo = details.database_info || {};
+    
+    if (sourceData.ph_hc_sample_column !== undefined) {
+        // New detailed structure with both PH-HC and NIST areas
+        html += `
+            <div class="row mb-3">
+                <div class="col-12">
+                    <h6><i class="fas fa-flask me-1"></i> PH-HC Sample Areas</h6>
                 </div>
                 <div class="col-md-6">
-                    <strong>ISTD Area (${details.database_info.istd_name}):</strong><br>
-                    <code>${details.source_data.istd_area}</code>
+                    <strong>Substance Area:</strong><br>
+                    <code>${sourceData.ph_hc_substance_area || 'N/A'}</code>
+                    <small class="text-muted d-block">From: ${sourceData.ph_hc_sample_column || 'N/A'}</small>
+                </div>
+                <div class="col-md-6">
+                    <strong>ISTD Area (${sourceData.istd_name || 'Unknown'}):</strong><br>
+                    <code>${sourceData.ph_hc_istd_area || 'N/A'}</code>
                     <small class="text-muted d-block">
-                        ${details.source_data.istd_found ? 
-                          `✅ Found at row ${details.source_data.istd_row_index}` : 
-                          '❌ Not found (fallback used)'}
+                        ${sourceData.istd_found ? 
+                          `✅ Found at row ${sourceData.istd_row_index}` : 
+                          '❌ Not found'}
                     </small>
                 </div>
             </div>
-        </div>
+            <div class="row">
+                <div class="col-12">
+                    <h6><i class="fas fa-vial me-1"></i> NIST Sample Areas</h6>
+                </div>
+                <div class="col-md-6">
+                    <strong>Substance Area:</strong><br>
+                    <code>${sourceData.nist_substance_area || 'N/A'}</code>
+                    <small class="text-muted d-block">From: ${sourceData.nist_sample_column || 'N/A'}</small>
+                </div>
+                <div class="col-md-6">
+                    <strong>ISTD Area (${sourceData.istd_name || 'Unknown'}):</strong><br>
+                    <code>${sourceData.nist_istd_area || 'N/A'}</code>
+                    <small class="text-muted d-block">
+                        NIST Columns Available: ${sourceData.nist_columns_available ? `✅ Yes (${sourceData.total_nist_columns})` : '❌ No'}
+                    </small>
+                </div>
+            </div>
+        `;
+    } else {
+        // Backwards compatibility for old structure
+        html += `
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Substance Area:</strong><br>
+                    <code>${sourceData.substance_area || 'N/A'}</code>
+                    <small class="text-muted d-block">Substance Index: ${details.substance_index || 'N/A'}</small>
+                </div>
+                <div class="col-md-6">
+                    <strong>ISTD Area (${dbInfo.istd_name || 'Unknown'}):</strong><br>
+                    <code>${sourceData.istd_area || 'N/A'}</code>
+                    <small class="text-muted d-block">
+                        ${sourceData.istd_found ? 
+                          `✅ Found at row ${sourceData.istd_row_index}` : 
+                          '❌ Not found'}
+                    </small>
+                </div>
+            </div>
+        `;
+    }
+    
+    html += `</div>
         
         <div class="data-source">
             <div class="source-title">
@@ -936,25 +987,26 @@ function displayCalculationDetails(details, calculationType) {
             <div class="row">
                 <div class="col-md-3">
                     <strong>ISTD Name:</strong><br>
-                    <code>${details.database_info.istd_name}</code>
+                    <code>${dbInfo.istd_name || 'N/A'}</code>
                 </div>
                 <div class="col-md-3">
                     <strong>NIST Standard:</strong><br>
-                    <code>${details.database_info.nist_standard}</code>
-                    <small class="text-muted d-block">Pattern: ${details.database_info.nist_pattern}</small>
+                    <code>${dbInfo.nist_standard || 'Calculated from input file'}</code>
+                    <small class="text-muted d-block">Pattern: ${dbInfo.nist_pattern || 'N/A (input file only)'}</small>
                 </div>
                 <div class="col-md-3">
                     <strong>Concentration:</strong><br>
-                    <code>${details.database_info.concentration_nm} nM</code>
+                    <code>${dbInfo.concentration_nm || 'N/A'} nM</code>
                 </div>
                 <div class="col-md-3">
                     <strong>Response Factor:</strong><br>
-                    <code>${details.database_info.response_factor}</code>
+                    <code>${dbInfo.response_factor || 'N/A'}</code>
                 </div>
             </div>
             <div class="row mt-2">
                 <div class="col-md-12">
-                    <strong>Coefficient (User Input):</strong> <code>${details.database_info.coefficient}</code>
+                    <strong>Coefficient (User Input):</strong> <code>${dbInfo.coefficient || 'N/A'}</code>
+                    ${dbInfo.note ? `<br><small class="text-info"><i class="fas fa-info-circle me-1"></i>${dbInfo.note}</small>` : ''}
                 </div>
             </div>
         </div>
@@ -964,9 +1016,106 @@ function displayCalculationDetails(details, calculationType) {
     if (details.calculations) {
         html += `<h5 class="mt-4 mb-3 text-primary"><i class="fas fa-calculator me-2"></i>Step-by-Step Calculations</h5>`;
         
-        // Step 1: Ratio
-        if (details.calculations.step_1_ratio) {
-            const step1 = details.calculations.step_1_ratio;
+        const calc = details.calculations;
+        
+        // Handle new detailed structure
+        if (calc.step_1_ph_hc_ratio) {
+            const step1 = calc.step_1_ph_hc_ratio;
+            html += `
+                <div class="calculation-step">
+                    <div class="step-title">Step 1: ${step1.description || 'PH-HC Ratio'}</div>
+                    <div class="step-formula">
+                        <strong>Formula:</strong> ${step1.formula}
+                    </div>
+                    <div class="step-formula">
+                        <strong>Calculation:</strong> ${step1.calculation}
+                    </div>
+                    <div class="step-result">
+                        <strong>Result:</strong> ${step1.result.toFixed(8)}
+                    </div>
+                </div>
+            `;
+        }
+        
+        if (calc.step_2_nist_ratio) {
+            const step2 = calc.step_2_nist_ratio;
+            html += `
+                <div class="calculation-step">
+                    <div class="step-title">Step 2: ${step2.description || 'NIST Ratio'}</div>
+                    <div class="step-formula">
+                        <strong>Formula:</strong> ${step2.formula}
+                    </div>
+                    <div class="step-formula">
+                        <strong>Calculation:</strong> ${step2.calculation}
+                    </div>
+                    <div class="step-result">
+                        <strong>Result:</strong> ${step2.result.toFixed(8)}
+                    </div>
+                </div>
+            `;
+        }
+        
+        if (calc.step_3_nist_result) {
+            const step3 = calc.step_3_nist_result;
+            html += `
+                <div class="calculation-step">
+                    <div class="step-title">Step 3: ${step3.description || 'NIST Result'}</div>
+                    <div class="step-formula">
+                        <strong>Formula:</strong> ${step3.formula}
+                    </div>
+                    <div class="step-formula">
+                        <strong>Calculation:</strong> ${step3.calculation}
+                    </div>
+                    <div class="step-result">
+                        <strong>Result:</strong> ${step3.result.toFixed(8)}
+                    </div>
+                </div>
+            `;
+        }
+        
+        if (calc.step_4_agilent) {
+            const step4 = calc.step_4_agilent;
+            html += `
+                <div class="calculation-step">
+                    <div class="step-title">Step 4: ${step4.description || 'Agilent Result'}</div>
+                    <div class="step-formula">
+                        <strong>Formula:</strong> ${step4.formula}
+                    </div>
+                    <div class="step-formula">
+                        <strong>Calculation:</strong> ${step4.calculation}
+                    </div>
+                    <div class="step-result">
+                        <strong>Result:</strong> ${step4.result.toFixed(8)}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Handle NIST-only calculations
+        if (calc.step_1_nist_ratio) {
+            const nistStep = calc.step_1_nist_ratio;
+            html += `
+                <div class="calculation-step">
+                    <div class="step-title">NIST Ratio Calculation</div>
+                    <div class="step-formula">
+                        <strong>Formula:</strong> ${nistStep.formula}
+                    </div>
+                    <div class="step-formula">
+                        <strong>Calculation:</strong> ${nistStep.calculation}
+                    </div>
+                    <div class="step-result">
+                        <strong>Result:</strong> ${nistStep.result.toFixed(8)}
+                    </div>
+                    <div class="step-description">
+                        <small class="text-muted"><i class="fas fa-info-circle me-1"></i>${nistStep.description}</small>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Backwards compatibility for old structure
+        if (calc.step_1_ratio && !calc.step_1_ph_hc_ratio) {
+            const step1 = calc.step_1_ratio;
             html += `
                 <div class="calculation-step">
                     <div class="step-title">Step 1: Calculate Ratio</div>
@@ -983,9 +1132,8 @@ function displayCalculationDetails(details, calculationType) {
             `;
         }
         
-        // Step 2: NIST
-        if (details.calculations.step_2_nist) {
-            const step2 = details.calculations.step_2_nist;
+        if (calc.step_2_nist && !calc.step_2_nist_ratio) {
+            const step2 = calc.step_2_nist;
             html += `
                 <div class="calculation-step">
                     <div class="step-title">Step 2: Calculate NIST Result</div>
@@ -1002,9 +1150,8 @@ function displayCalculationDetails(details, calculationType) {
             `;
         }
         
-        // Step 3: Agilent
-        if (details.calculations.step_3_agilent) {
-            const step3 = details.calculations.step_3_agilent;
+        if (calc.step_3_agilent && !calc.step_4_agilent) {
+            const step3 = calc.step_3_agilent;
             html += `
                 <div class="calculation-step">
                     <div class="step-title">Step 3: Calculate Agilent Result</div>

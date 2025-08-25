@@ -575,26 +575,62 @@ class StreamlinedCalculatorService:
                         # Calculate NIST Ratio = Substance Area (NIST) / ISTD Area (NIST)
                         nist_ratio_result = substance_area / istd_area
                         
-                        # Store detailed calculation for NIST ratio
+                        # Store detailed calculation for NIST ratio (same structure as PH-HC)
                         detailed_calculations[calculation_key] = {
+                            # Basic Info
                             'substance': substance,
-                            'nist_column': nist_col,
+                            'sample': nist_col,  # Use nist_col as sample for consistency
                             'substance_index': i + 1,
+                            
+                            # Source Data - Complete NIST area information
                             'source_data': {
-                                'substance_area_raw': substance_area_raw,
-                                'substance_area': substance_area,
-                                'istd_area_raw': area_data.loc[istd_row_index, nist_col] if istd_found else 'NOT FOUND',
-                                'istd_area': istd_area,
-                                'istd_found': istd_found,
+                                # NIST Sample Areas (primary data)
+                                'ph_hc_sample_column': 'N/A (NIST Ratio Calculation)',
+                                'ph_hc_substance_area_raw': 'N/A',
+                                'ph_hc_substance_area': 'N/A',
+                                'ph_hc_istd_area_raw': 'N/A',
+                                'ph_hc_istd_area': 'N/A',
+                                
+                                # NIST Sample Areas (main calculation)
+                                'nist_sample_column': nist_col,
+                                'nist_substance_area_raw': substance_area_raw,
+                                'nist_substance_area': substance_area,
+                                'nist_istd_area_raw': area_data.loc[istd_row_index, nist_col] if istd_found else 'NOT FOUND',
+                                'nist_istd_area': istd_area,
+                                
+                                # Reference Information
                                 'istd_name': istd_name,
-                                'istd_row_index': istd_row_index + 1 if istd_found else -1
+                                'istd_found': istd_found,
+                                'istd_row_index': istd_row_index + 1 if istd_found else -1,
+                                'nist_columns_available': True,
+                                'total_nist_columns': len(nist_columns)
                             },
-                            'calculation': {
-                                'formula': 'Substance Area (NIST) ÷ ISTD Area (NIST)',
-                                'calculation': f"{substance_area} ÷ {istd_area}",
-                                'result': nist_ratio_result
+                            
+                            # Database References (compound info only)
+                            'database_info': {
+                                'istd_name': istd_name,
+                                'concentration_nm': compound_info['conc_nm'],
+                                'response_factor': compound_info['response_factor'],
+                                'coefficient': coefficient,
+                                'note': 'NIST ratio calculation from input file data only'
                             },
-                            'final_result': nist_ratio_result
+                            
+                            # Step-by-Step Calculations
+                            'calculations': {
+                                'step_1_nist_ratio': {
+                                    'formula': f'NIST Sample ({nist_col}): Substance Area ÷ ISTD Area',
+                                    'calculation': f"{substance_area} ÷ {istd_area}",
+                                    'result': nist_ratio_result,
+                                    'description': f'Direct ratio calculation from {nist_col}'
+                                }
+                            },
+                            
+                            # Final Results (compatible with frontend)
+                            'final_results': {
+                                'ratio': nist_ratio_result,
+                                'nist_result': nist_ratio_result,  # For NIST calculations, this is the same
+                                'agilent_result': 'N/A (NIST ratio only)'
+                            }
                         }
                         
                         # Store result
@@ -604,12 +640,41 @@ class StreamlinedCalculatorService:
                         print(f"⚠️ Error processing {substance} in {nist_col}: {e}")
                         substance_nist_ratio_row[nist_col] = 0.0
                         
-                        # Store error details
+                        # Store error details (same structure as successful calculations)
                         detailed_calculations[calculation_key] = {
                             'substance': substance,
-                            'nist_column': nist_col,
+                            'sample': nist_col,
+                            'substance_index': i + 1,
                             'error': str(e),
-                            'final_result': 0.0
+                            'source_data': {
+                                'ph_hc_sample_column': 'N/A (NIST Ratio Calculation)',
+                                'ph_hc_substance_area_raw': 'N/A',
+                                'ph_hc_substance_area': 'N/A', 
+                                'ph_hc_istd_area_raw': 'N/A',
+                                'ph_hc_istd_area': 'N/A',
+                                'nist_sample_column': nist_col,
+                                'nist_substance_area_raw': 'ERROR',
+                                'nist_substance_area': 0,
+                                'nist_istd_area_raw': 'ERROR', 
+                                'nist_istd_area': 0,
+                                'istd_name': istd_name,
+                                'istd_found': False,
+                                'istd_row_index': -1,
+                                'nist_columns_available': True,
+                                'total_nist_columns': len(nist_columns)
+                            },
+                            'database_info': {
+                                'istd_name': istd_name,
+                                'concentration_nm': compound_info['conc_nm'],
+                                'response_factor': compound_info['response_factor'],
+                                'coefficient': coefficient,
+                                'note': f'Error in NIST ratio calculation: {str(e)}'
+                            },
+                            'final_results': {
+                                'ratio': 0.0,
+                                'nist_result': 0.0,
+                                'agilent_result': 'N/A (Error)'
+                            }
                         }
                 
                 nist_results.append(substance_nist_row)
