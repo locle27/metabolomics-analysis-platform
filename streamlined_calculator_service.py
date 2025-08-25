@@ -23,6 +23,9 @@ class StreamlinedCalculatorService:
         self.sample_index = self._load_sample_index()
         self.compound_index = self._load_compound_index()
         
+        # Create normalized compound mapping for fast lookups
+        self._compound_name_map = self._create_compound_name_map()
+        
     def _load_ratio_database(self):
         """Load NIST ratio standards from Ratio-database.xlsx"""
         try:
@@ -93,9 +96,9 @@ class StreamlinedCalculatorService:
                 for comp in compounds:
                     data.append({
                         'Compound': comp.compound,
-                        'istd': comp.istd,
-                        'conc_nm': comp.conc_nm,
-                        'response_factor': comp.response_factor
+                        'ISTD': comp.istd,  # Updated to match corrected Excel format
+                        'Conc. (nM)': comp.conc_nm,  # Updated to match corrected Excel format
+                        'Response factor': comp.response_factor  # Updated to match corrected Excel format
                     })
                 df = pd.DataFrame(data) if data else None
                 if df is not None:
@@ -107,6 +110,265 @@ class StreamlinedCalculatorService:
         except Exception as e:
             print(f"⚠️ Error loading Compound index: {e}")
             return None
+    
+    def _normalize_compound_name(self, compound_name):
+        """
+        Ultra-comprehensive lipid name normalization for complex chemical notation:
+        - Handles fatty acid notation (16:0, 20:4, etc.)
+        - Complex nested structures like 22:5(n3)/20:1
+        - Mixed bracket types: [], (), {}
+        - Lipid class prefixes: (O-), (P-), etc.
+        - Position indicators: [a], [b], [sn1], [sn2]
+        - Multiple separators: /, -, space
+        """
+        if not compound_name or pd.isna(compound_name):
+            return [""]
+        
+        import re
+        name = str(compound_name).strip()
+        variations = [name]
+        
+        # === STEP 1: Generate bracket variations ===
+        bracket_variations = []
+        
+        # Simple bracket swaps: [a] ↔ (a)
+        simple_brackets = ['a', 'b', 'c', 'd', 'e', 'sn1', 'sn2', 'n3', 'n6']
+        for bracket_content in simple_brackets:
+            for variant in variations[:]:  # Copy to avoid modification during iteration
+                # Square to round
+                if f'[{bracket_content}]' in variant:
+                    bracket_variations.append(variant.replace(f'[{bracket_content}]', f'({bracket_content})'))
+                # Round to square
+                if f'({bracket_content})' in variant:
+                    bracket_variations.append(variant.replace(f'({bracket_content})', f'[{bracket_content}]'))
+        
+        # Complex bracket patterns with regex
+        for variant in variations[:]:
+            # Convert ALL square brackets to parentheses: [anything] → (anything)
+            square_to_paren = re.sub(r'\[([^\]]+)\]', r'(\1)', variant)
+            if square_to_paren != variant:
+                bracket_variations.append(square_to_paren)
+            
+            # Convert ALL parentheses to square brackets: (anything) → [anything]
+            # But be careful with fatty acid notation like 22:5(n3)
+            paren_to_square = re.sub(r'\(([^)]+)\)', r'[\1]', variant)
+            if paren_to_square != variant:
+                bracket_variations.append(paren_to_square)
+        
+        variations.extend(bracket_variations)
+        
+        # === STEP 2: Handle lipid class prefixes ===
+        prefix_variations = []
+        lipid_prefixes = ['O-', 'P-', 'e-', 'p-']  # Common ether/plasmalogen prefixes
+        
+        for variant in variations[:]:
+            for prefix in lipid_prefixes:
+                # Try different bracket types for prefixes
+                patterns_to_try = [
+                    (f'({prefix}', f'[{prefix}'),    # (O- → [O-
+                    (f'[{prefix}', f'({prefix}'),    # [O- → (O-
+                    (f'{prefix}', f'({prefix}'),     # O- → (O-
+                    (f'{prefix}', f'[{prefix}'),     # O- → [O-
+                ]
+                
+                for old_pattern, new_pattern in patterns_to_try:
+                    if old_pattern in variant:
+                        new_variant = variant.replace(old_pattern, new_pattern)
+                        if new_variant != variant:
+                            prefix_variations.append(new_variant)
+        
+        variations.extend(prefix_variations)
+        
+        # === STEP 3: Normalize fatty acid notation and spacing ===
+        fatty_acid_variations = []
+        for variant in variations[:]:
+            # Normalize spacing around separators
+            normalized = variant
+            
+            # Normalize colons (fatty acid notation: 16:0, 20:4)
+            normalized = re.sub(r'\s*:\s*', ':', normalized)
+            
+            # Normalize hyphens
+            normalized = re.sub(r'\s*-\s*', '-', normalized)
+            
+            # Normalize slashes
+            normalized = re.sub(r'\s*/\s*', '/', normalized)
+            
+            # Normalize spaces around brackets
+            normalized = re.sub(r'\s*\[\s*', '[', normalized)
+            normalized = re.sub(r'\s*\]\s*', ']', normalized)
+            normalized = re.sub(r'\s*\(\s*', '(', normalized)
+            normalized = re.sub(r'\s*\)\s*', ')', normalized)
+            
+            # Normalize multiple spaces
+            normalized = re.sub(r'\s+', ' ', normalized)
+            normalized = normalized.strip()
+            
+            if normalized != variant:
+                fatty_acid_variations.append(normalized)
+        
+        variations.extend(fatty_acid_variations)
+        
+        # === STEP 4: Handle separator variations ===
+        separator_variations = []
+        for variant in variations[:]:
+            # Try space vs no space around separators
+            space_variants = [
+                # Spaces around separators
+                variant.replace('/', ' / ').replace('-', ' - '),
+                # No spaces around separators  
+                variant.replace(' / ', '/').replace(' - ', '-'),
+                # Mixed patterns
+                variant.replace(' /', '/').replace('/ ', '/'),
+                variant.replace(' -', '-').replace('- ', '-'),
+            ]
+            
+            # CRITICAL: Handle forward slash vs backslash variations
+            # Many databases use \ while input files use /
+            slash_variants = [
+                variant.replace('/', '\\'),  # Forward to backslash
+                variant.replace('\\', '/'),  # Backslash to forward
+                # With spaces
+                variant.replace('/', ' \\ ').replace(' \\ ', '\\'),
+                variant.replace('\\', ' / ').replace(' / ', '/'),
+            ]
+            
+            all_separator_variants = space_variants + slash_variants
+            
+            for sep_var in all_separator_variants:
+                # Clean up multiple spaces
+                cleaned = re.sub(r'\s+', ' ', sep_var.strip())
+                if cleaned != variant and cleaned:
+                    separator_variations.append(cleaned)
+        
+        variations.extend(separator_variations)
+        
+        # === STEP 5: Handle nested parentheses patterns ===
+        # For cases like 22:5(n3) within larger brackets
+        nested_variations = []
+        for variant in variations[:]:
+            # Try converting nested parentheses patterns
+            # Example: [a-18:0 22:5(n3)/20:1 20:4] might have variants with different nesting
+            
+            # Find patterns like X:Y(nZ) and try bracket variations
+            nested_pattern = r'(\d+:\d+)\(([^)]+)\)'
+            matches = re.findall(nested_pattern, variant)
+            
+            for fatty_acid, nested_content in matches:
+                original_pattern = f'{fatty_acid}({nested_content})'
+                bracket_pattern = f'{fatty_acid}[{nested_content}]'
+                
+                new_variant = variant.replace(original_pattern, bracket_pattern)
+                if new_variant != variant:
+                    nested_variations.append(new_variant)
+        
+        variations.extend(nested_variations)
+        
+        # === STEP 6: Clean up and deduplicate ===
+        final_variations = []
+        seen = set()
+        
+        for variant in variations:
+            if variant and variant not in seen:
+                seen.add(variant)
+                final_variations.append(variant)
+        
+        return final_variations
+    
+    def _clean_area_values(self, raw_values):
+        """
+        Clean and convert area values to numeric floats, handling:
+        - String values like 'N/A', 'NA', '', 'NULL', 'NaN'
+        - Non-numeric text values
+        - Missing values (NaN, None)
+        - Invalid number formats
+        - Excel column headers (reduced logging)
+        """
+        cleaned_values = []
+        
+        for value in raw_values:
+            try:
+                # Handle None and NaN
+                if value is None or pd.isna(value):
+                    cleaned_values.append(0.0)
+                    continue
+                
+                # Convert to string for processing
+                str_value = str(value).strip()
+                
+                # Handle common string representations of missing/invalid data
+                if str_value.upper() in ['N/A', 'NA', 'NULL', 'NAN', '', '#N/A', '#VALUE!', '#REF!', '#DIV/0!']:
+                    cleaned_values.append(0.0)
+                    continue
+                
+                # SPECIAL: Handle common Excel headers silently (reduce log spam)
+                if str_value.upper() in ['AREA', 'NAME', 'COMPOUND', 'SUBSTANCE']:
+                    cleaned_values.append(0.0)
+                    continue
+                
+                # Try to convert to float
+                numeric_value = float(str_value)
+                
+                # Handle negative values (shouldn't exist in area data)
+                if numeric_value < 0:
+                    cleaned_values.append(0.0)
+                else:
+                    cleaned_values.append(numeric_value)
+                    
+            except (ValueError, TypeError, OverflowError):
+                # If conversion fails, default to 0.0 (only log non-header values)
+                str_val = str(value).strip()
+                if str_val.upper() not in ['AREA', 'NAME', 'COMPOUND', 'SUBSTANCE']:
+                    print(f"⚠️ Invalid area value '{value}' converted to 0.0")
+                cleaned_values.append(0.0)
+        
+        return np.array(cleaned_values, dtype=float)
+    
+    def _create_compound_name_map(self):
+        """Create a mapping of normalized compound names to original database entries"""
+        compound_map = {}
+        
+        if self.compound_index is None:
+            return compound_map
+        
+        print("🔄 Creating normalized compound name mapping...")
+        
+        for idx, row in self.compound_index.iterrows():
+            compound_name = row.get('Compound', '')
+            if pd.isna(compound_name) or not compound_name:
+                continue
+                
+            # Get all normalized variations
+            variations = self._normalize_compound_name(compound_name)
+            
+            # Map all variations to the original row
+            for variation in variations:
+                if variation and variation not in compound_map:
+                    # ⚡ ENHANCED: Handle both old and new column formats for flexibility
+                    istd_value = row.get('ISTD') or row.get('istd', 'LPC 18:1 d7')
+                    conc_value = row.get('Conc. (nM)') or row.get('conc_nm', 90.029)
+                    response_value = row.get('Response factor') or row.get('response_factor', 1.0)
+                    
+                    # Safely convert to float with fallback
+                    try:
+                        conc_float = float(conc_value) if pd.notna(conc_value) else 90.029
+                    except (ValueError, TypeError):
+                        conc_float = 90.029
+                    
+                    try:
+                        response_float = float(response_value) if pd.notna(response_value) else 1.0
+                    except (ValueError, TypeError):
+                        response_float = 1.0
+                    
+                    compound_map[variation] = {
+                        'original_name': compound_name,
+                        'istd': istd_value,
+                        'conc_nm': conc_float,
+                        'response_factor': response_float
+                    }
+        
+        print(f"📊 Created {len(compound_map)} normalized compound mappings")
+        return compound_map
 
     def determine_sample_numbering(self, sample_columns):
         """
@@ -322,6 +584,7 @@ class StreamlinedCalculatorService:
             }
         
         try:
+            # First try exact match (fastest)
             compound_row = self.compound_index[self.compound_index['Compound'] == substance]
             if not compound_row.empty:
                 return {
@@ -329,13 +592,32 @@ class StreamlinedCalculatorService:
                     'conc_nm': float(compound_row.iloc[0].get('conc_nm', 90.029)),
                     'response_factor': float(compound_row.iloc[0].get('response_factor', 1.0))
                 }
-            else:
-                print(f"⚠️ Compound info not found for {substance}, using defaults")
-                return {
-                    'istd': 'LPC 18:1 d7',
-                    'conc_nm': 90.029,
-                    'response_factor': 1.0
-                }
+            
+            # Try normalized compound name mapping
+            if hasattr(self, '_compound_name_map') and self._compound_name_map:
+                # Check if substance exists in normalized mapping
+                if substance in self._compound_name_map:
+                    compound_info = self._compound_name_map[substance]
+                    print(f"✅ Found normalized match: '{substance}' → '{compound_info['original_name']}'")
+                    return compound_info
+                
+                # Try all variations of the input substance name
+                substance_variations = self._normalize_compound_name(substance)
+                for variant in substance_variations:
+                    if variant in self._compound_name_map:
+                        compound_info = self._compound_name_map[variant]
+                        print(f"✅ Found variant match: '{substance}' (as '{variant}') → '{compound_info['original_name']}'")
+                        return compound_info
+            
+            # If still no match, use defaults
+            variations_tried = self._normalize_compound_name(substance)
+            print(f"⚠️ Compound '{substance}' not found in database after trying {len(variations_tried)} variations, using fallback defaults")
+            return {
+                'istd': 'LPC 18:1 d7',
+                'conc_nm': 90.029,
+                'response_factor': 1.0
+            }
+            
         except Exception as e:
             print(f"⚠️ Error getting compound info for {substance}: {e}")
             return {
@@ -392,16 +674,63 @@ class StreamlinedCalculatorService:
         print(f"   Coefficient: {coefficient}")
         
         try:
-            # Read area compound data
-            area_data = pd.read_excel(area_file)
-            print(f"📊 Loaded area data: {area_data.shape}")
-            print(f"📋 Columns found: {list(area_data.columns)}")
+            # ⚡ ULTRA ENHANCED: Multi-step Excel analysis with robust header detection
+            print("🔍 Performing comprehensive Excel file analysis...")
+            
+            # First read to detect full structure
+            raw_df = pd.read_excel(area_file, header=None)
+            print(f"📋 Raw Excel shape: {raw_df.shape}")
+            print(f"📋 First few cells in column 0: {[raw_df.iloc[i, 0] for i in range(min(8, len(raw_df)))]}")
+            
+            # STEP 1: Find the actual header row (look for PH-HC patterns)
+            header_row = 0
+            data_start_row = 1
+            
+            print("🔎 Analyzing potential header rows...")
+            for row_idx in range(min(15, len(raw_df))):
+                row_values = [str(val) for val in raw_df.iloc[row_idx].tolist()]
+                ph_hc_count = sum(1 for val in row_values if 'PH-HC' in str(val))
+                nist_count = sum(1 for val in row_values if 'NIST' in str(val))
+                
+                print(f"   Row {row_idx}: PH-HC columns={ph_hc_count}, NIST columns={nist_count}, First cell='{raw_df.iloc[row_idx, 0]}'")
+                
+                # If this row has multiple PH-HC patterns, it's likely the header
+                if ph_hc_count >= 2:  # Need at least 2 PH-HC columns to be a proper header
+                    header_row = row_idx
+                    data_start_row = row_idx + 1  # Data starts in the next row
+                    print(f"✅ Detected header row at index {header_row}, data starts at {data_start_row}")
+                    break
+            
+            # STEP 2: Read with proper header
+            area_data = pd.read_excel(area_file, header=header_row)
+            print(f"📊 Loaded area data with header at row {header_row}: {area_data.shape}")
+            print(f"📋 Columns found: {list(area_data.columns)[:10]}...")
+            
+            # STEP 3: Critical adjustment - remove header row data contamination
+            # Since pandas includes the header row in the data, we need to adjust indices
+            first_data_value = area_data.iloc[0, 0] if not area_data.empty else "N/A"
+            print(f"🔍 First data row, first cell: '{first_data_value}'")
+            
+            # If first row still contains header-like data, skip it
+            skip_rows = 0
+            if str(first_data_value).strip() in ['Name', 'Compound', 'Substance', 'Method', 'Chemical']:
+                skip_rows = 1
+                print(f"⚠️ Skipping first data row as it contains header artifacts")
+            
+            # Apply skip if needed
+            if skip_rows > 0:
+                area_data = area_data.iloc[skip_rows:].reset_index(drop=True)
+                print(f"📊 After skipping {skip_rows} rows: {area_data.shape}")
+                new_first_value = area_data.iloc[0, 0] if not area_data.empty else "N/A"
+                print(f"🔍 New first data row, first cell: '{new_first_value}'")
+            
+            # STEP 4: Enhanced data validation
             
             # Smart column detection - look for compound column
             compound_column = None
             for col in area_data.columns:
                 col_name = str(col).lower()
-                if any(keyword in col_name for keyword in ['compound', 'substance', 'lipid', 'metabolite']):
+                if any(keyword in col_name for keyword in ['compound', 'substance', 'lipid', 'metabolite', 'method']):
                     compound_column = col
                     break
             
@@ -417,7 +746,51 @@ class StreamlinedCalculatorService:
                 raise ValueError(f"Selected compound column '{compound_column}' not found in file")
             
             # Use the detected compound column
-            substances = area_data[compound_column].dropna().tolist()
+            raw_substances = area_data[compound_column].dropna().tolist()
+            
+            # ⚡ ULTRA ENHANCED: Robust compound filtering with detailed validation
+            header_keywords = ['Name', 'Compound', 'Substance', 'Chemical', 'Area', 'Sample', 'Method', 'Compound Method', 'nan']
+            substances = []
+            filtered_items = []
+            
+            print(f"🔬 Processing {len(raw_substances)} potential compounds...")
+            
+            for idx, substance in enumerate(raw_substances):
+                if pd.isna(substance) or substance is None:
+                    continue
+                    
+                substance_str = str(substance).strip()
+                
+                # Enhanced validation criteria
+                is_valid_compound = (
+                    substance_str and  # Not empty
+                    substance_str not in header_keywords and  # Not a known header
+                    len(substance_str) > 3 and  # Reasonable length
+                    not substance_str.upper() in ['AREA', 'NAME', 'COMPOUND', 'METHOD', 'NAN', 'NULL'] and  # Not header variants
+                    not substance_str.lower() in ['area', 'name', 'compound', 'method', 'nan', 'null'] and  # Case variations
+                    # Real compounds usually contain numbers, colons (fatty acids), or specific lipid patterns
+                    (any(char.isdigit() for char in substance_str) or 
+                     ':' in substance_str or  # Fatty acid notation like 16:0
+                     any(pattern in substance_str for pattern in ['PC', 'LPC', 'TG', 'AcylCarnitine', 'PE', 'PS', 'SM', 'Cer', 'DG']))
+                )
+                
+                if is_valid_compound:
+                    substances.append(substance_str)
+                else:
+                    # Track what we filtered for debugging
+                    if substance_str and len(substance_str) > 1:  # Only log non-empty items
+                        filtered_items.append(f"Row{idx}: '{substance_str}'")
+            
+            # Show filtering results
+            if filtered_items:
+                print(f"⚠️ Filtered {len(filtered_items)} non-compound entries:")
+                for item in filtered_items[:10]:  # Show first 10
+                    print(f"   {item}")
+                if len(filtered_items) > 10:
+                    print(f"   ... and {len(filtered_items) - 10} more")
+            
+            print(f"✅ Extracted {len(substances)} valid compounds from {len(raw_substances)} entries")
+            
             sample_columns = [col for col in area_data.columns 
                             if col != compound_column and 'PH-HC' in str(col)]
             
@@ -444,24 +817,145 @@ class StreamlinedCalculatorService:
             print(f"🔬 Found {len(sample_columns)} PH-HC samples")
             print(f"📋 Sample columns (sorted): {sample_columns[:10]}...")  # Show first 10
             print(f"🧪 Found {len(nist_columns)} NIST columns: {nist_columns[:5]}...")  # Show first 5
+            
+            # ⚡ ULTRA ENHANCED DIAGNOSTIC: Deep analysis of AcylCarnitine 10:0 data extraction
+            print(f"\n🔬 COMPREHENSIVE DIAGNOSTIC FOR AcylCarnitine 10:0:")
+            
+            if 'AcylCarnitine 10:0' in substances:
+                acyl_index = substances.index('AcylCarnitine 10:0')
+                print(f"✅ AcylCarnitine 10:0 found at compound index {acyl_index}")
+                print(f"   DataFrame row index (after header adjustment): {acyl_index}")
+                
+                # Show the actual Excel row being accessed
+                actual_excel_row = header_row + 1 + skip_rows + acyl_index
+                print(f"   Actual Excel file row: {actual_excel_row}")
+                
+                # Check the raw compound name in that row
+                actual_compound_name = area_data.iloc[acyl_index][compound_column]
+                print(f"   Actual compound name in DataFrame: '{actual_compound_name}'")
+                
+                # Deep dive into area values with enhanced diagnostic
+                print(f"   📊 Detailed area analysis for first 3 samples:")
+                for idx, col in enumerate(sample_columns[:3]):
+                    if col in area_data.columns:
+                        raw_area_val = area_data.iloc[acyl_index][col]
+                        cleaned_area_val = self._clean_area_values([raw_area_val])[0]
+                        
+                        # Enhanced diagnostic info
+                        val_type = type(raw_area_val).__name__
+                        is_numeric = isinstance(raw_area_val, (int, float, np.number))
+                        print(f"      {col}: raw='{raw_area_val}' (type={val_type}, numeric={is_numeric}) → cleaned={cleaned_area_val}")
+                        
+                        # Critical check for string contamination
+                        if isinstance(raw_area_val, str) and raw_area_val.strip().upper() == 'AREA':
+                            print(f"      ❌ FOUND HEADER CONTAMINATION: Raw value is 'Area' string!")
+                            print(f"         This indicates row indexing is still incorrect.")
+                            
+                            # Try to find the correct data by looking a few rows down
+                            for offset in range(1, 5):
+                                try:
+                                    test_row = acyl_index + offset
+                                    if test_row < len(area_data):
+                                        test_val = area_data.iloc[test_row][col]
+                                        if isinstance(test_val, (int, float, np.number)):
+                                            print(f"         Potential correct data found {offset} rows down: {test_val}")
+                                            break
+                                except:
+                                    continue
+                
+                # Enhanced ISTD checking
+                istd_candidates = [s for s in substances if 'LPC' in s and 'd7' in s]
+                print(f"   🧪 ISTD Analysis:")
+                print(f"      Available LPC d7 compounds: {istd_candidates[:5]}")
+                
+                if 'LPC 18:1 d7' in substances:
+                    istd_index = substances.index('LPC 18:1 d7')
+                    print(f"      ✅ ISTD (LPC 18:1 d7) found at index {istd_index}")
+                    
+                    # Deep ISTD diagnostic
+                    for idx, col in enumerate(sample_columns[:3]):
+                        if col in area_data.columns:
+                            istd_raw = area_data.iloc[istd_index][col]
+                            istd_cleaned = self._clean_area_values([istd_raw])[0]
+                            istd_type = type(istd_raw).__name__
+                            print(f"      {col}: ISTD raw='{istd_raw}' (type={istd_type}) → cleaned={istd_cleaned}")
+                else:
+                    print(f"      ❌ Exact ISTD 'LPC 18:1 d7' not found!")
+                    if istd_candidates:
+                        closest_istd = istd_candidates[0]
+                        print(f"      Using closest match: '{closest_istd}'")
+                    
+            else:
+                print(f"❌ AcylCarnitine 10:0 NOT FOUND in substances list!")
+                # Enhanced compound searching
+                acyl_patterns = ['AcylCarnitine', 'Acyl', 'Carnitine', '10:0']
+                print(f"   🔍 Searching for related patterns in {len(substances)} substances:")
+                
+                for pattern in acyl_patterns:
+                    matches = [s for s in substances if pattern in s][:5]
+                    if matches:
+                        print(f"      Pattern '{pattern}': {matches}")
+                    else:
+                        print(f"      Pattern '{pattern}': No matches")
+                
+                # Show first 20 substances for reference
+                print(f"   📋 First 20 substances found: {substances[:20]}")
+            
+            print(f"")  # Blank line for readability
             self.analyze_nist_column_ranges(nist_columns)
             
             # Determine sample numbering
             numbering_info = self.determine_sample_numbering(sample_columns)
             
+            # 🚀 PERFORMANCE OPTIMIZATION: Pre-compute mappings to avoid O(n²) complexity
+            print("⚡ Optimizing performance - pre-computing mappings...")
+            
+            # Pre-compute ISTD index mappings to avoid nested loops
+            istd_index_map = {}
+            compound_info_map = {}
+            
+            for i, substance in enumerate(substances):
+                compound_info = self.get_compound_info(substance)
+                compound_info_map[substance] = compound_info
+                istd_name = compound_info['istd']
+                
+                # Find ISTD index once for this substance
+                for j, comp_name in enumerate(substances):
+                    if istd_name in str(comp_name):
+                        istd_index_map[substance] = j
+                        break
+                else:
+                    istd_index_map[substance] = -1  # ISTD not found
+            
+            # Pre-compute NIST column mappings for all PH-HC samples
+            nist_mapping_cache = {}
+            for sample_col in sample_columns:
+                nist_mapping_cache[sample_col] = self.find_matching_nist_column(sample_col, nist_columns)
+            
+            print(f"⚡ Optimizations complete - {len(istd_index_map)} ISTD mappings, {len(nist_mapping_cache)} NIST mappings cached")
+            
+            # Convert DataFrame to numpy for faster access
+            area_values = area_data.select_dtypes(include=[np.number]).values
+            numeric_columns = area_data.select_dtypes(include=[np.number]).columns.tolist()
+            
+            # Create column index mappings for fast lookup
+            col_to_idx = {col: idx for idx, col in enumerate(area_data.columns)}
+            
             # Initialize results
             nist_results = []
             agilent_results = []
             nist_ratio_results = []  # New: for NIST ratio calculations
-            detailed_calculations = {}  # Store detailed calculation breakdowns
+            detailed_calculations = {}  # Store detailed calculation breakdowns (only when needed)
             
-            # Process each substance
+            # Process each substance (optimized)
             for i, substance in enumerate(substances):
-                print(f"🧪 Processing substance {i+1}/{len(substances)}: {substance}")
+                if i % 100 == 0:  # Reduce logging frequency for performance
+                    print(f"⚡ Processing substances {i+1}-{min(i+100, len(substances))}/{len(substances)}")
                 
-                # Get compound information
-                compound_info = self.get_compound_info(substance)
+                # Get cached compound information
+                compound_info = compound_info_map[substance]
                 istd_name = compound_info['istd']
+                istd_row_index = istd_index_map[substance]
                 
                 # Note: We no longer use pre-calculated NIST ratios from database
                 # All NIST calculations now use only actual area values from input file
@@ -470,325 +964,125 @@ class StreamlinedCalculatorService:
                 substance_agilent_row = {'Substance': substance}
                 substance_nist_ratio_row = {'Substance': substance}  # New: for NIST ratios
                 
-                # Process each sample
-                for sample_col in sample_columns:
-                    calculation_key = f"{substance}_{sample_col}"
+                # ⚡ OPTIMIZED: Process all samples at once using vectorized operations
+                istd_found = istd_row_index >= 0
+                
+                # Get all sample areas at once (vectorized)
+                sample_col_indices = [col_to_idx[col] for col in sample_columns if col in col_to_idx]
+                raw_substance_areas = area_data.iloc[i, sample_col_indices].values
+                
+                # ⚡ CRITICAL: Clean and convert all values to numeric (handle strings, NaN, etc.)
+                substance_areas = self._clean_area_values(raw_substance_areas)
+                
+                if istd_found:
+                    raw_istd_areas = area_data.iloc[istd_row_index, sample_col_indices].values
+                    istd_areas = self._clean_area_values(raw_istd_areas)
+                else:
+                    istd_areas = np.ones(len(sample_col_indices))  # Avoid division by zero
+                
+                # Replace zeros with 1 to avoid division by zero
+                istd_areas = np.where(istd_areas == 0, 1.0, istd_areas)
+                
+                # STEP 1: Calculate all ratios at once (vectorized)
+                ratios = substance_areas / istd_areas
+                
+                # Process NIST calculations for each sample
+                nist_ratios = np.zeros(len(sample_columns))
+                nist_cols_used = []
+                
+                for idx, sample_col in enumerate(sample_columns):
+                    # Get cached NIST column mapping
+                    nist_col_used = nist_mapping_cache.get(sample_col, "No NIST columns found")
+                    nist_cols_used.append(nist_col_used)
                     
-                    try:
-                        # Get substance area
-                        substance_area_raw = area_data.loc[i, sample_col]
-                        substance_area = float(substance_area_raw) if pd.notna(substance_area_raw) else 0.0
-                        
-                        # Find ISTD area (look for ISTD in the same data)
-                        istd_area = 0.0
-                        istd_found = False
-                        istd_row_index = -1
-                        
-                        for j, comp_name in enumerate(substances):
-                            if istd_name in str(comp_name):
-                                istd_area_raw = area_data.loc[j, sample_col]
-                                istd_area = float(istd_area_raw) if pd.notna(istd_area_raw) else 0.0
-                                istd_found = True
-                                istd_row_index = j
-                                break
-                        
-                        if istd_area == 0:
-                            istd_area = 1.0  # Avoid division by zero
-                        
-                        # STEP 1: Calculate Ratio
-                        ratio = substance_area / istd_area
-                        
-                        # Get NIST area information using intelligent column matching
-                        nist_substance_area = 0.0
-                        nist_istd_area = 0.0
-                        calculated_nist_ratio = 0.0
-                        nist_col_used = "No NIST columns found"
-                        
-                        # Find the correct NIST column that matches this PH-HC sample
-                        if nist_columns:
-                            nist_col_used = self.find_matching_nist_column(sample_col, nist_columns)
-                            if nist_col_used:
-                                try:
-                                    # Get substance area from matched NIST column
-                                    nist_substance_area_raw = area_data.loc[i, nist_col_used]
-                                    nist_substance_area = float(nist_substance_area_raw) if pd.notna(nist_substance_area_raw) else 0.0
-                                    
-                                    # Find ISTD area in matched NIST column
-                                    for j, comp_name in enumerate(substances):
-                                        if istd_name in str(comp_name):
-                                            nist_istd_area_raw = area_data.loc[j, nist_col_used]
-                                            nist_istd_area = float(nist_istd_area_raw) if pd.notna(nist_istd_area_raw) else 0.0
-                                            break
-                                    
-                                    if nist_istd_area != 0:
-                                        calculated_nist_ratio = nist_substance_area / nist_istd_area
-                                        
-                                except Exception as e:
-                                    print(f"⚠️ Error getting NIST areas from {nist_col_used}: {e}")
-                            else:
-                                print(f"⚠️ Could not find matching NIST column for {sample_col}")
-                        
-                        # STEP 2: Calculate NIST using ONLY actual NIST area values from input file
-                        if calculated_nist_ratio != 0:
-                            # Use calculated ratio from actual NIST areas in input file
-                            final_nist_ratio = calculated_nist_ratio
-                            nist_result = ratio / final_nist_ratio
-                        else:
-                            # No NIST data available in input file - cannot calculate
-                            final_nist_ratio = 0
-                            nist_result = 0
-                            print(f"⚠️ No NIST data available for {substance} in input file - calculation set to 0")
-                        
-                        # STEP 3: Calculate Agilent
-                        agilent_result = (ratio * 
-                                        compound_info['conc_nm'] * 
-                                        compound_info['response_factor'] * 
-                                        coefficient)
-                        
-                        # Store detailed calculation breakdown
-                        detailed_calculations[calculation_key] = {
-                            # Basic Info
-                            'substance': substance,
-                            'sample': sample_col,
-                            'substance_index': i + 1,
-                            
-                            # Source Data - Complete area information from Excel file
-                            'source_data': {
-                                # PH-HC Sample Areas
-                                'ph_hc_sample_column': sample_col,
-                                'ph_hc_substance_area_raw': substance_area_raw,
-                                'ph_hc_substance_area': substance_area,
-                                'ph_hc_istd_area_raw': area_data.loc[istd_row_index, sample_col] if istd_found else 'NOT FOUND',
-                                'ph_hc_istd_area': istd_area,
-                                
-                                # NIST Sample Areas
-                                'nist_sample_column': nist_col_used,
-                                'nist_substance_area_raw': area_data.loc[i, nist_col_used] if len(nist_columns) > 0 else 'NO NIST COLUMNS',
-                                'nist_substance_area': nist_substance_area,
-                                'nist_istd_area_raw': area_data.loc[istd_row_index, nist_col_used] if (istd_found and len(nist_columns) > 0) else 'NOT FOUND',
-                                'nist_istd_area': nist_istd_area,
-                                
-                                # Reference Information
-                                'istd_name': istd_name,
-                                'istd_found': istd_found,
-                                'istd_row_index': istd_row_index + 1 if istd_found else -1,
-                                'nist_columns_available': len(nist_columns) > 0,
-                                'total_nist_columns': len(nist_columns),
-                                'nist_matching_logic': f'Matched {sample_col} → {nist_col_used}' if nist_col_used != "No NIST columns found" else 'No matching possible'
-                            },
-                            
-                            # Database References (compound info only, no NIST fallback data)
-                            'database_info': {
-                                'istd_name': istd_name,
-                                'concentration_nm': compound_info['conc_nm'],
-                                'response_factor': compound_info['response_factor'],
-                                'coefficient': coefficient,
-                                'note': 'NIST calculations use only input file data, no database fallbacks'
-                            },
-                            
-                            # Step-by-Step Calculations
-                            'calculations': {
-                                'step_1_ph_hc_ratio': {
-                                    'formula': 'PH-HC Sample: Substance Area ÷ ISTD Area',
-                                    'calculation': f"{substance_area} ÷ {istd_area}",
-                                    'result': ratio,
-                                    'description': f'Calculate ratio of substance to ISTD in {sample_col}',
-                                    'step_name': 'Calculate PH-HC Sample Ratio'
-                                },
-                                'step_2_nist_ratio': {
-                                    'formula': 'NIST Sample: Substance Area ÷ ISTD Area (from input file only)',
-                                    'calculation': f"{nist_substance_area} ÷ {nist_istd_area}" if calculated_nist_ratio != 0 else "NIST data not available in input file",
-                                    'result': final_nist_ratio,
-                                    'description': f'Calculate ratio of substance to ISTD in {nist_col_used} (auto-matched)' if calculated_nist_ratio != 0 else 'No NIST data available in input file',
-                                    'step_name': 'Calculate NIST Sample Ratio'
-                                },
-                                'step_3_nist_result': {
-                                    'formula': 'PH-HC Ratio ÷ NIST Ratio (input file data only)',
-                                    'calculation': f"{ratio} ÷ {final_nist_ratio}" if final_nist_ratio != 0 else f"{ratio} ÷ 0 = Cannot calculate (no NIST data)",
-                                    'result': nist_result,
-                                    'description': 'Normalize PH-HC ratio against NIST standard ratio' if final_nist_ratio != 0 else 'Cannot calculate - missing NIST data in input file',
-                                    'step_name': 'Calculate Normalized NIST Result'
-                                },
-                                'step_4_agilent': {
-                                    'formula': 'PH-HC Ratio × Conc.(nM) × Response Factor × Coefficient',
-                                    'calculation': f"{ratio} × {compound_info['conc_nm']} × {compound_info['response_factor']} × {coefficient}",
-                                    'result': agilent_result,
-                                    'description': 'Calculate final concentration using compound database parameters',
-                                    'step_name': 'Calculate Final Concentration (Agilent)'
-                                }
-                            },
-                            
-                            # Final Results
-                            'final_results': {
-                                'ratio': ratio,
-                                'nist_result': nist_result,
-                                'agilent_result': agilent_result
-                            }
-                        }
-                        
-                        # Store results
-                        substance_nist_row[sample_col] = nist_result
-                        substance_agilent_row[sample_col] = agilent_result
-                        
-                    except Exception as e:
-                        print(f"⚠️ Error processing {substance} in {sample_col}: {e}")
-                        substance_nist_row[sample_col] = 0.0
-                        substance_agilent_row[sample_col] = 0.0
-                        
-                        # Store error details with NIST info attempt
-                        nist_error_info = "Error retrieving NIST data"
+                    if nist_col_used and nist_col_used != "No NIST columns found" and nist_col_used in col_to_idx:
                         try:
-                            if nist_columns:
-                                nist_error_info = f"NIST columns available: {nist_columns[:3]}..."
-                        except:
-                            pass
+                            nist_col_idx = col_to_idx[nist_col_used]
+                            raw_nist_substance_area = area_data.iloc[i, nist_col_idx]
                             
-                        detailed_calculations[calculation_key] = {
-                            'substance': substance,
-                            'sample': sample_col,
-                            'error': str(e),
-                            'nist_info': nist_error_info,
-                            'final_results': {
-                                'ratio': 0.0,
-                                'nist_result': 0.0,
-                                'agilent_result': 0.0
-                            }
-                        }
+                            # ⚡ SAFE: Use data cleaning for individual values
+                            clean_nist_substance_area = self._clean_area_values([raw_nist_substance_area])[0]
+                            
+                            if istd_found:
+                                raw_nist_istd_area = area_data.iloc[istd_row_index, nist_col_idx]
+                                clean_nist_istd_area = self._clean_area_values([raw_nist_istd_area])[0]
+                                
+                                if clean_nist_substance_area != 0 and clean_nist_istd_area != 0:
+                                    nist_ratios[idx] = clean_nist_substance_area / clean_nist_istd_area
+                        except Exception as e:
+                            print(f"⚠️ Error getting NIST areas from {nist_col_used}: {e}")
                 
-                # Process NIST columns for ratio calculation
-                for nist_col in nist_columns:
-                    calculation_key = f"{substance}_{nist_col}_ratio"
+                # STEP 2: Calculate NIST results (vectorized)
+                final_nist_ratios = np.where(nist_ratios != 0, nist_ratios, 1.0)  # Use 1.0 instead of 0 to avoid division issues
+                # ⚡ SAFE: Use numpy's safe division to avoid runtime warnings
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    nist_results_vec = np.where(final_nist_ratios != 1.0, ratios / final_nist_ratios, 0)
+                
+                # STEP 3: Calculate Agilent results (vectorized)
+                agilent_results_vec = (ratios * 
+                                     compound_info['conc_nm'] * 
+                                     compound_info['response_factor'] * 
+                                     coefficient)
+                
+                # Store results efficiently
+                for idx, sample_col in enumerate(sample_columns):
+                    nist_val = float(nist_results_vec[idx])
+                    agilent_val = float(agilent_results_vec[idx])
                     
-                    try:
-                        # Get substance area from NIST column
-                        substance_area_raw = area_data.loc[i, nist_col]
-                        substance_area = float(substance_area_raw) if pd.notna(substance_area_raw) else 0.0
-                        
-                        # Find ISTD area in NIST column
-                        istd_area = 0.0
-                        istd_found = False
-                        istd_row_index = -1
-                        
-                        for j, comp_name in enumerate(substances):
-                            if istd_name in str(comp_name):
-                                istd_area_raw = area_data.loc[j, nist_col]
-                                istd_area = float(istd_area_raw) if pd.notna(istd_area_raw) else 0.0
-                                istd_found = True
-                                istd_row_index = j
-                                break
-                        
-                        if istd_area == 0:
-                            istd_area = 1.0  # Avoid division by zero
-                        
-                        # Calculate NIST Ratio = Substance Area (NIST) / ISTD Area (NIST)
-                        nist_ratio_result = substance_area / istd_area
-                        
-                        # Store detailed calculation for NIST ratio (same structure as PH-HC)
-                        detailed_calculations[calculation_key] = {
-                            # Basic Info
-                            'substance': substance,
-                            'sample': nist_col,  # Use nist_col as sample for consistency
-                            'substance_index': i + 1,
-                            
-                            # Source Data - Complete NIST area information
-                            'source_data': {
-                                # NIST Sample Areas (primary data)
-                                'ph_hc_sample_column': 'N/A (NIST Ratio Calculation)',
-                                'ph_hc_substance_area_raw': 'N/A',
-                                'ph_hc_substance_area': 'N/A',
-                                'ph_hc_istd_area_raw': 'N/A',
-                                'ph_hc_istd_area': 'N/A',
-                                
-                                # NIST Sample Areas (main calculation)
-                                'nist_sample_column': nist_col,
-                                'nist_substance_area_raw': substance_area_raw,
-                                'nist_substance_area': substance_area,
-                                'nist_istd_area_raw': area_data.loc[istd_row_index, nist_col] if istd_found else 'NOT FOUND',
-                                'nist_istd_area': istd_area,
-                                
-                                # Reference Information
-                                'istd_name': istd_name,
-                                'istd_found': istd_found,
-                                'istd_row_index': istd_row_index + 1 if istd_found else -1,
-                                'nist_columns_available': True,
-                                'total_nist_columns': len(nist_columns)
-                            },
-                            
-                            # Database References (compound info only)
-                            'database_info': {
-                                'istd_name': istd_name,
-                                'concentration_nm': compound_info['conc_nm'],
-                                'response_factor': compound_info['response_factor'],
-                                'coefficient': coefficient,
-                                'note': 'NIST ratio calculation from input file data only'
-                            },
-                            
-                            # Step-by-Step Calculations
-                            'calculations': {
-                                'step_1_nist_ratio': {
-                                    'formula': f'NIST Sample ({nist_col}): Substance Area ÷ ISTD Area',
-                                    'calculation': f"{substance_area} ÷ {istd_area}",
-                                    'result': nist_ratio_result,
-                                    'description': f'Calculate ratio of substance to ISTD in NIST standard sample {nist_col}',
-                                    'step_name': 'Calculate NIST Sample Ratio (Direct)'
-                                }
-                            },
-                            
-                            # Final Results (compatible with frontend)
-                            'final_results': {
-                                'ratio': nist_ratio_result,
-                                'nist_result': nist_ratio_result,  # For NIST calculations, this is the same
-                                'agilent_result': 'N/A (NIST ratio only)'
-                            }
-                        }
-                        
-                        # Store result
-                        substance_nist_ratio_row[nist_col] = nist_ratio_result
-                        
-                    except Exception as e:
-                        print(f"⚠️ Error processing {substance} in {nist_col}: {e}")
-                        substance_nist_ratio_row[nist_col] = 0.0
-                        
-                        # Store error details (same structure as successful calculations)
-                        detailed_calculations[calculation_key] = {
-                            'substance': substance,
-                            'sample': nist_col,
-                            'substance_index': i + 1,
-                            'error': str(e),
-                            'source_data': {
-                                'ph_hc_sample_column': 'N/A (NIST Ratio Calculation)',
-                                'ph_hc_substance_area_raw': 'N/A',
-                                'ph_hc_substance_area': 'N/A', 
-                                'ph_hc_istd_area_raw': 'N/A',
-                                'ph_hc_istd_area': 'N/A',
-                                'nist_sample_column': nist_col,
-                                'nist_substance_area_raw': 'ERROR',
-                                'nist_substance_area': 0,
-                                'nist_istd_area_raw': 'ERROR', 
-                                'nist_istd_area': 0,
-                                'istd_name': istd_name,
-                                'istd_found': False,
-                                'istd_row_index': -1,
-                                'nist_columns_available': True,
-                                'total_nist_columns': len(nist_columns)
-                            },
-                            'database_info': {
-                                'istd_name': istd_name,
-                                'concentration_nm': compound_info['conc_nm'],
-                                'response_factor': compound_info['response_factor'],
-                                'coefficient': coefficient,
-                                'note': f'Error in NIST ratio calculation: {str(e)}'
-                            },
-                            'final_results': {
-                                'ratio': 0.0,
-                                'nist_result': 0.0,
-                                'agilent_result': 'N/A (Error)'
-                            }
-                        }
+                    # ⚡ DIAGNOSTIC: Check for zero results and log details
+                    if substance == 'AcylCarnitine 10:0' and idx < 3:  # Log first 3 samples for debugging
+                        ratio_val = float(ratios[idx]) if idx < len(ratios) else 0
+                        nist_ratio_val = float(final_nist_ratios[idx]) if idx < len(final_nist_ratios) else 0
+                        print(f"🔬 AcylCarnitine 10:0 {sample_col}: ratio={ratio_val:.4f}, nist_ratio={nist_ratio_val:.4f}, NIST={nist_val:.2f}, Agilent={agilent_val:.2f}")
+                    
+                    substance_nist_row[sample_col] = nist_val
+                    substance_agilent_row[sample_col] = agilent_val
+                    
+                    # Only create detailed calculations on-demand (saves memory and time)
                 
+                # ⚡ OPTIMIZED: Process NIST columns for ratio calculation (vectorized)
+                nist_col_indices = [col_to_idx[col] for col in nist_columns if col in col_to_idx]
+                if nist_col_indices:
+                    raw_nist_substance_areas = area_data.iloc[i, nist_col_indices].values
+                    nist_substance_areas = self._clean_area_values(raw_nist_substance_areas)
+                    
+                    if istd_found:
+                        raw_nist_istd_areas = area_data.iloc[istd_row_index, nist_col_indices].values
+                        nist_istd_areas = self._clean_area_values(raw_nist_istd_areas)
+                        # Replace zeros with 1 to avoid division by zero
+                        nist_istd_areas = np.where(nist_istd_areas == 0, 1.0, nist_istd_areas)
+                        nist_ratios_for_substance = nist_substance_areas / nist_istd_areas
+                    else:
+                        nist_ratios_for_substance = np.zeros(len(nist_col_indices))
+                    
+                    # Store NIST ratio results
+                    for idx, nist_col in enumerate(nist_columns):
+                        if idx < len(nist_ratios_for_substance):
+                            substance_nist_ratio_row[nist_col] = float(nist_ratios_for_substance[idx])
+                
+                # Add results to final arrays
                 nist_results.append(substance_nist_row)
                 agilent_results.append(substance_agilent_row)
                 nist_ratio_results.append(substance_nist_ratio_row)
+                
+                # Generate detailed calculations for more samples (first 25 for better coverage)
+                if i < 100:  # Only for first 100 substances to avoid performance impact
+                    # ⚡ ENHANCED: Generate details for first 25 samples instead of 10 for better coverage
+                    for sample_idx in range(min(25, len(sample_columns))):
+                        sample = sample_columns[sample_idx]
+                        try:
+                            details = self.create_calculation_details_on_demand(
+                                area_data, substance, sample, i, istd_index_map, 
+                                compound_info_map, nist_mapping_cache, coefficient
+                            )
+                            detail_key = f"{substance}_{sample}"
+                            detailed_calculations[detail_key] = details
+                        except Exception as detail_error:
+                            # Don't fail the whole calculation for detail errors
+                            print(f"⚠️ Failed to create details for {substance}_{sample}: {detail_error}")
+            
+            print(f"⚡ Performance optimized calculation completed in batches")
+            print(f"📊 Generated {len(detailed_calculations)} detailed calculation entries")
             
             # Convert to DataFrames
             nist_df = pd.DataFrame(nist_results)
@@ -814,6 +1108,26 @@ class StreamlinedCalculatorService:
             print(f"   Agilent results: {agilent_df.shape}")
             print(f"   NIST Ratio results: {nist_ratio_df.shape}")
             print(f"   Column order: {list(nist_df.columns)[:10]}...")  # Show first 10 columns
+            
+            # ⚡ FINAL DIAGNOSTIC: Check AcylCarnitine 10:0 results
+            if len(nist_df) > 0:
+                acyl_rows = nist_df[nist_df['Substance'] == 'AcylCarnitine 10:0']
+                if not acyl_rows.empty:
+                    acyl_row = acyl_rows.iloc[0]
+                    sample_vals = [f"{col}={acyl_row[col]:.2f}" for col in sample_columns[:3] if col in acyl_row]
+                    print(f"✅ AcylCarnitine 10:0 FINAL NIST results: {', '.join(sample_vals)}")
+                    
+                    if len(agilent_df) > 0:
+                        agilent_rows = agilent_df[agilent_df['Substance'] == 'AcylCarnitine 10:0']
+                        if not agilent_rows.empty:
+                            agilent_row = agilent_rows.iloc[0]
+                            agilent_vals = [f"{col}={agilent_row[col]:.2f}" for col in sample_columns[:3] if col in agilent_row]
+                            print(f"✅ AcylCarnitine 10:0 FINAL Agilent results: {', '.join(agilent_vals)}")
+                else:
+                    print(f"❌ AcylCarnitine 10:0 not found in final NIST results!")
+                    print(f"   Available substances: {list(nist_df['Substance'].head())}")
+            else:
+                print(f"❌ No NIST results generated!")
             
             return {
                 'nist_data': nist_df,
@@ -923,6 +1237,123 @@ class StreamlinedCalculatorService:
         else:
             return obj
 
+    def create_calculation_details_on_demand(self, area_data, substance, sample, substance_index, istd_index_map, compound_info_map, nist_mapping_cache, coefficient):
+        """Create detailed calculation breakdown on-demand for performance"""
+        try:
+            compound_info = compound_info_map[substance]
+            istd_name = compound_info['istd']
+            istd_row_index = istd_index_map[substance]
+            istd_found = istd_row_index >= 0
+            
+            # Get basic area data
+            substance_area_raw = area_data.loc[substance_index, sample]
+            substance_area = self._clean_area_values([substance_area_raw])[0]
+            
+            if istd_found:
+                istd_area_raw = area_data.loc[istd_row_index, sample]
+                istd_area = self._clean_area_values([istd_area_raw])[0]
+                if istd_area == 0:
+                    istd_area = 1.0  # Avoid division by zero
+            else:
+                istd_area_raw = 'NOT FOUND'
+                istd_area = 1.0
+            
+            # Calculate ratio
+            ratio = substance_area / istd_area
+            
+            # Get NIST information
+            nist_col_used = nist_mapping_cache.get(sample, "No NIST columns found")
+            nist_substance_area = 0.0
+            nist_istd_area = 0.0
+            calculated_nist_ratio = 0.0
+            
+            if nist_col_used and nist_col_used != "No NIST columns found":
+                try:
+                    nist_substance_area_raw = area_data.loc[substance_index, nist_col_used]
+                    nist_substance_area = self._clean_area_values([nist_substance_area_raw])[0]
+                    
+                    if istd_found:
+                        nist_istd_area_raw = area_data.loc[istd_row_index, nist_col_used]
+                        nist_istd_area = self._clean_area_values([nist_istd_area_raw])[0]
+                        
+                        if nist_istd_area != 0:
+                            calculated_nist_ratio = nist_substance_area / nist_istd_area
+                except:
+                    pass
+            
+            # Calculate final results
+            final_nist_ratio = calculated_nist_ratio if calculated_nist_ratio != 0 else 0
+            nist_result = ratio / final_nist_ratio if final_nist_ratio != 0 else 0
+            agilent_result = ratio * compound_info['conc_nm'] * compound_info['response_factor'] * coefficient
+            
+            # Create detailed breakdown
+            return {
+                'substance': substance,
+                'sample': sample,
+                'substance_index': substance_index + 1,
+                'source_data': {
+                    'ph_hc_sample_column': sample,
+                    'ph_hc_substance_area_raw': substance_area_raw,
+                    'ph_hc_substance_area': substance_area,
+                    'ph_hc_istd_area_raw': istd_area_raw,
+                    'ph_hc_istd_area': istd_area,
+                    'nist_sample_column': nist_col_used,
+                    'nist_substance_area_raw': area_data.loc[substance_index, nist_col_used] if nist_col_used != "No NIST columns found" else 'NO NIST COLUMNS',
+                    'nist_substance_area': nist_substance_area,
+                    'nist_istd_area_raw': area_data.loc[istd_row_index, nist_col_used] if (istd_found and nist_col_used != "No NIST columns found") else 'NOT FOUND',
+                    'nist_istd_area': nist_istd_area,
+                    'istd_name': istd_name,
+                    'istd_found': istd_found,
+                    'istd_row_index': istd_row_index + 1 if istd_found else -1,
+                    'nist_columns_available': nist_col_used != "No NIST columns found",
+                    'nist_matching_logic': f'Matched {sample} → {nist_col_used}' if nist_col_used != "No NIST columns found" else 'No matching possible'
+                },
+                'database_info': {
+                    'istd_name': istd_name,
+                    'concentration_nm': compound_info['conc_nm'],
+                    'response_factor': compound_info['response_factor'],
+                    'coefficient': coefficient,
+                    'note': 'NIST calculations use only input file data, no database fallbacks'
+                },
+                'calculations': {
+                    'step_1_ph_hc_ratio': {
+                        'formula': 'PH-HC Sample: Substance Area ÷ ISTD Area',
+                        'calculation': f"{substance_area} ÷ {istd_area}",
+                        'result': ratio,
+                        'description': f'Calculate ratio of substance to ISTD in {sample}',
+                        'step_name': 'Calculate PH-HC Sample Ratio'
+                    },
+                    'step_2_nist_ratio': {
+                        'formula': 'NIST Sample: Substance Area ÷ ISTD Area (from input file only)',
+                        'calculation': f"{nist_substance_area} ÷ {nist_istd_area}" if calculated_nist_ratio != 0 else "NIST data not available in input file",
+                        'result': final_nist_ratio,
+                        'description': f'Calculate ratio of substance to ISTD in {nist_col_used} (auto-matched)' if calculated_nist_ratio != 0 else 'No NIST data available in input file',
+                        'step_name': 'Calculate NIST Sample Ratio'
+                    },
+                    'step_3_nist_result': {
+                        'formula': 'PH-HC Ratio ÷ NIST Ratio (input file data only)',
+                        'calculation': f"{ratio} ÷ {final_nist_ratio}" if final_nist_ratio != 0 else f"{ratio} ÷ 0 = Cannot calculate (no NIST data)",
+                        'result': nist_result,
+                        'description': 'Normalize PH-HC ratio against NIST standard ratio' if final_nist_ratio != 0 else 'Cannot calculate - missing NIST data in input file',
+                        'step_name': 'Calculate Normalized NIST Result'
+                    },
+                    'step_4_agilent': {
+                        'formula': 'PH-HC Ratio × Conc.(nM) × Response Factor × Coefficient',
+                        'calculation': f"{ratio} × {compound_info['conc_nm']} × {compound_info['response_factor']} × {coefficient}",
+                        'result': agilent_result,
+                        'description': 'Calculate final concentration using compound database parameters',
+                        'step_name': 'Calculate Final Concentration (Agilent)'
+                    }
+                },
+                'final_results': {
+                    'ratio': ratio,
+                    'nist_result': nist_result,
+                    'agilent_result': agilent_result
+                }
+            }
+        except Exception as e:
+            return {'error': f'Error creating calculation details: {str(e)}'}
+
     def get_calculation_details(self, session_id, substance, sample):
         """Get detailed calculation breakdown for a specific substance-sample combination"""
         try:
@@ -930,11 +1361,16 @@ class StreamlinedCalculatorService:
             session_dir = os.path.join(temp_dir, f"streamlined_{session_id}")
             details_path = os.path.join(session_dir, f"details_{session_id}.json")
             
+            print(f"🔍 Looking for details at: {details_path}")
+            
             if not os.path.exists(details_path):
+                print(f"❌ Details file not found: {details_path}")
                 return {'error': 'Calculation details not found'}
             
             with open(details_path, 'r') as f:
                 all_details = json.load(f)
+            
+            print(f"📊 Found {len(all_details)} total detail entries")
             
             # Try different key formats
             possible_keys = [
@@ -957,15 +1393,60 @@ class StreamlinedCalculatorService:
             
             # If no match found, return available keys for debugging
             available_keys = [key for key in all_details.keys() if substance in key]
+            all_sample_keys = [key for key in all_details.keys() if sample in key]
+            
+            print(f"❌ No details found for {substance}_{sample}")
+            print(f"📊 Available keys for {substance}: {available_keys[:5]}")
+            print(f"📊 Available keys for {sample}: {all_sample_keys[:5]}")
+            print(f"📊 Tried keys: {possible_keys}")
+            
             return {
                 'error': f'Details not found for {substance} in {sample}',
                 'available_keys_for_substance': available_keys[:10],  # Show first 10 matches
-                'tried_keys': possible_keys
+                'available_keys_for_sample': all_sample_keys[:10],
+                'tried_keys': possible_keys,
+                'total_details': len(all_details)
             }
                 
         except Exception as e:
             print(f"❌ Error getting calculation details: {e}")
             return {'error': str(e)}
+
+    def debug_compound_results(self, session_id, compound_name):
+        """
+        Debug method to analyze why a specific compound might show no results
+        """
+        try:
+            temp_dir = tempfile.gettempdir()
+            session_dir = os.path.join(temp_dir, f"streamlined_{session_id}")
+            
+            # Check if session data exists
+            excel_files = [f for f in os.listdir(session_dir) if f.endswith('.xlsx')]
+            json_files = [f for f in os.listdir(session_dir) if f.endswith('.json')]
+            
+            debug_info = {
+                'compound': compound_name,
+                'session_files': {
+                    'excel': excel_files,
+                    'json': json_files
+                },
+                'compound_info': self.get_compound_info(compound_name),
+                'normalized_variations': self._normalize_compound_name(compound_name)[:5]  # First 5 variations
+            }
+            
+            # Check if compound exists in normalized mapping
+            debug_info['in_database'] = compound_name in self._compound_name_map
+            
+            # Look for similar compounds
+            debug_info['similar_compounds'] = [
+                key for key in self._compound_name_map.keys() 
+                if compound_name.replace(' ', '').lower() in key.replace(' ', '').lower()
+            ][:10]
+            
+            return debug_info
+            
+        except Exception as e:
+            return {'error': f'Debug error: {str(e)}'}
 
 # Global instance
 streamlined_calculator = StreamlinedCalculatorService()
