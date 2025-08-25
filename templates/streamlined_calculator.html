@@ -506,6 +506,9 @@
                         <button class="preview-tab" onclick="showPreviewTab('agilent')">
                             <i class="fas fa-atom me-1"></i>Agilent Results
                         </button>
+                        <button class="preview-tab" onclick="showPreviewTab('nistRatio')" id="nistRatioTab" style="display: none;">
+                            <i class="fas fa-chart-line me-1"></i>NIST Ratios
+                        </button>
                     </div>
 
                     <!-- Preview Content -->
@@ -515,6 +518,10 @@
                     
                     <div id="agilentPreview" class="preview-content" style="display: none;">
                         <!-- Agilent preview table will be inserted here -->
+                    </div>
+                    
+                    <div id="nistRatioPreview" class="preview-content" style="display: none;">
+                        <!-- NIST ratio preview table will be inserted here -->
                     </div>
 
                     <!-- Download Section -->
@@ -682,6 +689,14 @@ function showResults(result) {
     document.getElementById('nistPreview').innerHTML = createPreviewTable(result.nist_data, 'NIST', result.column_order);
     document.getElementById('agilentPreview').innerHTML = createPreviewTable(result.agilent_data, 'Agilent', result.column_order);
     
+    // Handle NIST Ratios if available
+    if (result.nist_ratio_data && result.nist_ratio_data.length > 0) {
+        document.getElementById('nistRatioTab').style.display = 'inline-block';
+        document.getElementById('nistRatioPreview').innerHTML = createPreviewTable(result.nist_ratio_data, 'NIST Ratio', result.nist_ratio_column_order);
+    } else {
+        document.getElementById('nistRatioTab').style.display = 'none';
+    }
+    
     // Enable download
     document.getElementById('downloadButton').disabled = false;
     
@@ -763,6 +778,7 @@ function showPreviewTab(tabName) {
     // Show/hide content
     document.getElementById('nistPreview').style.display = tabName === 'nist' ? 'block' : 'none';
     document.getElementById('agilentPreview').style.display = tabName === 'agilent' ? 'block' : 'none';
+    document.getElementById('nistRatioPreview').style.display = tabName === 'nistRatio' ? 'block' : 'none';
 }
 
 // Download results

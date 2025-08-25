@@ -322,6 +322,10 @@ class StreamlinedCalculatorService:
             sample_columns = [col for col in area_data.columns 
                             if col != compound_column and 'PH-HC' in str(col)]
             
+            # Also detect NIST columns for the new ratio calculation
+            nist_columns = [col for col in area_data.columns
+                           if col != compound_column and 'NIST' in str(col)]
+            
             # Sort sample columns numerically (not alphabetically)
             def extract_sample_number(col_name):
                 try:
@@ -334,9 +338,13 @@ class StreamlinedCalculatorService:
             
             sample_columns = sorted(sample_columns, key=extract_sample_number)
             
+            # Sort NIST columns for consistent ordering
+            nist_columns = sorted(nist_columns)
+            
             print(f"🧬 Found {len(substances)} substances")
-            print(f"🔬 Found {len(sample_columns)} samples")
+            print(f"🔬 Found {len(sample_columns)} PH-HC samples")
             print(f"📋 Sample columns (sorted): {sample_columns[:10]}...")  # Show first 10
+            print(f"🧪 Found {len(nist_columns)} NIST columns: {nist_columns[:5]}...")  # Show first 5
             
             # Determine sample numbering
             numbering_info = self.determine_sample_numbering(sample_columns)
@@ -344,6 +352,7 @@ class StreamlinedCalculatorService:
             # Initialize results
             nist_results = []
             agilent_results = []
+            nist_ratio_results = []  # New: for NIST ratio calculations
             detailed_calculations = {}  # Store detailed calculation breakdowns
             
             # Process each substance
@@ -360,6 +369,7 @@ class StreamlinedCalculatorService:
                 
                 substance_nist_row = {'Substance': substance}
                 substance_agilent_row = {'Substance': substance}
+                substance_nist_ratio_row = {'Substance': substance}  # New: for NIST ratios
                 
                 # Process each sample
                 for sample_col in sample_columns:
@@ -473,12 +483,79 @@ class StreamlinedCalculatorService:
                             }
                         }
                 
+                # Process NIST columns for ratio calculation
+                for nist_col in nist_columns:
+                    calculation_key = f"{substance}_{nist_col}_ratio"
+                    
+                    try:
+                        # Get substance area from NIST column
+                        substance_area_raw = area_data.loc[i, nist_col]
+                        substance_area = float(substance_area_raw) if pd.notna(substance_area_raw) else 0.0
+                        
+                        # Find ISTD area in NIST column
+                        istd_area = 0.0
+                        istd_found = False
+                        istd_row_index = -1
+                        
+                        for j, comp_name in enumerate(substances):
+                            if istd_name in str(comp_name):
+                                istd_area_raw = area_data.loc[j, nist_col]
+                                istd_area = float(istd_area_raw) if pd.notna(istd_area_raw) else 0.0
+                                istd_found = True
+                                istd_row_index = j
+                                break
+                        
+                        if istd_area == 0:
+                            istd_area = 1.0  # Avoid division by zero
+                        
+                        # Calculate NIST Ratio = Substance Area (NIST) / ISTD Area (NIST)
+                        nist_ratio_result = substance_area / istd_area
+                        
+                        # Store detailed calculation for NIST ratio
+                        detailed_calculations[calculation_key] = {
+                            'substance': substance,
+                            'nist_column': nist_col,
+                            'substance_index': i + 1,
+                            'source_data': {
+                                'substance_area_raw': substance_area_raw,
+                                'substance_area': substance_area,
+                                'istd_area_raw': area_data.loc[istd_row_index, nist_col] if istd_found else 'NOT FOUND',
+                                'istd_area': istd_area,
+                                'istd_found': istd_found,
+                                'istd_name': istd_name,
+                                'istd_row_index': istd_row_index + 1 if istd_found else -1
+                            },
+                            'calculation': {
+                                'formula': 'Substance Area (NIST) ÷ ISTD Area (NIST)',
+                                'calculation': f"{substance_area} ÷ {istd_area}",
+                                'result': nist_ratio_result
+                            },
+                            'final_result': nist_ratio_result
+                        }
+                        
+                        # Store result
+                        substance_nist_ratio_row[nist_col] = nist_ratio_result
+                        
+                    except Exception as e:
+                        print(f"⚠️ Error processing {substance} in {nist_col}: {e}")
+                        substance_nist_ratio_row[nist_col] = 0.0
+                        
+                        # Store error details
+                        detailed_calculations[calculation_key] = {
+                            'substance': substance,
+                            'nist_column': nist_col,
+                            'error': str(e),
+                            'final_result': 0.0
+                        }
+                
                 nist_results.append(substance_nist_row)
                 agilent_results.append(substance_agilent_row)
+                nist_ratio_results.append(substance_nist_ratio_row)
             
             # Convert to DataFrames
             nist_df = pd.DataFrame(nist_results)
             agilent_df = pd.DataFrame(agilent_results)
+            nist_ratio_df = pd.DataFrame(nist_ratio_results)
             
             # Ensure column order: Substance first, then samples in numerical order
             if len(nist_df.columns) > 1:
@@ -488,26 +565,35 @@ class StreamlinedCalculatorService:
                 nist_df = nist_df[existing_columns]
                 agilent_df = agilent_df[existing_columns]
             
+            # Ensure column order for NIST ratio results
+            if len(nist_ratio_df.columns) > 1:
+                nist_column_order = ['Substance'] + nist_columns
+                existing_nist_columns = [col for col in nist_column_order if col in nist_ratio_df.columns]
+                nist_ratio_df = nist_ratio_df[existing_nist_columns]
+            
             print(f"✅ Calculation completed")
             print(f"   NIST results: {nist_df.shape}")
             print(f"   Agilent results: {agilent_df.shape}")
+            print(f"   NIST Ratio results: {nist_ratio_df.shape}")
             print(f"   Column order: {list(nist_df.columns)[:10]}...")  # Show first 10 columns
             
             return {
                 'nist_data': nist_df,
                 'agilent_data': agilent_df,
+                'nist_ratio_data': nist_ratio_df,  # New: NIST ratio results
                 'detailed_calculations': detailed_calculations,
                 'numbering_info': numbering_info,
                 'substance_count': len(substances),
-                'sample_count': len(sample_columns)
+                'sample_count': len(sample_columns),
+                'nist_column_count': len(nist_columns)
             }
             
         except Exception as e:
             print(f"❌ Calculation error: {e}")
             raise e
 
-    def create_excel_output(self, nist_data, agilent_data, filename_base="metabolomics_results"):
-        """Create Excel file with 2 sheets: NIST Results and Agilent Results"""
+    def create_excel_output(self, nist_data, agilent_data, nist_ratio_data=None, filename_base="metabolomics_results"):
+        """Create Excel file with 2 or 3 sheets: NIST Results, Agilent Results, and optionally NIST Ratios"""
         output = BytesIO()
         
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -516,6 +602,10 @@ class StreamlinedCalculatorService:
             
             # Write Agilent Results sheet  
             agilent_data.to_excel(writer, sheet_name='Agilent Results', index=False)
+            
+            # Write NIST Ratios sheet if provided
+            if nist_ratio_data is not None and not nist_ratio_data.empty:
+                nist_ratio_data.to_excel(writer, sheet_name='NIST Ratios', index=False)
             
             # Format sheets
             workbook = writer.book
@@ -527,11 +617,16 @@ class StreamlinedCalculatorService:
             # Format Agilent sheet
             agilent_sheet = workbook['Agilent Results']
             agilent_sheet.sheet_properties.tabColor = "FF6600"
+            
+            # Format NIST Ratios sheet if it exists
+            if nist_ratio_data is not None and not nist_ratio_data.empty:
+                nist_ratio_sheet = workbook['NIST Ratios']
+                nist_ratio_sheet.sheet_properties.tabColor = "00CC66"
         
         output.seek(0)
         return output
 
-    def save_temp_results(self, nist_data, agilent_data, detailed_calculations=None):
+    def save_temp_results(self, nist_data, agilent_data, nist_ratio_data=None, detailed_calculations=None):
         """Save results to temporary file and return session info"""
         try:
             session_id = str(uuid.uuid4())
@@ -545,7 +640,7 @@ class StreamlinedCalculatorService:
             
             # Save Excel file
             excel_path = os.path.join(session_dir, filename)
-            excel_output = self.create_excel_output(nist_data, agilent_data, filename)
+            excel_output = self.create_excel_output(nist_data, agilent_data, nist_ratio_data, filename)
             
             with open(excel_path, 'wb') as f:
                 f.write(excel_output.getvalue())

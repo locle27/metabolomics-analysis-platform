@@ -5169,6 +5169,7 @@ def api_streamlined_calculate():
             temp_info = streamlined_calculator.save_temp_results(
                 results['nist_data'],
                 results['agilent_data'],
+                results.get('nist_ratio_data'),  # Include NIST ratio data
                 results['detailed_calculations']
             )
             
@@ -5178,6 +5179,14 @@ def api_streamlined_calculate():
             
             nist_preview = nist_df_preview.to_dict('records')
             agilent_preview = agilent_df_preview.to_dict('records')
+            
+            # Add NIST ratio preview if available
+            nist_ratio_preview = []
+            nist_ratio_column_order = []
+            if 'nist_ratio_data' in results and results['nist_ratio_data'] is not None:
+                nist_ratio_df_preview = results['nist_ratio_data'].head(50).fillna(0)
+                nist_ratio_preview = nist_ratio_df_preview.to_dict('records')
+                nist_ratio_column_order = list(results['nist_ratio_data'].columns)
             
             # Send column order explicitly to ensure proper sorting
             column_order = list(results['nist_data'].columns)
@@ -5194,9 +5203,12 @@ def api_streamlined_calculate():
                 "filename": temp_info['filename'],
                 "nist_data": nist_preview,
                 "agilent_data": agilent_preview,
+                "nist_ratio_data": nist_ratio_preview,  # New: NIST ratio data
                 "column_order": column_order,
+                "nist_ratio_column_order": nist_ratio_column_order,  # New: NIST ratio columns
                 "substance_count": results['substance_count'],
                 "sample_count": results['sample_count'],
+                "nist_column_count": results.get('nist_column_count', 0),  # New: NIST column count
                 "sample_range": results['numbering_info']['sample_range'],
                 "actual_range": results['numbering_info'].get('actual_range', '-'),
                 "nist_patterns": results['numbering_info']['nist_patterns']
