@@ -175,6 +175,105 @@ class StreamlinedCalculatorService:
             'actual_range': f"{min_sample}-{max_sample}"
         }
 
+    def find_matching_nist_column(self, ph_hc_sample, nist_columns):
+        """
+        Find the correct NIST column that matches a PH-HC sample.
+        Intelligently matches based on sample number ranges.
+        
+        Examples:
+        PH-HC_6 → NIST_1-100 (1) [if 6 is in range 1-100]
+        PH-HC_5701 → NIST_5701-5800 (1) [if 5701 is in range 5701-5800]
+        """
+        if not nist_columns:
+            return None
+            
+        # Extract sample number from PH-HC column
+        try:
+            if 'PH-HC_' not in str(ph_hc_sample):
+                return None
+                
+            sample_num_str = str(ph_hc_sample).replace('PH-HC_', '')
+            if not sample_num_str.isdigit():
+                return None
+                
+            sample_num = int(sample_num_str)
+            
+            # Find matching NIST column based on range
+            best_match = None
+            best_score = -1
+            
+            for nist_col in nist_columns:
+                nist_str = str(nist_col)
+                
+                # Try to extract range from NIST column name
+                # Examples: NIST_1-100 (1), NIST_5701-5800 (2), etc.
+                if 'NIST_' in nist_str:
+                    try:
+                        # Extract the range part (between NIST_ and space or parenthesis)
+                        range_part = nist_str.replace('NIST_', '').split(' ')[0].split('(')[0]
+                        
+                        if '-' in range_part:
+                            range_start, range_end = range_part.split('-')
+                            range_start = int(range_start)
+                            range_end = int(range_end)
+                            
+                            # Check if sample number falls within this range
+                            if range_start <= sample_num <= range_end:
+                                # Calculate score based on how well it fits
+                                range_size = range_end - range_start + 1
+                                score = 1000 - range_size  # Prefer smaller, more specific ranges
+                                
+                                if score > best_score:
+                                    best_score = score
+                                    best_match = nist_col
+                                    
+                    except (ValueError, IndexError) as e:
+                        continue
+            
+            if best_match:
+                print(f"🎯 Matched {ph_hc_sample} → {best_match} (sample {sample_num})")
+                return best_match
+            else:
+                # Fallback: use first NIST column if no range match
+                fallback = nist_columns[0]
+                print(f"⚠️ No range match for {ph_hc_sample} (sample {sample_num}), using fallback: {fallback}")
+                return fallback
+                
+        except Exception as e:
+            print(f"⚠️ Error matching NIST column for {ph_hc_sample}: {e}")
+            return nist_columns[0] if nist_columns else None
+
+    def analyze_nist_column_ranges(self, nist_columns):
+        """Analyze and display NIST column ranges for debugging"""
+        if not nist_columns:
+            print("📊 No NIST columns to analyze")
+            return
+            
+        print("📊 NIST Column Range Analysis:")
+        ranges_found = {}
+        
+        for nist_col in nist_columns:
+            nist_str = str(nist_col)
+            if 'NIST_' in nist_str:
+                try:
+                    # Extract range part
+                    range_part = nist_str.replace('NIST_', '').split(' ')[0].split('(')[0]
+                    if '-' in range_part:
+                        range_start, range_end = range_part.split('-')
+                        range_key = f"{range_start}-{range_end}"
+                        
+                        if range_key not in ranges_found:
+                            ranges_found[range_key] = []
+                        ranges_found[range_key].append(nist_col)
+                        
+                except (ValueError, IndexError):
+                    print(f"   ⚠️ Could not parse range from: {nist_col}")
+        
+        for range_key, columns in ranges_found.items():
+            print(f"   📈 Range {range_key}: {len(columns)} columns ({columns[:2]}...)")
+        
+        print(f"   💡 Total ranges detected: {len(ranges_found)}")
+
     def get_nist_ratio(self, substance, nist_pattern):
         """Get NIST ratio for substance from ratio database"""
         if self.ratio_database is None:
@@ -345,6 +444,7 @@ class StreamlinedCalculatorService:
             print(f"🔬 Found {len(sample_columns)} PH-HC samples")
             print(f"📋 Sample columns (sorted): {sample_columns[:10]}...")  # Show first 10
             print(f"🧪 Found {len(nist_columns)} NIST columns: {nist_columns[:5]}...")  # Show first 5
+            self.analyze_nist_column_ranges(nist_columns)
             
             # Determine sample numbering
             numbering_info = self.determine_sample_numbering(sample_columns)
@@ -398,32 +498,35 @@ class StreamlinedCalculatorService:
                         # STEP 1: Calculate Ratio
                         ratio = substance_area / istd_area
                         
-                        # Get NIST area information for detailed breakdown
+                        # Get NIST area information using intelligent column matching
                         nist_substance_area = 0.0
                         nist_istd_area = 0.0
                         calculated_nist_ratio = 0.0
                         nist_col_used = "No NIST columns found"
                         
-                        # Find first available NIST column for reference
+                        # Find the correct NIST column that matches this PH-HC sample
                         if nist_columns:
-                            nist_col_used = nist_columns[0]  # Use first NIST column for reference
-                            try:
-                                # Get substance area from NIST column
-                                nist_substance_area_raw = area_data.loc[i, nist_col_used]
-                                nist_substance_area = float(nist_substance_area_raw) if pd.notna(nist_substance_area_raw) else 0.0
-                                
-                                # Find ISTD area in NIST column
-                                for j, comp_name in enumerate(substances):
-                                    if istd_name in str(comp_name):
-                                        nist_istd_area_raw = area_data.loc[j, nist_col_used]
-                                        nist_istd_area = float(nist_istd_area_raw) if pd.notna(nist_istd_area_raw) else 0.0
-                                        break
-                                
-                                if nist_istd_area != 0:
-                                    calculated_nist_ratio = nist_substance_area / nist_istd_area
+                            nist_col_used = self.find_matching_nist_column(sample_col, nist_columns)
+                            if nist_col_used:
+                                try:
+                                    # Get substance area from matched NIST column
+                                    nist_substance_area_raw = area_data.loc[i, nist_col_used]
+                                    nist_substance_area = float(nist_substance_area_raw) if pd.notna(nist_substance_area_raw) else 0.0
                                     
-                            except Exception as e:
-                                print(f"⚠️ Error getting NIST areas for breakdown: {e}")
+                                    # Find ISTD area in matched NIST column
+                                    for j, comp_name in enumerate(substances):
+                                        if istd_name in str(comp_name):
+                                            nist_istd_area_raw = area_data.loc[j, nist_col_used]
+                                            nist_istd_area = float(nist_istd_area_raw) if pd.notna(nist_istd_area_raw) else 0.0
+                                            break
+                                    
+                                    if nist_istd_area != 0:
+                                        calculated_nist_ratio = nist_substance_area / nist_istd_area
+                                        
+                                except Exception as e:
+                                    print(f"⚠️ Error getting NIST areas from {nist_col_used}: {e}")
+                            else:
+                                print(f"⚠️ Could not find matching NIST column for {sample_col}")
                         
                         # STEP 2: Calculate NIST using ONLY actual NIST area values from input file
                         if calculated_nist_ratio != 0:
@@ -470,7 +573,8 @@ class StreamlinedCalculatorService:
                                 'istd_found': istd_found,
                                 'istd_row_index': istd_row_index + 1 if istd_found else -1,
                                 'nist_columns_available': len(nist_columns) > 0,
-                                'total_nist_columns': len(nist_columns)
+                                'total_nist_columns': len(nist_columns),
+                                'nist_matching_logic': f'Matched {sample_col} → {nist_col_used}' if nist_col_used != "No NIST columns found" else 'No matching possible'
                             },
                             
                             # Database References (compound info only, no NIST fallback data)
@@ -494,7 +598,7 @@ class StreamlinedCalculatorService:
                                     'formula': 'NIST Sample: Substance Area ÷ ISTD Area (from input file only)',
                                     'calculation': f"{nist_substance_area} ÷ {nist_istd_area}" if calculated_nist_ratio != 0 else "NIST data not available in input file",
                                     'result': final_nist_ratio,
-                                    'description': f'Ratio calculated from {nist_col_used} in input file' if calculated_nist_ratio != 0 else 'No NIST data in input file'
+                                    'description': f'Ratio calculated from {nist_col_used} (auto-matched for {sample_col})' if calculated_nist_ratio != 0 else 'No NIST data in input file'
                                 },
                                 'step_3_nist_result': {
                                     'formula': 'PH-HC Ratio ÷ NIST Ratio (input file data only)',
