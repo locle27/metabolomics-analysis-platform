@@ -861,3 +861,68 @@ class CompoundIndex(db.Model):
         """Get all compound data as dictionary keyed by compound name"""
         compounds = CompoundIndex.query.all()
         return {compound.compound: compound.to_dict() for compound in compounds}
+
+class CalculatorStatistics(db.Model):
+    """Track individual file processing activities for the streamlined calculator"""
+    __tablename__ = 'calculator_statistics'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    filename = db.Column(db.String(255), nullable=False)  # Store filename of processed file
+    substance_count = db.Column(db.Integer, nullable=False)  # Number of substances in this file
+    processed_at = db.Column(db.DateTime, default=db.func.current_timestamp())  # When this file was processed
+    vietnam_time = db.Column(db.String(20))  # Vietnam formatted time hh:mm:ss
+    
+    # Relationships
+    user = db.relationship('User', backref='calculator_statistics', lazy='select')
+    
+    def __repr__(self):
+        return f'<CalculatorStatistics User:{self.user_id} File:{self.filename} Substances:{self.substance_count}>'
+    
+    def to_dict(self):
+        # Convert UTC to Vietnam time (UTC+7)
+        vietnam_time = ""
+        if self.processed_at:
+            # Add 7 hours for Vietnam timezone
+            vietnam_datetime = self.processed_at + timedelta(hours=7)
+            vietnam_time = vietnam_datetime.strftime('%H:%M:%S')
+        
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'username': self.user.username if self.user else 'Unknown',
+            'email': self.user.email if self.user else 'Unknown',
+            'filename': self.filename,
+            'substance_count': self.substance_count,
+            'processed_at': self.processed_at.isoformat() if self.processed_at else None,
+            'vietnam_time': vietnam_time,
+            'date': self.processed_at.strftime('%Y-%m-%d') if self.processed_at else None
+        }
+    
+    @staticmethod
+    def add_file_processing(user_id, filename, substance_count):
+        """Add a new file processing record - each file is recorded separately"""
+        from datetime import datetime, timedelta
+        
+        # Create Vietnam time string
+        vietnam_datetime = datetime.utcnow() + timedelta(hours=7)
+        vietnam_time_str = vietnam_datetime.strftime('%H:%M:%S')
+        
+        # Create new record for this file processing
+        stat = CalculatorStatistics(
+            user_id=user_id,
+            filename=filename,
+            substance_count=substance_count,
+            vietnam_time=vietnam_time_str
+        )
+        db.session.add(stat)
+        db.session.commit()
+        return stat
+    
+    @staticmethod
+    def get_all_statistics():
+        """Get all file processing records sorted by most recent first"""
+        stats = CalculatorStatistics.query.options(
+            joinedload(CalculatorStatistics.user)
+        ).order_by(CalculatorStatistics.processed_at.desc()).all()
+        return [stat.to_dict() for stat in stats]

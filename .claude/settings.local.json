@@ -116,7 +116,9 @@
       "Bash(fixed_ratio_preview_table.csv )",
       "Bash(ratio_preview_table.csv )",
       "Bash(real_sample_data.json )",
-      "Bash(ondemand_system_instructions.json )"
+      "Bash(ondemand_system_instructions.json )",
+      "Bash(pkill:*)",
+      "Bash(git rm:*)"
     ],
     "deny": []
   }

@@ -2,6 +2,12 @@
 
 {% block title %}Streamlined Metabolomics Calculator - Professional System{% endblock %}
 
+{% block extra_head %}
+{% if csrf_token %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+{% endif %}
+{% endblock %}
+
 {% block extra_css %}
 <style>
     /* Professional calculator styling */
@@ -394,6 +400,17 @@
                     <p class="lead text-muted">
                         Professional 3-Step Calculation System: Ratio → NIST → Agilent
                     </p>
+                    {% if session.user_email %}
+                    <div class="alert alert-success d-inline-block mt-3">
+                        <i class="fas fa-user-check me-2"></i>
+                        Logged in as: <strong>{{ session.user_email }}</strong> ({{ session.user_role }})
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning d-inline-block mt-3">
+                        <i class="fas fa-user-times me-2"></i>
+                        Not logged in - <a href="/login" class="alert-link">Log in</a> to track your statistics
+                    </div>
+                    {% endif %}
                 </div>
 
                 <!-- Formula Explanation -->
@@ -545,6 +562,60 @@
     </div>
 </div>
 
+<!-- User Statistics Section -->
+<div class="container-fluid px-0" style="width: 100vw; margin: 0; padding: 0;">
+    <div class="row g-0">
+        <div class="col-12">
+            <div class="calculator-container" style="margin-top: 0;">
+                <div class="text-center mb-4">
+                    <h2 class="text-metabolomics-blue">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Calculator Usage Statistics
+                    </h2>
+                    <p class="text-muted">
+                        Track substance analysis by users
+                    </p>
+                    
+                </div>
+                
+                <div id="statisticsSection" style="display: none;">
+                    <div id="loginPrompt" class="alert alert-info mb-4" style="display: none;">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> Statistics are only tracked for logged-in users. 
+                        <a href="/login" class="alert-link">Log in</a> to have your usage tracked and displayed here.
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th><i class="fas fa-user me-1"></i> User</th>
+                                    <th><i class="fas fa-envelope me-1"></i> Email</th>
+                                    <th><i class="fas fa-file me-1"></i> Filename</th>
+                                    <th><i class="fas fa-molecule me-1"></i> Substances</th>
+                                    <th><i class="fas fa-clock me-1"></i> Time (Vietnam)</th>
+                                    <th><i class="fas fa-calendar me-1"></i> Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="statisticsTableBody">
+                                <!-- Statistics will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                </div>
+                
+                <div id="statisticsLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading statistics...</span>
+                    </div>
+                    <p class="text-muted mt-2">Loading statistics...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Detailed Calculation Modal -->
 <div id="calculationModal" class="calculation-modal">
     <div class="calculation-modal-content">
@@ -613,8 +684,13 @@ uploadZone.addEventListener('drop', function(e) {
 
 // Process calculation
 async function processCalculation() {
+    console.log('Starting calculation process...');
+    
     const fileInput = document.getElementById('areaFile');
     const coefficient = document.getElementById('coefficient').value;
+    
+    console.log('File selected:', fileInput.files[0]?.name);
+    console.log('Coefficient:', coefficient);
     
     if (!fileInput.files[0]) {
         alert('Please select an Excel file first.');
@@ -628,7 +704,7 @@ async function processCalculation() {
     const formData = new FormData();
     formData.append('area_file', fileInput.files[0]);
     formData.append('coefficient', coefficient);
-    formData.append('csrf_token', '{{ csrf_token() }}');
+    
     
     try {
         // Update progress
@@ -645,7 +721,16 @@ async function processCalculation() {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
-        const result = await response.json();
+        const responseText = await response.text();
+        let result;
+        
+        try {
+            result = JSON.parse(responseText);
+        } catch (parseError) {
+            console.error('Failed to parse response:', responseText);
+            throw new Error('Invalid response from server');
+        }
+        
         updateProgress(80, 'Generating preview...');
         
         if (result.success) {
@@ -661,8 +746,12 @@ async function processCalculation() {
         }
         
     } catch (error) {
-        console.error('Calculation error:', error);
-        alert(`Calculation error: ${error.message}`);
+        console.error('Calculation error details:', {
+            message: error.message,
+            stack: error.stack,
+            error: error
+        });
+        alert(`Calculation error: ${error.message}\n\nPlease check the browser console for details.`);
         document.getElementById('progressSection').style.display = 'none';
     }
     
@@ -1324,5 +1413,81 @@ window.onclick = function(event) {
 }
 
 console.log('🚀 Streamlined Metabolomics Calculator initialized');
+
+// Load and display statistics on page load
+async function loadStatistics() {
+    try {
+        const response = await fetch('/api/calculator-statistics');
+        const data = await response.json();
+        
+        if (data.success) {
+            displayStatistics(data.statistics, data.summary);
+        } else {
+            document.getElementById('statisticsLoading').innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Unable to load statistics at this time.
+                </div>
+            `;
+        }
+    } catch (error) {
+        document.getElementById('statisticsLoading').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-times-circle me-2"></i>
+                Error loading statistics. Please try again later.
+            </div>
+        `;
+    }
+}
+
+// Display statistics in the table
+function displayStatistics(statistics, summary) {
+    const tableBody = document.getElementById('statisticsTableBody');
+    const loginPrompt = document.getElementById('loginPrompt');
+    
+    // Clear loading and show statistics section
+    document.getElementById('statisticsLoading').style.display = 'none';
+    document.getElementById('statisticsSection').style.display = 'block';
+    
+    // Show login prompt if no statistics
+    if (!statistics || statistics.length === 0) {
+        loginPrompt.style.display = 'block';
+    } else {
+        loginPrompt.style.display = 'none';
+    }
+    
+    // Populate table with individual file processing records
+    tableBody.innerHTML = '';
+    statistics.forEach(stat => {
+        const row = `
+            <tr>
+                <td><strong>${stat.username || 'Unknown'}</strong></td>
+                <td><small>${stat.email || 'N/A'}</small></td>
+                <td><i class="fas fa-file-excel me-1"></i><code>${stat.filename || 'Unknown'}</code></td>
+                <td><span class="badge bg-success">${stat.substance_count || 0}</span></td>
+                <td><strong class="text-primary">${stat.vietnam_time || 'N/A'}</strong></td>
+                <td><small class="text-muted">${stat.date || 'N/A'}</small></td>
+            </tr>
+        `;
+        tableBody.innerHTML += row;
+    });
+    
+    // Summary section removed as requested
+}
+
+// Load statistics when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadStatistics();
+});
+
+// Reload statistics after successful calculation
+const originalShowResults = showResults;
+showResults = function(result) {
+    originalShowResults(result);
+    // Reload statistics after 1 second delay
+    setTimeout(() => {
+        loadStatistics();
+    }, 1000);
+};
 </script>
 {% endblock %}

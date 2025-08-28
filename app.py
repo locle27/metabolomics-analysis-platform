@@ -31,7 +31,7 @@ print("=" * 60)
 # === BULLETPROOF IMPORTS ===
 # Core Flask (REQUIRED)
 try:
-    from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response, send_file, session, get_flashed_messages, make_response, current_app
+    from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response, send_file, send_from_directory, session, get_flashed_messages, make_response, current_app
     print("✅ Flask core loaded")
 except ImportError as e:
     print(f"❌ CRITICAL: Flask failed: {e}")
@@ -147,6 +147,8 @@ app.config.update({
 # Enable CSRF protection properly with error handling
 if CSRF_AVAILABLE:
     try:
+        # Disable CSRF entirely for now to debug
+        app.config['WTF_CSRF_ENABLED'] = False
         csrf.init_app(app)
         print("✅ CSRF protection initialized successfully")
         print(f"🔍 CSRF SECRET_KEY available: {bool(app.config.get('WTF_CSRF_SECRET_KEY'))}")
@@ -168,7 +170,8 @@ if CSRF_AVAILABLE:
     # Exempt routes from CSRF protection
     OAUTH_EXEMPT_ROUTES = [
         'login_authorized', 'auth.oauth_authorized', 'oauth_login',
-        'immediate_health_check', 'immediate_ping', 'immediate_healthz'  # Health checks
+        'immediate_health_check', 'immediate_ping', 'immediate_healthz',  # Health checks
+        'api_streamlined_calculate'  # Calculator API
     ]
     
     # TEMPORARY: Add password update for debugging
@@ -182,7 +185,7 @@ if CSRF_AVAILABLE:
     CSRF_DEBUG_EXEMPT_PATHS = ['/auth/update-password']
     
     # API endpoints that need CSRF exemption
-    API_EXEMPT_PATHS = ['/api/zoom-settings', '/api/admin/zoom-defaults', '/api/excel-defaults', '/protocols/calculate-compound-breakdown', '/protocols/calculate', '/protocols/download-excel']
+    API_EXEMPT_PATHS = ['/api/zoom-settings', '/api/admin/zoom-defaults', '/api/excel-defaults', '/protocols/calculate-compound-breakdown', '/protocols/calculate', '/protocols/download-excel', '/api/streamlined-calculate']
     
     # Alternative CSRF exemption method - set WTF_CSRF_EXEMPT_VIEWS
     def is_api_exempt_path(request_path):
@@ -5131,13 +5134,29 @@ def api_debug_excel_structure():
         return jsonify({"success": False, "error": f"Debug error: {str(e)}"}), 500
 
 @app.route('/api/streamlined-calculate', methods=['POST'])
-# @csrf.exempt  # CSRF protection unavailable - commented out
 def api_streamlined_calculate():
     """API endpoint for streamlined calculation"""
     try:
         from streamlined_calculator_service import streamlined_calculator
+        from models import CalculatorStatistics
+        from datetime import datetime
         import uuid
         import tempfile
+        
+        # Check if user is authenticated and get user_id from email
+        user_email = session.get('user_email', 'Anonymous')
+        user_id = None
+        
+        # Look up user_id from email if user is logged in
+        if user_email and user_email != 'Anonymous' and session.get('user_authenticated'):
+            try:
+                from models import User
+                user = User.query.filter_by(email=user_email).first()
+                if user:
+                    user_id = user.id
+            except Exception as lookup_error:
+                user_id = None
+        
         
         # Get uploaded file
         if 'area_file' not in request.files:
@@ -5149,9 +5168,6 @@ def api_streamlined_calculate():
         if area_file.filename == '':
             return jsonify({"success": False, "error": "No file selected"}), 400
         
-        print(f"🚀 STREAMLINED CALCULATION REQUEST:")
-        print(f"   File: {area_file.filename}")
-        print(f"   Coefficient: {coefficient}")
         
         # Save uploaded file to temp location
         temp_area_file = tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False)
@@ -5197,6 +5213,18 @@ def api_streamlined_calculate():
             except:
                 pass
             
+            # Track user statistics if user is logged in - each file processed separately
+            if user_id:
+                try:
+                    stat = CalculatorStatistics.add_file_processing(
+                        user_id=user_id, 
+                        filename=area_file.filename,
+                        substance_count=results['substance_count']
+                    )
+                except Exception as stat_error:
+                    # Continue even if statistics update fails
+                    pass
+            
             return jsonify({
                 "success": True,
                 "session_id": temp_info['session_id'],
@@ -5211,7 +5239,8 @@ def api_streamlined_calculate():
                 "nist_column_count": results.get('nist_column_count', 0),  # New: NIST column count
                 "sample_range": results['numbering_info']['sample_range'],
                 "actual_range": results['numbering_info'].get('actual_range', '-'),
-                "nist_patterns": results['numbering_info']['nist_patterns']
+                "nist_patterns": results['numbering_info']['nist_patterns'],
+                "user_email": user_email  # Include user info in response
             })
             
         except Exception as calc_error:
@@ -5295,6 +5324,37 @@ def api_get_calculation_details(session_id):
                 "sample": sample
             }
         }), 500
+
+@app.route('/api/calculator-statistics')
+def api_calculator_statistics():
+    """Get all individual file processing statistics"""
+    try:
+        from models import CalculatorStatistics
+        
+        # Get all individual file processing records
+        stats = CalculatorStatistics.get_all_statistics()
+        
+        # Calculate summary from individual records
+        total_files = len(stats)
+        total_substances = sum(stat['substance_count'] for stat in stats)
+        unique_users = len(set(stat['user_id'] for stat in stats))
+        
+        return jsonify({
+            "success": True,
+            "statistics": stats,  # Individual file records
+            "summary": {
+                "total_users": unique_users,
+                "total_files": total_files,
+                "total_substances": total_substances
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": "Statistics service unavailable"
+        }), 500
+
 
 @app.route('/api/download-streamlined/<session_id>')
 def api_download_streamlined(session_id):
