@@ -185,7 +185,7 @@ if CSRF_AVAILABLE:
     CSRF_DEBUG_EXEMPT_PATHS = ['/auth/update-password']
     
     # API endpoints that need CSRF exemption
-    API_EXEMPT_PATHS = ['/api/zoom-settings', '/api/admin/zoom-defaults', '/api/excel-defaults', '/protocols/calculate-compound-breakdown', '/protocols/calculate', '/protocols/download-excel', '/api/streamlined-calculate']
+    API_EXEMPT_PATHS = ['/api/zoom-settings', '/api/admin/zoom-defaults', '/api/excel-defaults', '/api/excel-history', '/protocols/calculate-compound-breakdown', '/protocols/calculate', '/protocols/download-excel', '/api/streamlined-calculate']
     
     # Alternative CSRF exemption method - set WTF_CSRF_EXEMPT_VIEWS
     def is_api_exempt_path(request_path):
@@ -2751,6 +2751,90 @@ def excel_generator():
     except Exception as e:
         print(f"⚠️ Excel generator error: {e}")
         return f"<h1>Excel Generator Loading...</h1><p>Error: {e}</p>"
+
+@app.route('/api/excel-defaults', methods=['GET', 'POST'])
+def api_excel_defaults():
+    """Handle Excel generator default settings and history"""
+    try:
+        if request.method == 'GET':
+            # Return default settings (empty for now)
+            return jsonify({
+                "status": "success",
+                "defaults": {}
+            })
+        elif request.method == 'POST':
+            # Save settings (for future use)
+            return jsonify({
+                "status": "success",
+                "message": "Settings saved"
+            })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "error": "Service unavailable"
+        }), 500
+
+@app.route('/api/excel-history', methods=['GET', 'POST'])
+def api_excel_history():
+    """Handle Excel generator input history - stored online in database"""
+    try:
+        # Get user authentication
+        user_email = session.get('user_email')
+        user_id = None
+        
+        # Look up user_id from email if user is logged in
+        if user_email and user_email != 'Anonymous' and session.get('user_authenticated'):
+            try:
+                from models import User
+                user = User.query.filter_by(email=user_email).first()
+                if user:
+                    user_id = user.id
+            except Exception:
+                pass
+        
+        if request.method == 'GET':
+            if not user_id:
+                # Return empty history for anonymous users
+                return jsonify({
+                    "success": True,
+                    "history": []
+                })
+            
+            # Get history from database
+            from models import ExcelGeneratorHistory
+            history = ExcelGeneratorHistory.get_user_history(user_id)
+            return jsonify({
+                "success": True,
+                "history": history
+            })
+            
+        elif request.method == 'POST':
+            if not user_id:
+                return jsonify({"success": False, "error": "Please log in to save configuration history"}), 401
+            
+            # Save new history entry to database
+            data = request.get_json()
+            if not data or 'inputs' not in data:
+                return jsonify({"success": False, "error": "Invalid data"}), 400
+            
+            from models import ExcelGeneratorHistory
+            title = data.get('title', 'Configuration')
+            inputs = data['inputs']
+            
+            # Save to database
+            entry = ExcelGeneratorHistory.add_configuration(user_id, title, inputs)
+            
+            return jsonify({
+                "success": True,
+                "message": "Configuration saved to online database",
+                "entry": entry.to_dict()
+            })
+            
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": "History service unavailable"
+        }), 500
 
 # =====================================================
 # LIPIDOMICS SECTION ROUTES

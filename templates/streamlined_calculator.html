@@ -413,6 +413,40 @@
                     {% endif %}
                 </div>
 
+                <!-- Usage Statistics Section - Always Visible at Top -->
+                <div class="calculator-container" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #17a2b8; margin-bottom: 30px;">
+                    <h5 style="color: #17a2b8; font-weight: 700; margin-bottom: 20px;">
+                        <i class="fas fa-chart-bar me-2"></i>Recent File Processing Activity
+                        <small class="text-muted" style="font-size: 14px; font-weight: normal;">(Stored online)</small>
+                        <span id="login-prompt-stats" class="badge bg-warning ms-2" style="display: none;">
+                            <i class="fas fa-sign-in-alt me-1"></i>Login to track activity
+                        </span>
+                    </h5>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm" style="border-radius: 8px; overflow: hidden; background: white;">
+                            <thead style="background: linear-gradient(135deg, #17a2b8, #138496); color: white;">
+                                <tr>
+                                    <th style="width: 20%;"><i class="fas fa-user me-1"></i> User</th>
+                                    <th style="width: 15%;"><i class="fas fa-envelope me-1"></i> Email</th>
+                                    <th style="width: 25%;"><i class="fas fa-file me-1"></i> Filename</th>
+                                    <th style="width: 15%;"><i class="fas fa-molecule me-1"></i> Substances</th>
+                                    <th style="width: 15%;"><i class="fas fa-clock me-1"></i> Time (Vietnam)</th>
+                                    <th style="width: 10%;"><i class="fas fa-calendar me-1"></i> Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="statisticsTableBody">
+                                <!-- Statistics will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div id="statisticsEmpty" class="text-center py-3" style="background: white; border-radius: 8px; margin-top: 10px; display: none;">
+                        <i class="fas fa-chart-bar text-muted" style="font-size: 32px; opacity: 0.3;"></i>
+                        <p class="text-muted mt-2 mb-0" style="font-size: 14px;">No file processing activity yet. Upload your first file to start tracking!</p>
+                    </div>
+                </div>
+
                 <!-- Formula Explanation -->
                 <div class="formula-card">
                     <h3 class="text-primary mb-4">
@@ -562,59 +596,6 @@
     </div>
 </div>
 
-<!-- User Statistics Section -->
-<div class="container-fluid px-0" style="width: 100vw; margin: 0; padding: 0;">
-    <div class="row g-0">
-        <div class="col-12">
-            <div class="calculator-container" style="margin-top: 0;">
-                <div class="text-center mb-4">
-                    <h2 class="text-metabolomics-blue">
-                        <i class="fas fa-chart-bar me-2"></i>
-                        Calculator Usage Statistics
-                    </h2>
-                    <p class="text-muted">
-                        Track substance analysis by users
-                    </p>
-                    
-                </div>
-                
-                <div id="statisticsSection" style="display: none;">
-                    <div id="loginPrompt" class="alert alert-info mb-4" style="display: none;">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <strong>Note:</strong> Statistics are only tracked for logged-in users. 
-                        <a href="/login" class="alert-link">Log in</a> to have your usage tracked and displayed here.
-                    </div>
-                    
-                    <div class="table-responsive">
-                        <table class="table table-hover table-striped">
-                            <thead class="table-primary">
-                                <tr>
-                                    <th><i class="fas fa-user me-1"></i> User</th>
-                                    <th><i class="fas fa-envelope me-1"></i> Email</th>
-                                    <th><i class="fas fa-file me-1"></i> Filename</th>
-                                    <th><i class="fas fa-molecule me-1"></i> Substances</th>
-                                    <th><i class="fas fa-clock me-1"></i> Time (Vietnam)</th>
-                                    <th><i class="fas fa-calendar me-1"></i> Date</th>
-                                </tr>
-                            </thead>
-                            <tbody id="statisticsTableBody">
-                                <!-- Statistics will be populated here -->
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                </div>
-                
-                <div id="statisticsLoading" class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading statistics...</span>
-                    </div>
-                    <p class="text-muted mt-2">Loading statistics...</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Detailed Calculation Modal -->
 <div id="calculationModal" class="calculation-modal">
@@ -1423,62 +1404,93 @@ async function loadStatistics() {
         if (data.success) {
             displayStatistics(data.statistics, data.summary);
         } else {
-            document.getElementById('statisticsLoading').innerHTML = `
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    Unable to load statistics at this time.
-                </div>
-            `;
+            // Show error in empty message area
+            const emptyMessage = document.getElementById('statisticsEmpty');
+            if (emptyMessage) {
+                emptyMessage.style.display = 'block';
+                emptyMessage.innerHTML = `
+                    <i class="fas fa-exclamation-triangle text-warning" style="font-size: 32px;"></i>
+                    <p class="text-muted mt-2 mb-0">Unable to load statistics at this time.</p>
+                `;
+            }
         }
     } catch (error) {
-        document.getElementById('statisticsLoading').innerHTML = `
-            <div class="alert alert-danger">
-                <i class="fas fa-times-circle me-2"></i>
-                Error loading statistics. Please try again later.
-            </div>
-        `;
+        console.error('Failed to load statistics:', error);
+        // Show error in table if connection fails
+        const tableBody = document.getElementById('statisticsTableBody');
+        if (tableBody) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-4">
+                        <i class="fas fa-wifi text-muted me-2"></i>
+                        <span class="text-muted">Connection error. Statistics will auto-refresh in 30 seconds.</span>
+                    </td>
+                </tr>
+            `;
+        }
     }
 }
 
-// Display statistics in the table
+// Display statistics in the table - always visible at top
 function displayStatistics(statistics, summary) {
     const tableBody = document.getElementById('statisticsTableBody');
-    const loginPrompt = document.getElementById('loginPrompt');
+    const emptyMessage = document.getElementById('statisticsEmpty');
+    const loginPrompt = document.getElementById('login-prompt-stats');
     
-    // Clear loading and show statistics section
-    document.getElementById('statisticsLoading').style.display = 'none';
-    document.getElementById('statisticsSection').style.display = 'block';
+    // Check if user is authenticated (anonymous users get empty array)
+    const isLoggedIn = Array.isArray(statistics);
     
-    // Show login prompt if no statistics
-    if (!statistics || statistics.length === 0) {
-        loginPrompt.style.display = 'block';
-    } else {
-        loginPrompt.style.display = 'none';
+    if (!isLoggedIn) {
+        // Show login prompt for anonymous users
+        loginPrompt.style.display = 'inline-block';
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <i class="fas fa-sign-in-alt text-muted me-2"></i>
+                    <span class="text-muted">Please <a href="/login" class="text-primary">login</a> to view your file processing history.</span>
+                </td>
+            </tr>
+        `;
+        emptyMessage.style.display = 'none';
+        return;
     }
+    
+    loginPrompt.style.display = 'none';
+    
+    if (!statistics || statistics.length === 0) {
+        tableBody.innerHTML = '';
+        emptyMessage.style.display = 'block';
+        return;
+    }
+    
+    emptyMessage.style.display = 'none';
     
     // Populate table with individual file processing records
     tableBody.innerHTML = '';
     statistics.forEach(stat => {
         const row = `
-            <tr>
-                <td><strong>${stat.username || 'Unknown'}</strong></td>
-                <td><small>${stat.email || 'N/A'}</small></td>
-                <td><i class="fas fa-file-excel me-1"></i><code>${stat.filename || 'Unknown'}</code></td>
-                <td><span class="badge bg-success">${stat.substance_count || 0}</span></td>
-                <td><strong class="text-primary">${stat.vietnam_time || 'N/A'}</strong></td>
+            <tr style="cursor: default;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
+                <td><strong class="text-primary">${stat.username || 'Unknown'}</strong></td>
+                <td><small class="text-muted">${stat.email || 'N/A'}</small></td>
+                <td><i class="fas fa-file-excel me-1 text-success"></i><code style="font-size: 11px; color: #495057; background: #f8f9fa; padding: 2px 6px; border-radius: 4px;">${stat.filename || 'Unknown'}</code></td>
+                <td><span class="badge" style="background: #17a2b8; color: white;">${stat.substance_count || 0}</span></td>
+                <td><strong style="color: #17a2b8;">${stat.vietnam_time || 'N/A'}</strong></td>
                 <td><small class="text-muted">${stat.date || 'N/A'}</small></td>
             </tr>
         `;
         tableBody.innerHTML += row;
     });
-    
-    // Summary section removed as requested
 }
 
-// Load statistics when page loads
+// Load statistics immediately - table is always visible
 document.addEventListener('DOMContentLoaded', function() {
     loadStatistics();
 });
+
+// Auto-refresh statistics every 30 seconds to show real-time activity
+setInterval(function() {
+    loadStatistics();
+}, 30000);
 
 // Reload statistics after successful calculation
 const originalShowResults = showResults;

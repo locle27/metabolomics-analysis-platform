@@ -926,3 +926,66 @@ class CalculatorStatistics(db.Model):
             joinedload(CalculatorStatistics.user)
         ).order_by(CalculatorStatistics.processed_at.desc()).all()
         return [stat.to_dict() for stat in stats]
+
+class ExcelGeneratorHistory(db.Model):
+    """Track Excel generator configuration history - stored online in database"""
+    __tablename__ = 'excel_generator_history'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    title = db.Column(db.String(255), nullable=False)
+    inputs = db.Column(db.JSON, nullable=False)  # Store all form inputs as JSON
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    vietnam_time = db.Column(db.String(20))  # Vietnam formatted time hh:mm:ss
+    
+    # Relationships
+    user = db.relationship('User', backref='excel_history', lazy='select')
+    
+    def __repr__(self):
+        return f'<ExcelGeneratorHistory User:{self.user_id} Title:{self.title}>'
+    
+    def to_dict(self):
+        # Convert UTC to Vietnam time (UTC+7)
+        vietnam_time = ""
+        if self.created_at:
+            vietnam_datetime = self.created_at + timedelta(hours=7)
+            vietnam_time = vietnam_datetime.strftime('%H:%M:%S')
+        
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'username': self.user.username if self.user else 'Unknown',
+            'title': self.title,
+            'inputs': self.inputs,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'vietnam_time': vietnam_time,
+            'date': self.created_at.strftime('%Y-%m-%d') if self.created_at else None
+        }
+    
+    @staticmethod
+    def add_configuration(user_id, title, inputs):
+        """Add a new configuration to history - stored online in database"""
+        from datetime import datetime, timedelta
+        
+        # Create Vietnam time string
+        vietnam_datetime = datetime.utcnow() + timedelta(hours=7)
+        vietnam_time_str = vietnam_datetime.strftime('%H:%M:%S')
+        
+        # Create new record
+        history_entry = ExcelGeneratorHistory(
+            user_id=user_id,
+            title=title,
+            inputs=inputs,
+            vietnam_time=vietnam_time_str
+        )
+        db.session.add(history_entry)
+        db.session.commit()
+        return history_entry
+    
+    @staticmethod
+    def get_user_history(user_id, limit=20):
+        """Get user's configuration history from database - most recent first"""
+        history = ExcelGeneratorHistory.query.filter_by(user_id=user_id)\
+            .order_by(ExcelGeneratorHistory.created_at.desc())\
+            .limit(limit).all()
+        return [entry.to_dict() for entry in history]

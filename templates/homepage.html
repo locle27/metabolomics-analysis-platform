@@ -658,8 +658,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         heroVideo.addEventListener('loadeddata', function() {
             console.log('✅ Video data loaded successfully');
-            this.playbackRate = 0.05; // 5% speed - almost static
-            console.log('🐌 Video speed set to 5%');
+            this.playbackRate = 0.25; // 25% speed - slower but supported
+            console.log('🐌 Video speed set to 25%');
         });
         
         heroVideo.addEventListener('canplay', () => {
@@ -680,7 +680,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Set speed immediately if already loaded
         if (heroVideo.readyState >= 2) {
-            heroVideo.playbackRate = 0.05;
+            heroVideo.playbackRate = 0.25;
             console.log('⚡ Video speed set immediately');
         }
         
