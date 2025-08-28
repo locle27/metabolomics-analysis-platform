@@ -185,7 +185,7 @@ if CSRF_AVAILABLE:
     CSRF_DEBUG_EXEMPT_PATHS = ['/auth/update-password']
     
     # API endpoints that need CSRF exemption
-    API_EXEMPT_PATHS = ['/api/zoom-settings', '/api/admin/zoom-defaults', '/api/excel-defaults', '/api/excel-history', '/protocols/calculate-compound-breakdown', '/protocols/calculate', '/protocols/download-excel', '/api/streamlined-calculate']
+    API_EXEMPT_PATHS = ['/api/zoom-settings', '/api/admin/zoom-defaults', '/api/excel-history', '/protocols/calculate-compound-breakdown', '/protocols/calculate', '/protocols/download-excel', '/api/streamlined-calculate']
     
     # Alternative CSRF exemption method - set WTF_CSRF_EXEMPT_VIEWS
     def is_api_exempt_path(request_path):
@@ -2752,27 +2752,7 @@ def excel_generator():
         print(f"⚠️ Excel generator error: {e}")
         return f"<h1>Excel Generator Loading...</h1><p>Error: {e}</p>"
 
-@app.route('/api/excel-defaults', methods=['GET', 'POST'])
-def api_excel_defaults():
-    """Handle Excel generator default settings and history"""
-    try:
-        if request.method == 'GET':
-            # Return default settings (empty for now)
-            return jsonify({
-                "status": "success",
-                "defaults": {}
-            })
-        elif request.method == 'POST':
-            # Save settings (for future use)
-            return jsonify({
-                "status": "success",
-                "message": "Settings saved"
-            })
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "error": "Service unavailable"
-        }), 500
+# Excel defaults API removed - configuration history handles all saving/loading needs
 
 @app.route('/api/excel-history', methods=['GET', 'POST'])
 def api_excel_history():
