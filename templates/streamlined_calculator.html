@@ -1437,25 +1437,10 @@ function displayStatistics(statistics, summary) {
     const emptyMessage = document.getElementById('statisticsEmpty');
     const loginPrompt = document.getElementById('login-prompt-stats');
     
-    // Check if user is authenticated (anonymous users get empty array)
-    const isLoggedIn = Array.isArray(statistics);
-    
-    if (!isLoggedIn) {
-        // Show login prompt for anonymous users
-        loginPrompt.style.display = 'inline-block';
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="6" class="text-center py-4">
-                    <i class="fas fa-sign-in-alt text-muted me-2"></i>
-                    <span class="text-muted">Please <a href="/login" class="text-primary">login</a> to view your file processing history.</span>
-                </td>
-            </tr>
-        `;
-        emptyMessage.style.display = 'none';
-        return;
+    // Hide login prompt if it exists
+    if (loginPrompt) {
+        loginPrompt.style.display = 'none';
     }
-    
-    loginPrompt.style.display = 'none';
     
     if (!statistics || statistics.length === 0) {
         tableBody.innerHTML = '';
