@@ -2773,16 +2773,15 @@ def api_excel_history():
                 pass
         
         if request.method == 'GET':
-            if not user_id:
-                # Return empty history for anonymous users
-                return jsonify({
-                    "success": True,
-                    "history": []
-                })
-            
-            # Get history from database
             from models import ExcelGeneratorHistory
-            history = ExcelGeneratorHistory.get_user_history(user_id)
+            
+            if not user_id:
+                # Return all history for anonymous users (public view)
+                history = ExcelGeneratorHistory.get_all_history()
+            else:
+                # Return user-specific history for logged-in users
+                history = ExcelGeneratorHistory.get_user_history(user_id)
+            
             return jsonify({
                 "success": True,
                 "history": history

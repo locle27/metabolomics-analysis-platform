@@ -1355,25 +1355,10 @@ function displayConfigurationHistory(history) {
     const emptyMessage = document.getElementById('history-empty');
     const loginPrompt = document.getElementById('login-prompt-history');
     
-    // Check if user is logged in
-    const isLoggedIn = history && history.length >= 0; // API returns array even if empty when logged in
-    
-    if (!isLoggedIn) {
-        // Show login prompt for anonymous users
-        loginPrompt.style.display = 'inline-block';
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="5" class="text-center py-4">
-                    <i class="fas fa-sign-in-alt text-muted me-2"></i>
-                    <span class="text-muted">Please <a href="/login" class="text-primary">login</a> to view and save your configuration history.</span>
-                </td>
-            </tr>
-        `;
-        emptyMessage.style.display = 'none';
-        return;
+    // Hide login prompt if it exists
+    if (loginPrompt) {
+        loginPrompt.style.display = 'none';
     }
-    
-    loginPrompt.style.display = 'none';
     
     if (!history || history.length === 0) {
         tableBody.innerHTML = '';

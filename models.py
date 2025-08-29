@@ -989,3 +989,12 @@ class ExcelGeneratorHistory(db.Model):
             .order_by(ExcelGeneratorHistory.created_at.desc())\
             .limit(limit).all()
         return [entry.to_dict() for entry in history]
+    
+    @staticmethod
+    def get_all_history(limit=20):
+        """Get all configuration history from database - most recent first"""
+        history = ExcelGeneratorHistory.query.options(
+            joinedload(ExcelGeneratorHistory.user)
+        ).order_by(ExcelGeneratorHistory.created_at.desc())\
+            .limit(limit).all()
+        return [entry.to_dict() for entry in history]
