@@ -1398,13 +1398,10 @@ console.log('🚀 Streamlined Metabolomics Calculator initialized');
 // Load and display statistics on page load
 async function loadStatistics() {
     try {
-        console.log('📊 Loading statistics...');
         const response = await fetch('/api/calculator-statistics');
         const data = await response.json();
-        console.log('📊 API Response:', data);
         
         if (data.success) {
-            console.log('📊 Statistics found:', data.statistics.length);
             displayStatistics(data.statistics, data.summary);
         } else {
             // Show error in empty message area
@@ -1436,12 +1433,9 @@ async function loadStatistics() {
 
 // Display statistics in the table - always visible at top
 function displayStatistics(statistics, summary) {
-    console.log('📊 displayStatistics called with:', statistics);
     const tableBody = document.getElementById('statisticsTableBody');
     const emptyMessage = document.getElementById('statisticsEmpty');
     const loginPrompt = document.getElementById('login-prompt-stats');
-    
-    console.log('📊 Elements found:', {tableBody: !!tableBody, emptyMessage: !!emptyMessage, loginPrompt: !!loginPrompt});
     
     // Hide login prompt if it exists
     if (loginPrompt) {
@@ -1449,7 +1443,6 @@ function displayStatistics(statistics, summary) {
     }
     
     if (!statistics || statistics.length === 0) {
-        console.log('📊 No statistics to display');
         tableBody.innerHTML = '';
         emptyMessage.style.display = 'block';
         return;
@@ -1457,12 +1450,9 @@ function displayStatistics(statistics, summary) {
     
     emptyMessage.style.display = 'none';
     
-    console.log('📊 Populating table with', statistics.length, 'records');
-    
     // Populate table with individual file processing records
     tableBody.innerHTML = '';
-    statistics.forEach((stat, index) => {
-        console.log(`📊 Row ${index}:`, stat);
+    statistics.forEach(stat => {
         const row = `
             <tr style="cursor: default;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
                 <td><strong class="text-primary">${stat.username || 'Unknown'}</strong></td>
@@ -1475,13 +1465,10 @@ function displayStatistics(statistics, summary) {
         `;
         tableBody.innerHTML += row;
     });
-    
-    console.log('📊 Table populated successfully');
 }
 
 // Load statistics immediately - table is always visible
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('📊 DOMContentLoaded fired');
     loadStatistics();
 });
 
