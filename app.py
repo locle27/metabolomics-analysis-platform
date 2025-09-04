@@ -1195,7 +1195,20 @@ def oauth_authorized():
         
         # Check if user exists or create new user
         user_email = user_info.get('email').lower()
-        user_name = user_info.get('name', user_email.split('@')[0])
+        
+        # Get the exact full name from Google - try multiple fields for better coverage
+        user_name = (
+            user_info.get('name') or           # Standard 'name' field
+            user_info.get('given_name', '') + ' ' + user_info.get('family_name', '') or  # First + Last name
+            user_email.split('@')[0]          # Fallback to email prefix
+        ).strip()
+        
+        print(f"🔍 OAuth user info received:")
+        print(f"   Email: {user_email}")
+        print(f"   Name: {user_info.get('name', 'NOT PROVIDED')}")
+        print(f"   Given Name: {user_info.get('given_name', 'NOT PROVIDED')}")  
+        print(f"   Family Name: {user_info.get('family_name', 'NOT PROVIDED')}")
+        print(f"   Final user_name: '{user_name}'")
         
         if db and User:
             try:
@@ -1214,9 +1227,10 @@ def oauth_authorized():
                     db.session.commit()
                     flash(f'Welcome {user_name}! Your account has been created.', 'success')
                 else:
-                    # Update existing user
-                    if not user.full_name:
+                    # Update existing user - always update full_name from Google (in case it changed)
+                    if user_name and user_name.strip():  # Only update if we got a valid name
                         user.full_name = user_name
+                        print(f"🔄 Updated existing user's full_name to: '{user_name}'")
                     if user.auth_method not in ['oauth', 'dual']:
                         user.auth_method = 'oauth'
                     user.last_login = datetime.now()
@@ -5605,20 +5619,26 @@ def api_daily_statistics():
         
         # Helper function to get display name
         def get_display_name(user):
-            """Get display name for user - full name or abbreviated name"""
+            """Get display name for user - exact full name for OAuth users, abbreviated for others"""
             if not user:
                 return 'Anonymous', 'anonymous@unknown'
             
             # Use full name if available, otherwise fall back to email username
             if user.full_name and user.full_name.strip():
                 full_name = user.full_name.strip()
-                # For longer names, abbreviate (keep first name + last initial)
-                name_parts = full_name.split()
-                if len(name_parts) >= 2 and len(full_name) > 20:
-                    display_name = f"{name_parts[0]} {name_parts[-1][0]}."
-                else:
+                
+                # For Google OAuth users, ALWAYS use the exact full name (no abbreviation)
+                if hasattr(user, 'auth_method') and user.auth_method == 'oauth':
                     display_name = full_name
-                print(f"🎯 Display name from full_name: '{display_name}' (from '{full_name}')")
+                    print(f"🎯 OAuth user - using exact full name: '{display_name}'")
+                else:
+                    # For local users, abbreviate longer names (keep first name + last initial)
+                    name_parts = full_name.split()
+                    if len(name_parts) >= 2 and len(full_name) > 20:
+                        display_name = f"{name_parts[0]} {name_parts[-1][0]}."
+                    else:
+                        display_name = full_name
+                    print(f"🎯 Local user - display name: '{display_name}' (from '{full_name}')")
             else:
                 # Fall back to email username
                 display_name = user.email.split('@')[0] if user.email else 'Unknown'
