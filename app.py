@@ -4379,6 +4379,84 @@ def update_user_notifications():
         print(f"❌ Error updating user notifications: {e}")
         return jsonify({'success': False, 'message': f'Error updating notifications: {str(e)}'}), 500
 
+@app.route('/sync-oauth-users')
+@admin_required 
+def sync_oauth_users():
+    """Admin page to sync OAuth users' full names"""
+    try:
+        if not (db and User):
+            flash('Database not available', 'error')
+            return redirect(url_for('manage_users'))
+        
+        # Get all OAuth users and analyze their full_name status
+        oauth_users = User.query.filter_by(auth_method='oauth').all()
+        
+        users_analysis = []
+        needs_sync_count = 0
+        
+        for user in oauth_users:
+            has_full_name = bool(user.full_name and user.full_name.strip())
+            is_email_username = False
+            
+            if has_full_name:
+                email_prefix = user.email.split('@')[0] if user.email else ''
+                is_email_username = user.full_name.strip().lower() == email_prefix.lower()
+            
+            status = 'synced'
+            if not has_full_name:
+                status = 'missing'
+                needs_sync_count += 1
+            elif is_email_username:
+                status = 'email_username'
+                needs_sync_count += 1
+            
+            users_analysis.append({
+                'user': user,
+                'status': status,
+                'has_full_name': has_full_name,
+                'is_email_username': is_email_username,
+                'needs_sync': status != 'synced'
+            })
+        
+        return render_template('auth/sync_oauth_users.html', 
+                             oauth_users=users_analysis,
+                             total_oauth=len(oauth_users),
+                             needs_sync_count=needs_sync_count)
+        
+    except Exception as e:
+        print(f"❌ Error in sync OAuth users: {e}")
+        flash(f'Error loading OAuth users: {str(e)}', 'error')
+        return redirect(url_for('manage_users'))
+
+@app.route('/force-oauth-sync/<int:user_id>', methods=['POST'])
+@admin_required
+def force_oauth_sync(user_id):
+    """Force an OAuth user to re-authenticate to sync their full name"""
+    try:
+        if not (db and User):
+            return jsonify({'success': False, 'message': 'Database not available'}), 500
+        
+        user = User.query.get(user_id)
+        if not user or user.auth_method != 'oauth':
+            return jsonify({'success': False, 'message': 'Invalid OAuth user'}), 404
+        
+        # For security, we can't force fetch Google data without user consent
+        # Instead, we'll mark the user for re-authentication on next login
+        # or provide a direct re-auth link
+        
+        google_reauth_url = f"/auth/oauth-login?user_id={user_id}&force_reauth=1"
+        
+        return jsonify({
+            'success': True,
+            'message': f'Re-authentication URL generated for {user.email}',
+            'reauth_url': google_reauth_url,
+            'instructions': 'User needs to click this link to update their full name from Google'
+        })
+        
+    except Exception as e:
+        print(f"❌ Error forcing OAuth sync: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @app.route('/bulk-user-actions', methods=['POST'])
 @admin_required
 def bulk_user_actions():

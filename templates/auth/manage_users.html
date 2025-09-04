@@ -33,6 +33,9 @@
                             <a href="{{ url_for('admin_add_member') }}" class="btn btn-success btn-sm">
                                 <i class="fas fa-user-plus me-1"></i>Add Member
                             </a>
+                            <a href="{{ url_for('sync_oauth_users') }}" class="btn btn-outline-info btn-sm" title="Sync Google OAuth users' full names">
+                                <i class="fab fa-google me-1"></i>OAuth Sync
+                            </a>
                             <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkActionsModal">
                                 <i class="fas fa-cogs me-1"></i>Bulk Actions
                             </button>
