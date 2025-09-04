@@ -5618,9 +5618,11 @@ def api_daily_statistics():
                     display_name = f"{name_parts[0]} {name_parts[-1][0]}."
                 else:
                     display_name = full_name
+                print(f"🎯 Display name from full_name: '{display_name}' (from '{full_name}')")
             else:
                 # Fall back to email username
                 display_name = user.email.split('@')[0] if user.email else 'Unknown'
+                print(f"🔄 Display name from email fallback: '{display_name}' (no full_name)")
             
             return display_name, user.email
         
@@ -5664,6 +5666,10 @@ def api_daily_statistics():
         # Convert to list and sort by total samples
         users_list = list(user_stats.values())
         users_list.sort(key=lambda x: x['total_samples'], reverse=True)
+        
+        # Debug: Show display names being returned
+        for user in users_list:
+            print(f"📊 API returning user: display_name='{user['display_name']}', email='{user['user_email']}', full_name='{user['full_name']}'")
         
         total_files = len(stats)
         total_samples = sum(calculate_sample_count_from_filename(stat.filename or '') for stat in stats)  # Changed to calculate total samples

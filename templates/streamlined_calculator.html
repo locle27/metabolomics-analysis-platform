@@ -1747,10 +1747,18 @@ async function createDailyUserChart(users) {
         window.dailyChart.destroy();
     }
     
+    // Debug: Show what we're receiving from the API
+    console.log('🔍 Users data from API:', users);
+    users.forEach((user, index) => {
+        console.log(`👤 User ${index}: display_name='${user.display_name}', email='${user.user_email}', full_name='${user.full_name}'`);
+    });
+    
     // Prepare data for horizontal bar chart
     const labels = users.map(user => user.display_name || user.user_email.split('@')[0]);
     const sampleData = users.map(user => user.total_samples);
     const fileData = users.map(user => user.files.length);
+    
+    console.log('📊 Chart labels:', labels);
     
     // Generate colors for each user
     const colors = users.map((_, index) => {
