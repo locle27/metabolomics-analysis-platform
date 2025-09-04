@@ -618,7 +618,17 @@
 <div class="container-fluid px-0" style="width: 100vw; margin: 0; padding: 0;">
     <div class="row g-0">
         <div class="col-12">
-            <div class="calculator-container">
+            <div class="calculator-container" style="position: relative;">
+                <!-- Statistics Button - Positioned in Top Right Corner -->
+                <div style="position: absolute; top: 20px; right: 20px; z-index: 100;">
+                    <button id="openStatisticsModal" class="btn btn-primary btn-sm" onclick="openStatisticsModal()" 
+                            style="border-radius: 20px; font-size: 12px; padding: 8px 16px; box-shadow: 0 2px 10px rgba(23, 162, 184, 0.3); background: linear-gradient(135deg, #17a2b8, #20c997);"
+                            title="View Processing Statistics">
+                        <i class="fas fa-chart-line me-1"></i>
+                        Statistics
+                    </button>
+                </div>
+                
                 <div class="text-center mb-5">
                     <h1 class="text-metabolomics-blue mb-3">
                         <i class="fas fa-calculator me-3"></i>
@@ -638,26 +648,6 @@
                         Not logged in - <a href="/login" class="alert-link">Log in</a> to track your statistics
                     </div>
                     {% endif %}
-                </div>
-
-                <!-- Usage Statistics Section - Always Visible at Top -->
-                <div class="calculator-container" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #17a2b8; margin-bottom: 30px;">
-                    <h5 style="color: #17a2b8; font-weight: 700; margin-bottom: 20px;">
-                        <i class="fas fa-chart-bar me-2"></i>Recent File Processing Activity
-                        <small class="text-muted" style="font-size: 14px; font-weight: normal;">(Stored online)</small>
-                        <span id="login-prompt-stats" class="badge bg-warning ms-2" style="display: none;">
-                            <i class="fas fa-sign-in-alt me-1"></i>Login to track activity
-                        </span>
-                    </h5>
-                    
-                    <!-- Statistics Analysis Button -->
-                    <div class="mb-3 text-center">
-                        <button id="openStatisticsModal" class="btn btn-primary" onclick="openStatisticsModal()" 
-                                style="border-radius: 25px; font-size: 14px; padding: 10px 25px; box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);">
-                            <i class="fas fa-chart-line me-2"></i>
-                            View Statistics Analysis
-                        </button>
-                    </div>
                 </div>
 
                 <!-- Formula Explanation -->
