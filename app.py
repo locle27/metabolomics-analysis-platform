@@ -1204,6 +1204,7 @@ def oauth_authorized():
                     # Create new OAuth user
                     user = User(
                         email=user_email,
+                        username=user_email.split('@')[0],  # Use email prefix as username
                         full_name=user_name,
                         role='user',
                         auth_method='oauth',
