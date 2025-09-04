@@ -922,10 +922,19 @@ class CalculatorStatistics(db.Model):
     @staticmethod
     def get_all_statistics():
         """Get all file processing records sorted by most recent first"""
-        stats = CalculatorStatistics.query.options(
-            joinedload(CalculatorStatistics.user)
-        ).order_by(CalculatorStatistics.processed_at.desc()).all()
-        return [stat.to_dict() for stat in stats]
+        try:
+            stats = CalculatorStatistics.query.options(
+                joinedload(CalculatorStatistics.user)
+            ).order_by(CalculatorStatistics.processed_at.desc()).all()
+            result = [stat.to_dict() for stat in stats]
+            print(f"📊 CalculatorStatistics.get_all_statistics() returning {len(result)} records")
+            return result
+        except Exception as e:
+            print(f"❌ Error in CalculatorStatistics.get_all_statistics(): {e}")
+            import traceback
+            traceback.print_exc()
+            raise e
+
 
 class ExcelGeneratorHistory(db.Model):
     """Track Excel generator configuration history - stored online in database"""
@@ -998,3 +1007,67 @@ class ExcelGeneratorHistory(db.Model):
         ).order_by(ExcelGeneratorHistory.created_at.desc())\
             .limit(limit).all()
         return [entry.to_dict() for entry in history]
+
+class UploadedFile(db.Model):
+    """Store uploaded Excel files from Streamlined Calculator"""
+    __tablename__ = 'uploaded_files'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    calculator_statistics_id = db.Column(db.Integer, db.ForeignKey('calculator_statistics.id', ondelete='CASCADE'), nullable=True, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True, index=True)
+    filename = db.Column(db.String(255), nullable=False)
+    file_content = db.Column(db.LargeBinary, nullable=False)  # BYTEA in PostgreSQL
+    file_size = db.Column(db.Integer, nullable=False)
+    mime_type = db.Column(db.String(100), default='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    uploaded_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    vietnam_time = db.Column(db.String(20))  # Vietnam formatted time hh:mm:ss
+    
+    # Relationships
+    user = db.relationship('User', backref='uploaded_files', lazy='select')
+    calculator_statistic = db.relationship('CalculatorStatistics', backref=db.backref('uploaded_file', uselist=False), lazy='select')
+    
+    def __repr__(self):
+        return f'<UploadedFile {self.filename} User:{self.user_id} Size:{self.file_size}>'
+    
+    def to_dict(self):
+        # Convert UTC to Vietnam time (UTC+7)
+        vietnam_time = ""
+        if self.uploaded_at:
+            vietnam_datetime = self.uploaded_at + timedelta(hours=7)
+            vietnam_time = vietnam_datetime.strftime('%H:%M:%S')
+        
+        return {
+            'id': self.id,
+            'calculator_statistics_id': self.calculator_statistics_id,
+            'user_id': self.user_id,
+            'username': self.user.username if self.user else 'Unknown',
+            'filename': self.filename,
+            'file_size': self.file_size,
+            'mime_type': self.mime_type,
+            'uploaded_at': self.uploaded_at.isoformat() if self.uploaded_at else None,
+            'vietnam_time': vietnam_time,
+            'date': self.uploaded_at.strftime('%Y-%m-%d') if self.uploaded_at else None
+        }
+    
+    @staticmethod
+    def save_file(calculator_statistics_id, user_id, filename, file_content):
+        """Save an uploaded file to database"""
+        from datetime import datetime, timedelta
+        
+        # Create Vietnam time string
+        vietnam_datetime = datetime.utcnow() + timedelta(hours=7)
+        vietnam_time_str = vietnam_datetime.strftime('%H:%M:%S')
+        
+        # Create new file record
+        uploaded_file = UploadedFile(
+            calculator_statistics_id=calculator_statistics_id,
+            user_id=user_id,
+            filename=filename,
+            file_content=file_content,
+            file_size=len(file_content),
+            vietnam_time=vietnam_time_str
+        )
+        db.session.add(uploaded_file)
+        db.session.commit()
+        return uploaded_file

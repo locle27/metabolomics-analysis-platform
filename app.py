@@ -185,7 +185,7 @@ if CSRF_AVAILABLE:
     CSRF_DEBUG_EXEMPT_PATHS = ['/auth/update-password']
     
     # API endpoints that need CSRF exemption
-    API_EXEMPT_PATHS = ['/api/zoom-settings', '/api/admin/zoom-defaults', '/api/excel-history', '/protocols/calculate-compound-breakdown', '/protocols/calculate', '/protocols/download-excel', '/api/streamlined-calculate']
+    API_EXEMPT_PATHS = ['/api/zoom-settings', '/api/admin/zoom-defaults', '/api/excel-history', '/protocols/calculate-compound-breakdown', '/protocols/calculate', '/protocols/download-excel', '/api/streamlined-calculate', '/api/monthly-statistics', '/api/daily-statistics', '/api/uploaded-files', '/api/download-uploaded-file']
     
     # Alternative CSRF exemption method - set WTF_CSRF_EXEMPT_VIEWS
     def is_api_exempt_path(request_path):
@@ -5284,7 +5284,25 @@ def api_streamlined_calculate():
                         filename=area_file.filename,
                         substance_count=results['substance_count']
                     )
+                    
+                    # Save uploaded file to database for later download
+                    try:
+                        from models import UploadedFile
+                        area_file.seek(0)  # Reset file pointer to beginning
+                        file_content = area_file.read()
+                        UploadedFile.save_file(
+                            calculator_statistics_id=stat.id,
+                            user_id=user_id,
+                            filename=area_file.filename,
+                            file_content=file_content
+                        )
+                    except Exception as file_save_error:
+                        print(f"⚠️ File save error: {file_save_error}")
+                        # Continue even if file save fails
+                        pass
+                        
                 except Exception as stat_error:
+                    print(f"⚠️ Statistics error: {stat_error}")
                     # Continue even if statistics update fails
                     pass
             
@@ -5416,6 +5434,229 @@ def api_calculator_statistics():
         return jsonify({
             "success": False,
             "error": "Statistics service unavailable"
+        }), 500
+
+
+@app.route('/api/monthly-statistics')
+def api_monthly_statistics():
+    """Get monthly calendar statistics for calculator activity"""
+    try:
+        from models import CalculatorStatistics
+        from sqlalchemy import text
+        from datetime import datetime, timedelta
+        import calendar
+        
+        # Get requested month from query parameter, or default to current month (Vietnam timezone)
+        month_param = request.args.get('month')
+        if month_param:
+            try:
+                # Parse format: "2025-09" or "2025-9"
+                year_str, month_str = month_param.split('-')
+                current_year = int(year_str)
+                current_month = int(month_str)
+            except (ValueError, AttributeError):
+                return jsonify({"success": False, "error": "Invalid month format. Use YYYY-MM"}), 400
+        else:
+            # Default to current month (Vietnam timezone)
+            now = datetime.utcnow()
+            vietnam_now = now + timedelta(hours=7)  # UTC+7 for Vietnam
+            current_year = vietnam_now.year
+            current_month = vietnam_now.month
+        
+        # Get all days in current month
+        _, days_in_month = calendar.monthrange(current_year, current_month)
+        
+        # Get all stats and filter by current month using Python (consistent with daily stats)
+        from datetime import timedelta
+        all_stats = CalculatorStatistics.query.all()
+        
+        # Group by date using Vietnam timezone
+        daily_stats = {}
+        for stat in all_stats:
+            if stat.processed_at:
+                # Convert UTC to Vietnam time
+                vietnam_time = stat.processed_at + timedelta(hours=7)
+                if vietnam_time.year == current_year and vietnam_time.month == current_month:
+                    date_str = vietnam_time.strftime('%Y-%m-%d')
+                    if date_str not in daily_stats:
+                        daily_stats[date_str] = {
+                            'file_count': 0,
+                            'substance_count': 0,
+                            'user_count': 0,
+                            'users': set()
+                        }
+                    daily_stats[date_str]['file_count'] += 1
+                    daily_stats[date_str]['substance_count'] += stat.substance_count
+                    daily_stats[date_str]['users'].add(stat.user_id)
+        
+        # Convert user sets to counts
+        for date_str in daily_stats:
+            daily_stats[date_str]['user_count'] = len(daily_stats[date_str]['users'])
+            del daily_stats[date_str]['users']  # Remove the set, keep only the count
+        
+        return jsonify({
+            "success": True,
+            "year": current_year,
+            "month": current_month,
+            "days_in_month": days_in_month,
+            "daily_stats": daily_stats
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": "Monthly statistics service unavailable"
+        }), 500
+
+
+@app.route('/api/daily-statistics')
+def api_daily_statistics():
+    """Get detailed statistics for a specific day with timezone consistency"""
+    try:
+        from models import CalculatorStatistics, User
+        from sqlalchemy import text
+        from datetime import datetime
+        
+        date_param = request.args.get('date')
+        if not date_param:
+            return jsonify({"success": False, "error": "Date parameter required"}), 400
+        
+        # Validate date format
+        try:
+            target_date = datetime.strptime(date_param, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({"success": False, "error": "Invalid date format. Use YYYY-MM-DD"}), 400
+        
+        # Simple query first - get all stats with uploaded file relationship and filter in Python
+        all_stats = CalculatorStatistics.query.options(
+            selectinload(CalculatorStatistics.uploaded_file)
+        ).all()
+        
+        # Filter stats for the target date using Vietnam timezone
+        from datetime import timedelta
+        stats = []
+        for stat in all_stats:
+            if stat.processed_at:
+                # Convert UTC to Vietnam time
+                vietnam_time = stat.processed_at + timedelta(hours=7)
+                if vietnam_time.date() == target_date:
+                    stats.append(stat)
+        
+        if not stats:
+            return jsonify({
+                "success": True,
+                "date": date_param,
+                "total_files": 0,
+                "total_substances": 0,
+                "users": []
+            })
+        
+        # Group by user
+        user_stats = {}
+        for stat in stats:
+            user_id = stat.user_id
+            if user_id not in user_stats:
+                user = db.session.get(User, user_id) if user_id else None
+                user_stats[user_id] = {
+                    'user_id': user_id,
+                    'user_email': user.email if user else 'Anonymous',
+                    'files': [],
+                    'total_substances': 0
+                }
+            
+            # Check if there's an uploaded file associated with this statistic
+            uploaded_file_id = None
+            file_size = None
+            if hasattr(stat, 'uploaded_file') and stat.uploaded_file:
+                uploaded_file_id = stat.uploaded_file.id
+                file_size = stat.uploaded_file.file_size
+            
+            user_stats[user_id]['files'].append({
+                'id': stat.id,
+                'filename': stat.filename,
+                'substance_count': stat.substance_count,
+                'processed_at': stat.vietnam_time if hasattr(stat, 'vietnam_time') and stat.vietnam_time else 'Unknown',
+                'uploaded_file_id': uploaded_file_id,
+                'file_size': file_size
+            })
+            user_stats[user_id]['total_substances'] += stat.substance_count
+        
+        # Convert to list and sort by total substances
+        users_list = list(user_stats.values())
+        users_list.sort(key=lambda x: x['total_substances'], reverse=True)
+        
+        total_files = len(stats)
+        total_substances = sum(stat.substance_count for stat in stats)
+        
+        return jsonify({
+            "success": True,
+            "date": date_param,
+            "total_files": total_files,
+            "total_substances": total_substances,
+            "users": users_list
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"Error in daily statistics: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
+        return jsonify({
+            "success": False,
+            "error": f"Daily statistics service unavailable: {str(e)}"
+        }), 500
+
+
+@app.route('/api/uploaded-files/<int:file_id>')
+def api_uploaded_file_info(file_id):
+    """Get information about an uploaded file"""
+    try:
+        from models import UploadedFile
+        
+        file_record = db.session.get(UploadedFile, file_id)
+        if not file_record:
+            return jsonify({"success": False, "error": "File not found"}), 404
+        
+        return jsonify({
+            "success": True,
+            "file": file_record.to_dict()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": "File info service unavailable"
+        }), 500
+
+
+@app.route('/api/download-uploaded-file/<int:file_id>')
+def api_download_uploaded_file(file_id):
+    """Download an uploaded file from database"""
+    try:
+        from models import UploadedFile
+        from flask import Response
+        import io
+        
+        file_record = db.session.get(UploadedFile, file_id)
+        if not file_record:
+            return jsonify({"success": False, "error": "File not found"}), 404
+        
+        # Create file response
+        file_data = io.BytesIO(file_record.file_content)
+        file_data.seek(0)
+        
+        return Response(
+            file_data,
+            mimetype=file_record.mime_type,
+            headers={
+                'Content-Disposition': f'attachment; filename="{file_record.filename}"',
+                'Content-Length': str(file_record.file_size)
+            }
+        )
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": "File download service unavailable"
         }), 500
 
 
