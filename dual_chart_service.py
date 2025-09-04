@@ -11,12 +11,12 @@ from typing import Dict, List, Optional, Tuple, Any
 try:
     # Try PostgreSQL optimized models first
     from models import optimized_manager
-    print("✅ Using optimized PostgreSQL models for dual charts")
+
 except ImportError:
     # Fallback to SQLite
     from models_sqlite import fast_db
     optimized_manager = fast_db
-    print("✅ Using SQLite models for dual charts")
+
 
 class DualChartService:
     """
