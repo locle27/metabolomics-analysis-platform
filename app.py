@@ -5602,15 +5602,39 @@ def api_daily_statistics():
             except:
                 return 100  # Default fallback
         
+        # Helper function to get display name
+        def get_display_name(user):
+            """Get display name for user - full name or abbreviated name"""
+            if not user:
+                return 'Anonymous', 'anonymous@unknown'
+            
+            # Use full name if available, otherwise fall back to email username
+            if user.full_name and user.full_name.strip():
+                full_name = user.full_name.strip()
+                # For longer names, abbreviate (keep first name + last initial)
+                name_parts = full_name.split()
+                if len(name_parts) >= 2 and len(full_name) > 20:
+                    display_name = f"{name_parts[0]} {name_parts[-1][0]}."
+                else:
+                    display_name = full_name
+            else:
+                # Fall back to email username
+                display_name = user.email.split('@')[0] if user.email else 'Unknown'
+            
+            return display_name, user.email
+        
         # Group by user
         user_stats = {}
         for stat in stats:
             user_id = stat.user_id
             if user_id not in user_stats:
                 user = db.session.get(User, user_id) if user_id else None
+                display_name, email = get_display_name(user)
                 user_stats[user_id] = {
                     'user_id': user_id,
-                    'user_email': user.email if user else 'Anonymous',
+                    'user_email': email,
+                    'display_name': display_name,  # New: display name for UI
+                    'full_name': user.full_name if user and user.full_name else None,  # New: full name
                     'files': [],
                     'total_samples': 0  # Changed from total_substances to total_samples
                 }

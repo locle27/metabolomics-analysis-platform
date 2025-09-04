@@ -1758,7 +1758,7 @@ async function createDailyUserChart(users) {
     }
     
     // Prepare data for horizontal bar chart
-    const labels = users.map(user => user.user_email.split('@')[0]);
+    const labels = users.map(user => user.display_name || user.user_email.split('@')[0]);
     const sampleData = users.map(user => user.total_samples);
     const fileData = users.map(user => user.files.length);
     
@@ -1810,7 +1810,7 @@ async function createDailyUserChart(users) {
                         title: function(context) {
                             const userIndex = context[0].dataIndex;
                             const user = users[userIndex];
-                            return `${user.username} (${user.email})`;
+                            return `${user.display_name || user.user_email.split('@')[0]} (${user.user_email})`;
                         }
                     }
                 }
@@ -2130,11 +2130,11 @@ function displayDailyDetails(data) {
                 <div class="mb-4" style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e9ecef; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
                     <div class="d-flex align-items-center mb-3">
                         <div class="user-avatar me-3" style="width: 40px; height: 40px; background: linear-gradient(135deg, #17a2b8, #138496); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
-                            ${user.user_email.charAt(0).toUpperCase()}
+                            ${(user.display_name || user.user_email).charAt(0).toUpperCase()}
                         </div>
                         <div class="flex-grow-1">
                             <div class="d-flex align-items-center">
-                                <span class="user-badge me-3">${user.user_email.split('@')[0]}</span>
+                                <span class="user-badge me-3">${user.display_name || user.user_email.split('@')[0]}</span>
                                 <small class="text-muted">${user.user_email}</small>
                             </div>
                             <div class="mt-1">
