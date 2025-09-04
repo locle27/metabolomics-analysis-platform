@@ -5470,6 +5470,28 @@ def api_monthly_statistics():
         from datetime import timedelta
         all_stats = CalculatorStatistics.query.all()
         
+        # Helper function to calculate sample count from filename (same as daily statistics)
+        def calculate_sample_count_from_filename(filename):
+            """Calculate sample count based on filename pattern (e.g., 5701-5800 = 100 samples)"""
+            try:
+                import re
+                # Look for patterns like PH-HC_5701, PH-HC_5800, etc. in the filename
+                # Extract all numbers that could be sample IDs
+                numbers = re.findall(r'\b(\d{3,4})\b', filename)
+                if len(numbers) >= 2:
+                    # Take the range from min to max number found
+                    sample_numbers = [int(n) for n in numbers if len(n) >= 3]  # At least 3 digits
+                    if sample_numbers:
+                        min_sample = min(sample_numbers)
+                        max_sample = max(sample_numbers)
+                        # Calculate range: if 5701-5800, that's 100 samples
+                        sample_range = max_sample - min_sample + 1 if max_sample > min_sample else 100
+                        return sample_range
+                # Fallback: estimate based on substance count (rough approximation)
+                return min(stat.substance_count, 100) if hasattr(stat, 'substance_count') else 100
+            except:
+                return 100  # Default fallback
+        
         # Group by date using Vietnam timezone
         daily_stats = {}
         for stat in all_stats:
@@ -5481,12 +5503,18 @@ def api_monthly_statistics():
                     if date_str not in daily_stats:
                         daily_stats[date_str] = {
                             'file_count': 0,
-                            'substance_count': 0,
+                            'substance_count': 0,  # Keep for backward compatibility
+                            'sample_count': 0,      # New: sample count
                             'user_count': 0,
                             'users': set()
                         }
+                    
+                    # Calculate sample count for this file
+                    sample_count = calculate_sample_count_from_filename(stat.filename or '')
+                    
                     daily_stats[date_str]['file_count'] += 1
-                    daily_stats[date_str]['substance_count'] += stat.substance_count
+                    daily_stats[date_str]['substance_count'] += stat.substance_count  # Keep original
+                    daily_stats[date_str]['sample_count'] += sample_count  # Add sample count
                     daily_stats[date_str]['users'].add(stat.user_id)
         
         # Convert user sets to counts
@@ -5547,9 +5575,32 @@ def api_daily_statistics():
                 "success": True,
                 "date": date_param,
                 "total_files": 0,
-                "total_substances": 0,
+                "total_samples": 0,  # Changed from total_substances to total_samples
+                "total_substances": 0,  # Keep for backward compatibility
                 "users": []
             })
+        
+        # Helper function to calculate sample count from filename
+        def calculate_sample_count_from_filename(filename):
+            """Calculate sample count based on filename pattern (e.g., 5701-5800 = 100 samples)"""
+            try:
+                import re
+                # Look for patterns like PH-HC_5701, PH-HC_5800, etc. in the filename
+                # Extract all numbers that could be sample IDs
+                numbers = re.findall(r'\b(\d{3,4})\b', filename)
+                if len(numbers) >= 2:
+                    # Take the range from min to max number found
+                    sample_numbers = [int(n) for n in numbers if len(n) >= 3]  # At least 3 digits
+                    if sample_numbers:
+                        min_sample = min(sample_numbers)
+                        max_sample = max(sample_numbers)
+                        # Calculate range: if 5701-5800, that's 100 samples
+                        sample_range = max_sample - min_sample + 1 if max_sample > min_sample else 100
+                        return sample_range
+                # Fallback: estimate based on substance count (rough approximation)
+                return min(stat.substance_count, 100) if hasattr(stat, 'substance_count') else 100
+            except:
+                return 100  # Default fallback
         
         # Group by user
         user_stats = {}
@@ -5561,8 +5612,11 @@ def api_daily_statistics():
                     'user_id': user_id,
                     'user_email': user.email if user else 'Anonymous',
                     'files': [],
-                    'total_substances': 0
+                    'total_samples': 0  # Changed from total_substances to total_samples
                 }
+            
+            # Calculate sample count based on filename pattern
+            sample_count = calculate_sample_count_from_filename(stat.filename or '')
             
             # Check if there's an uploaded file associated with this statistic
             uploaded_file_id = None
@@ -5574,25 +5628,27 @@ def api_daily_statistics():
             user_stats[user_id]['files'].append({
                 'id': stat.id,
                 'filename': stat.filename,
-                'substance_count': stat.substance_count,
+                'substance_count': stat.substance_count,  # Keep original for reference
+                'sample_count': sample_count,  # New: calculated sample count
                 'processed_at': stat.vietnam_time if hasattr(stat, 'vietnam_time') and stat.vietnam_time else 'Unknown',
                 'uploaded_file_id': uploaded_file_id,
                 'file_size': file_size
             })
-            user_stats[user_id]['total_substances'] += stat.substance_count
+            user_stats[user_id]['total_samples'] += sample_count  # Changed to use sample_count
         
-        # Convert to list and sort by total substances
+        # Convert to list and sort by total samples
         users_list = list(user_stats.values())
-        users_list.sort(key=lambda x: x['total_substances'], reverse=True)
+        users_list.sort(key=lambda x: x['total_samples'], reverse=True)
         
         total_files = len(stats)
-        total_substances = sum(stat.substance_count for stat in stats)
+        total_samples = sum(calculate_sample_count_from_filename(stat.filename or '') for stat in stats)  # Changed to calculate total samples
         
         return jsonify({
             "success": True,
             "date": date_param,
             "total_files": total_files,
-            "total_substances": total_substances,
+            "total_samples": total_samples,  # Changed from total_substances to total_samples
+            "total_substances": sum(stat.substance_count for stat in stats),  # Keep for backward compatibility if needed
             "users": users_list
         })
         

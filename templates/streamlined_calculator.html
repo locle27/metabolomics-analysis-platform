@@ -1759,7 +1759,7 @@ async function createDailyUserChart(users) {
     
     // Prepare data for horizontal bar chart
     const labels = users.map(user => user.user_email.split('@')[0]);
-    const substanceData = users.map(user => user.total_substances);
+    const sampleData = users.map(user => user.total_samples);
     const fileData = users.map(user => user.files.length);
     
     // Generate colors for each user
@@ -1774,8 +1774,8 @@ async function createDailyUserChart(users) {
         data: {
             labels: labels,
             datasets: [{
-                label: 'Substances Processed',
-                data: substanceData,
+                label: 'Samples Processed',
+                data: sampleData,
                 backgroundColor: colors.map(color => color + '80'), // Add transparency
                 borderColor: colors,
                 borderWidth: 2,
@@ -1802,9 +1802,9 @@ async function createDailyUserChart(users) {
                             const userIndex = context.dataIndex;
                             const user = users[userIndex];
                             return [
-                                `${context.parsed.x} substances processed`,
-                                `${user.file_count} files uploaded`,
-                                `Average: ${Math.round(context.parsed.x / user.file_count)} substances per file`
+                                `${context.parsed.x} samples processed`,
+                                `${user.files.length} files uploaded`,
+                                `Average: ${Math.round(context.parsed.x / user.files.length)} samples per file`
                             ];
                         },
                         title: function(context) {
@@ -1820,7 +1820,7 @@ async function createDailyUserChart(users) {
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: 'Substances Processed',
+                        text: 'Samples Processed',
                         color: '#495057',
                         font: {
                             weight: 'bold'
@@ -2019,7 +2019,7 @@ function displayCalendar(data) {
                     dayElement.innerHTML += `
                         <div class="day-stats">
                             <div><strong>${dayStats.user_count}</strong> users</div>
-                            <div><strong>${dayStats.substance_count}</strong> substances</div>
+                            <div><strong>${dayStats.sample_count || dayStats.substance_count}</strong> samples</div>
                             <div>${dayStats.file_count} files</div>
                         </div>
                     `;
@@ -2072,7 +2072,7 @@ function displayDailyDetails(data) {
         <i class="fas fa-calendar-day me-2"></i>
         ${formattedDate}
         <small class="text-muted ms-3">
-            ${data.users.length} users • ${data.total_files} files • ${data.total_substances} substances
+            ${data.users.length} users • ${data.total_files} files • ${data.total_samples} samples
         </small>
     `;
     
@@ -2139,7 +2139,7 @@ function displayDailyDetails(data) {
                             </div>
                             <div class="mt-1">
                                 <small class="text-info">
-                                    <i class="fas fa-flask me-1"></i>${user.total_substances} substances • 
+                                    <i class="fas fa-vial me-1"></i>${user.total_samples} samples • 
                                     <i class="fas fa-file me-1"></i>${user.files.length} files
                                 </small>
                             </div>
