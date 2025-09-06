@@ -29,13 +29,9 @@ print(f"📡 Port: {os.getenv('PORT', '5000')}")
 print("=" * 60)
 
 # === BULLETPROOF IMPORTS ===
-# Core Flask (REQUIRED)
-try:
-    from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response, send_file, send_from_directory, session, get_flashed_messages, make_response, current_app
-    print("✅ Flask core loaded")
-except ImportError as e:
-    print(f"❌ CRITICAL: Flask failed: {e}")
-    sys.exit(1)
+# Core Flask (REQUIRED) - Import immediately for health checks
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response, send_file, send_from_directory, session, get_flashed_messages, make_response, current_app
+print("✅ Flask core loaded")
 
 # Environment loading (graceful fallback)
 try:
@@ -110,12 +106,16 @@ app = Flask(__name__,
 @app.route('/health')
 def immediate_health_check():
     """Immediate health check available before full app initialization"""
-    return "OK", 200
+    return jsonify({
+        "status": "healthy",
+        "service": "metabolomics-platform",
+        "timestamp": datetime.now().isoformat()
+    }), 200
 
 @app.route('/ping')
 def immediate_ping():
     """Immediate ping endpoint"""
-    return "pong", 200
+    return jsonify({"message": "pong"}), 200
 
 @app.route('/healthz')
 def immediate_healthz():
@@ -5886,52 +5886,7 @@ def api_download_streamlined(session_id):
         print(f"❌ Download error: {e}")
         return jsonify({"error": f"Download error: {str(e)}"}), 500
 
-# ============================================================================
-# HEALTH CHECK ENDPOINTS
-# ============================================================================
-
-@app.route('/health')
-def health_check():
-    """Health check endpoint for Railway"""
-    try:
-        # Basic health - app is running
-        health_status = {
-            'status': 'healthy',
-            'timestamp': datetime.now().isoformat(),
-            'service': 'metabolomics-platform',
-            'checks': {
-                'app': 'running'
-            }
-        }
-        
-        # Try database check but don't fail if unavailable during startup
-        try:
-            if db:
-                db.session.execute(db.text('SELECT 1'))
-                health_status['checks']['database'] = 'connected'
-            else:
-                health_status['checks']['database'] = 'not initialized'
-        except Exception as db_error:
-            health_status['checks']['database'] = 'error'
-            health_status['database_error'] = str(db_error)
-        
-        return jsonify(health_status), 200
-    except Exception as e:
-        return jsonify({
-            'status': 'unhealthy', 
-            'error': str(e),
-            'timestamp': datetime.now().isoformat()
-        }), 503
-
-@app.route('/ping')
-def ping():
-    """Simple ping endpoint for basic health checks"""
-    return jsonify({'message': 'pong'}), 200
-
-@app.route('/healthz')
-def healthz():
-    """Kubernetes-style health check endpoint"""
-    return 'OK', 200
+# Health check endpoints are defined early in the app for faster startup
 
 # ============================================================================
 # ERROR HANDLERS
