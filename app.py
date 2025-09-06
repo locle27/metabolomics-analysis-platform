@@ -939,9 +939,6 @@ if database_url:
             }
         })
         
-        # Declare globals before import to ensure they're accessible app-wide
-        global db, MainLipid, User, ScheduleRequest, backup_system, optimized_manager, get_db_stats
-        
         # Import models first to get the shared db instance
         from models import (
             db, MainLipid, LipidClass, AnnotatedIon, User, ScheduleRequest, AdminSettings, 
