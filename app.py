@@ -916,7 +916,7 @@ def send_schedule_notification(consultation_data):
         return False
 
 # === DATABASE SETUP (Working + Bulletproof) ===
-db = None
+# Global variables will be set after imports
 MainLipid = None
 User = None
 ScheduleRequest = None
@@ -938,6 +938,9 @@ if database_url:
                 'echo': False
             }
         })
+        
+        # Declare globals before import to ensure they're accessible app-wide
+        global db, MainLipid, User, ScheduleRequest, backup_system, optimized_manager, get_db_stats
         
         # Import models first to get the shared db instance
         from models import (
@@ -5634,7 +5637,7 @@ def api_monthly_statistics():
 def api_daily_statistics():
     """Get detailed statistics for a specific day with timezone consistency"""
     try:
-        from models import CalculatorStatistics, User
+        from models import CalculatorStatistics, User, db
         from sqlalchemy import text
         from datetime import datetime
         
