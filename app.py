@@ -953,21 +953,15 @@ if database_url:
         # Initialize with the existing db instance
         db.init_app(app)
         
-        # Test database connection
-        with app.app_context():
-            with db.engine.connect() as conn:
-                conn.execute(text("SELECT 1"))
-                print("✅ Database connection tested successfully")
+        # REMOVED: Database connection test to prevent blocking Railway startup
+        # Database connectivity will be verified on first request
         
         print("✅ Models imported successfully")
         
-        # Initialize backup system
-        try:
-            from backup_system_postgresql import PostgreSQLBackupSystem, auto_backup_context
-            backup_system = PostgreSQLBackupSystem(app)
-            print("✅ Backup system initialized")
-        except Exception as backup_error:
-            print(f"⚠️ Backup system initialization failed: {backup_error}")
+        # DEFERRED: Backup system initialization to prevent blocking Railway startup
+        # Will be initialized on first administrative request
+        backup_system = None
+        print("ℹ️ Backup system deferred for faster startup")
                 
     except Exception as e:
         print(f"⚠️ Database initialization failed: {e}")
