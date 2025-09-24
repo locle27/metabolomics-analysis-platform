@@ -1524,7 +1524,6 @@ def forgot_password():
                         # Send password reset email with timeout protection
                         try:
                             import threading
-                            import time
                             
                             email_sent = False
                             email_error = None
