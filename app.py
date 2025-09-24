@@ -1844,7 +1844,9 @@ def update_password():
     # Ensure session is permanent to prevent CSRF token expiration
     session.permanent = True
     
-    # Import form class safely
+    # Import form class safely with fallback
+    form = None
+    use_wtf_form = True
     try:
         from forms import PasswordUpdateForm
         form = PasswordUpdateForm()
@@ -1855,9 +1857,10 @@ def update_password():
             if hasattr(form.csrf_token, 'data') and form.csrf_token.data:
                 print(f"🔍 Form CSRF token: {form.csrf_token.data[:10]}...")
         
-    except ImportError:
-        flash('System error: Forms not available', 'error')
-        return redirect(url_for('auth.password_settings'))
+    except ImportError as e:
+        print(f"⚠️ Flask-WTF not available ({e}), using fallback form handling")
+        use_wtf_form = False
+        form = None
     
     # Get user details
     user_email = session.get('user_email', '')
@@ -1898,10 +1901,34 @@ def update_password():
                 # Note: CSRF_AVAILABLE is already defined globally, don't modify it here
                 print("🔍 CSRF token generation failed, but keeping CSRF enabled")
     
-    # Handle POST request following Flask documentation pattern
-    if request.method == 'POST' and form.validate_on_submit():
-        new_password = form.new_password.data
-        current_password = form.current_password.data
+    # Handle POST request with both WTF and fallback support
+    form_valid = False
+    new_password = None
+    current_password = None
+    
+    if request.method == 'POST':
+        if use_wtf_form and form and form.validate_on_submit():
+            # Flask-WTF form validation
+            new_password = form.new_password.data
+            current_password = form.current_password.data
+            form_valid = True
+        elif not use_wtf_form:
+            # Fallback form handling for direct POST data
+            new_password = request.form.get('new_password', '').strip()
+            current_password = request.form.get('current_password', '').strip()
+            confirm_password = request.form.get('confirm_password', '').strip()
+            
+            # Basic validation
+            if not new_password:
+                error = 'New password is required.'
+            elif len(new_password) < 8:
+                error = 'Password must be at least 8 characters long.'
+            elif new_password != confirm_password:
+                error = 'Passwords do not match.'
+            else:
+                form_valid = True
+    
+    if form_valid and new_password:
         
         try:
             if db and User:
@@ -1972,7 +1999,11 @@ def update_password():
         except Exception as e:
             print(f"❌ Manual CSRF token backup failed: {e}")
     
-    return render_template('auth/password_form.html', form=form, csrf_token_backup=csrf_token_backup)
+    return render_template('auth/password_form.html', 
+                         form=form, 
+                         csrf_token_backup=csrf_token_backup, 
+                         use_wtf_form=use_wtf_form,
+                         user_has_local_password=user_has_local_password)
 
 # Debug route for CSRF testing (remove in production)
 @auth_bp.route('/csrf-debug')
