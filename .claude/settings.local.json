@@ -118,7 +118,11 @@
       "Bash(real_sample_data.json )",
       "Bash(ondemand_system_instructions.json )",
       "Bash(pkill:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(chmod:*)",
+      "Bash(git reset:*)",
+      "Bash(env)",
+      "Bash(pip install:*)"
     ],
     "deny": []
   }
