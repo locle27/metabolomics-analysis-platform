@@ -1521,17 +1521,40 @@ def forgot_password():
                         # Generate reset link
                         reset_link = url_for('auth.reset_password_confirm', token=reset_token, _external=True)
                         
-                        # Send password reset email
+                        # Send password reset email with timeout protection
                         try:
-                            email_sent = send_email(
-                                to_email=email,
-                                subject='Password Reset - Metabolomics Platform',
-                                template_name='password_reset.html',
-                                user={'username': email.split('@')[0], 'email': email},
-                                reset_url=reset_link,
-                                platform_name='Metabolomics Platform',
-                                expires_hours=1
-                            )
+                            import threading
+                            import time
+                            
+                            email_sent = False
+                            email_error = None
+                            
+                            def send_email_async():
+                                nonlocal email_sent, email_error
+                                try:
+                                    email_sent = send_email(
+                                        to_email=email,
+                                        subject='Password Reset - Metabolomics Platform',
+                                        template_name='password_reset.html',
+                                        user={'username': email.split('@')[0], 'email': email},
+                                        reset_url=reset_link,
+                                        platform_name='Metabolomics Platform',
+                                        expires_hours=1
+                                    )
+                                except Exception as e:
+                                    email_error = e
+                            
+                            # Send email in background thread with timeout
+                            email_thread = threading.Thread(target=send_email_async)
+                            email_thread.daemon = True
+                            email_thread.start()
+                            email_thread.join(timeout=5)  # 5 second timeout
+                            
+                            if email_thread.is_alive():
+                                print("⚠️ Email sending timed out after 5 seconds")
+                                # Thread is still running, treat as failed
+                                email_sent = False
+                                email_error = Exception("Email sending timed out")
                             
                             if email_sent:
                                 flash(f'Password reset instructions have been sent to {email}. Check your email and click the reset link.', 'success')
@@ -1862,20 +1885,42 @@ def update_password():
         use_wtf_form = False
         form = None
     
-    # Get user details
+    # Get user details and refresh session state for consistency
     user_email = session.get('user_email', '')
     error = None
     
-    # Check if user has existing LOCAL password (not OAuth-only)
+    # Force refresh of session password state to fix any inconsistencies
+    def refresh_user_session_state():
+        """Refresh user session with current database state"""
+        if db and User and user_email:
+            try:
+                db_user = User.query.filter_by(email=user_email).first()
+                if db_user:
+                    # Update session with current database state
+                    session['user_auth_method'] = db_user.auth_method or 'local'
+                    session['user_role'] = db_user.role or 'user'
+                    session['user_name'] = db_user.username or user_email.split('@')[0]
+                    print(f"🔄 Refreshed session state for {user_email}")
+                    return db_user
+            except Exception as e:
+                print(f"⚠️ Session refresh failed: {e}")
+        return None
+    
+    # Refresh session state
+    current_db_user = refresh_user_session_state()
+    
+    # Check if user has existing LOCAL password using refreshed database state
     user_has_local_password = False
     user_auth_method = session.get('user_auth_method', 'local')
     
-    if db and User:
+    if current_db_user and hasattr(current_db_user, 'password_hash') and current_db_user.password_hash:
+        # User has a password hash in database
+        user_has_local_password = True
+    elif db and User and not current_db_user:
+        # Fallback if refresh failed
         try:
             user = User.query.filter_by(email=user_email).first()
             if user and hasattr(user, 'password_hash') and user.password_hash:
-                # Only consider it a "local password" if they actually have one
-                # OAuth users setting their FIRST local password should not be asked for current password
                 user_has_local_password = True
         except Exception:
             pass
