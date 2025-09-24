@@ -2306,19 +2306,36 @@ def migrate_notification_settings_to_db():
         print(f"⚠️ Error migrating notification settings: {e}")
 
 # Load notification settings from database (deployment-safe) with proper Flask context
-try:
-    with app.app_context():
-        app.config['NOTIFICATION_EMAILS'] = load_notification_settings()
-        # Auto-migrate from file to database if needed
-        if not app.config['NOTIFICATION_EMAILS'] and os.path.exists(os.path.join(BASE_DIR, 'notification_settings.json')):
-            print("🔄 Auto-migrating notification settings to database...")
-            migrate_notification_settings_to_db()
+# Use lazy loading to avoid blocking health checks during Railway deployment
+def lazy_load_notifications():
+    """Lazy load notification settings to avoid blocking health checks"""
+    try:
+        with app.app_context():
             app.config['NOTIFICATION_EMAILS'] = load_notification_settings()
-        
-        print(f"✅ Notification settings loaded successfully: {len(app.config['NOTIFICATION_EMAILS'])} recipients")
-except Exception as e:
-    print(f"⚠️ Error initializing notification settings: {e}")
-    app.config['NOTIFICATION_EMAILS'] = []
+            # Auto-migrate from file to database if needed
+            if not app.config['NOTIFICATION_EMAILS'] and os.path.exists(os.path.join(BASE_DIR, 'notification_settings.json')):
+                print("🔄 Auto-migrating notification settings to database...")
+                migrate_notification_settings_to_db()
+                app.config['NOTIFICATION_EMAILS'] = load_notification_settings()
+            
+            print(f"✅ Notification settings loaded successfully: {len(app.config['NOTIFICATION_EMAILS'])} recipients")
+    except Exception as e:
+        print(f"⚠️ Error initializing notification settings: {e}")
+        app.config['NOTIFICATION_EMAILS'] = []
+
+# Initialize with empty list to avoid blocking health checks
+app.config['NOTIFICATION_EMAILS'] = []
+print("🔄 Notification settings will be loaded on first use (lazy loading)")
+
+# Load notifications in background for Railway deployment
+import threading
+def background_notification_load():
+    """Load notifications in background thread"""
+    import time
+    time.sleep(2)  # Give app time to start up
+    lazy_load_notifications()
+
+threading.Thread(target=background_notification_load, daemon=True).start()
 
 # === CONTEXT PROCESSOR FOR TEMPLATES ===
 @app.context_processor
