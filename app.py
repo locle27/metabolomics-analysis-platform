@@ -1794,7 +1794,7 @@ def profile():
         
         current_user = UserData(user_email, user_role, user_name, auth_method)
         
-        return render_template('auth/profile.html', current_user=current_user, user=current_user, csrf_token=csrf_token)
+        return render_template('auth/profile_password.html', current_user=current_user, user=current_user, csrf_token=csrf_token)
     except Exception as e:
         print(f"⚠️ Profile route error: {e}")
         print(f"🔍 CSRF_AVAILABLE: {CSRF_AVAILABLE}")
