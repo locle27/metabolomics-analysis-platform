@@ -51,7 +51,23 @@ class StreamlinedCalculatorService:
             return None
 
     def _load_sample_index(self):
-        """Load sample index mapping from sample-index.xlsx"""
+        """Load sample index mapping from database with Excel fallback"""
+        try:
+            # Try loading from database first (supports multiple patterns)
+            from models import SampleIndex
+            samples = SampleIndex.query.all()
+            if samples:
+                data = {
+                    'sample': [s.sample for s in samples],
+                    'paired_nist': [s.paired_nist for s in samples]
+                }
+                df = pd.DataFrame(data)
+                print(f"✅ Loaded {len(df)} sample index entries from database")
+                return df
+        except Exception as e:
+            print(f"⚠️ Could not load from database: {e}, trying Excel files")
+
+        # Fallback to Excel file
         try:
             possible_paths = [
                 "/mnt/c/Users/T14/Desktop/metabolomics-project/sample-index.xlsx",
@@ -63,7 +79,7 @@ class StreamlinedCalculatorService:
             for sample_file in possible_paths:
                 if os.path.exists(sample_file):
                     df = pd.read_excel(sample_file)
-
+                    print(f"✅ Loaded {len(df)} sample index entries from Excel")
                     return df
 
             print("⚠️ sample-index.xlsx not found in any location, using dynamic mapping")
@@ -374,30 +390,63 @@ class StreamlinedCalculatorService:
 
     def determine_sample_numbering(self, sample_columns):
         """
-        Determine sample numbering based on user specification:
-            pass  # Fixed empty block
-        PH-HC_5600-5700 → NIST_5600-5700(1), NIST_5600-5700(2), etc.
-        PH-HC_1-100 → NIST_1-100(1), NIST_1-100(2), etc.
+        Determine sample numbering and pattern based on input file:
+        - PH-HC_1-100 → NIST_1-100(1), NIST_1-100(2), etc. (25 samples per NIST)
+        - SL_1-50 → NIST_SL (1) (50 samples per NIST)
+        - Auto-detects pattern from column names
         """
 
+        # Check if sample index database is available
+        if self.sample_index is not None and len(self.sample_index) > 0:
+            print(f"✅ Using sample index from database ({len(self.sample_index)} entries)")
+            # Database will handle mapping directly in find_matching_nist_column
+            return {
+                'base_number': 1,
+                'sample_range': 'database',
+                'nist_patterns': [],
+                'use_database': True
+            }
 
-        # Extract sample numbers from PH-HC_XXXX format
+        # Extract sample numbers from PH-HC_XXXX or SL_XXXX format
         sample_numbers = []
+        sample_pattern = None
+
         for col in sample_columns:
             try:
-                if 'PH-HC_' in str(col):
-                    num_str = str(col).replace('PH-HC_', '')
+                col_str = str(col)
+                # Detect Second List pattern (SL_)
+                if 'SL_' in col_str:
+                    num_str = col_str.replace('SL_', '')
                     if num_str.isdigit():
                         sample_numbers.append(int(num_str))
+                        sample_pattern = 'SL'
+                # Detect original PH-HC_ pattern
+                elif 'PH-HC_' in col_str:
+                    num_str = col_str.replace('PH-HC_', '')
+                    if num_str.isdigit():
+                        sample_numbers.append(int(num_str))
+                        sample_pattern = 'PH-HC'
             except:
                 continue
 
         if not sample_numbers:
-            print("⚠️ No valid PH-HC_ samples found, using default numbering")
+            print("⚠️ No valid PH-HC_ or SL_ samples found, using default numbering")
             return {
                 'base_number': 1,
                 'sample_range': '1-100',
-                'nist_patterns': ['NIST_1-100 (1)', 'NIST_1-100 (2)', 'NIST_1-100 (3)', 'NIST_1-100 (4)']
+                'nist_patterns': ['NIST_1-100 (1)', 'NIST_1-100 (2)', 'NIST_1-100 (3)', 'NIST_1-100 (4)'],
+                'use_database': False
+            }
+
+        # Handle Second List pattern (50 samples per 1 NIST)
+        if sample_pattern == 'SL':
+            print(f"✅ Detected Second List pattern: SL_1 to SL_{max(sample_numbers)}")
+            return {
+                'base_number': 1,
+                'sample_range': f'1-{max(sample_numbers)}',
+                'nist_patterns': ['NIST_SL (1)'],
+                'pattern_type': 'SL',
+                'use_database': False
             }
 
         sample_numbers.sort()
@@ -437,32 +486,61 @@ class StreamlinedCalculatorService:
             'base_number': base_hundred,
             'sample_range': sample_range,
             'nist_patterns': nist_patterns,
-            'actual_range': f"{min_sample}-{max_sample}"
+            'actual_range': f"{min_sample}-{max_sample}",
+            'use_database': False
         }
 
     def find_matching_nist_column(self, ph_hc_sample, nist_columns):
         """
-        Find the correct NIST column that matches a PH-HC sample.
-        Intelligently matches based on sample number ranges.
-
-        Examples:
-            pass  # Fixed empty block
-        PH-HC_6 → NIST_1-100 (1) [if 6 is in range 1-100]
-        PH-HC_5701 → NIST_5701-5800 (1) [if 5701 is in range 5701-5800]
+        Find the correct NIST column that matches a sample.
+        Supports multiple patterns:
+        - Database lookup (PH-HC_ or SL_ samples)
+        - PH-HC_6 → NIST_1-100 (1) [if 6 is in range 1-100]
+        - SL_25 → NIST_SL (1) [Second List pattern]
         """
         if not nist_columns:
             return None
 
-        # Extract sample number from PH-HC column
+        # Try database lookup first
+        if self.sample_index is not None and len(self.sample_index) > 0:
+            try:
+                sample_name = str(ph_hc_sample)
+                match = self.sample_index[self.sample_index['sample'] == sample_name]
+                if not match.empty:
+                    paired_nist = match.iloc[0]['paired_nist']
+                    # Find matching NIST column
+                    for nist_col in nist_columns:
+                        if paired_nist in str(nist_col):
+                            return nist_col
+            except Exception as e:
+                print(f"⚠️ Database lookup failed: {e}, falling back to pattern matching")
+
+        # Extract sample number from PH-HC_ or SL_ column
         try:
-            if 'PH-HC_' not in str(ph_hc_sample):
+            sample_str = str(ph_hc_sample)
+            sample_num = None
+
+            # Check for SL_ pattern
+            if 'SL_' in sample_str:
+                sample_num_str = sample_str.replace('SL_', '')
+                if sample_num_str.isdigit():
+                    sample_num = int(sample_num_str)
+                    # Second List: all samples use NIST_SL (1)
+                    for nist_col in nist_columns:
+                        if 'NIST_SL (1)' in str(nist_col) or 'NIST_SL(1)' in str(nist_col):
+                            return nist_col
+                    return None
+
+            # Check for PH-HC_ pattern
+            elif 'PH-HC_' in sample_str:
+                sample_num_str = sample_str.replace('PH-HC_', '')
+                if sample_num_str.isdigit():
+                    sample_num = int(sample_num_str)
+            else:
                 return None
 
-            sample_num_str = str(ph_hc_sample).replace('PH-HC_', '')
-            if not sample_num_str.isdigit():
+            if sample_num is None:
                 return None
-
-            sample_num = int(sample_num_str)
 
             # Find matching NIST column based on range
             best_match = None
