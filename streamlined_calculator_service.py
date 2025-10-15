@@ -3,6 +3,12 @@
 STREAMLINED METABOLOMICS CALCULATION SERVICE
 Complete recreation based on user specifications
 Single input file → 3-step calculation → 2-sheet output + preview
+
+NOW WITH INTELLIGENT FILE FORMAT DETECTION:
+- Auto-detects any file structure
+- Handles multi-row headers
+- Supports any sample pattern (PH-HC_, SL_, Alz_, custom)
+- Handles interleaved NIST columns
 """
 
 import pandas as pd
@@ -14,14 +20,16 @@ import os
 import uuid
 from datetime import datetime
 from models import db, CompoundIndex
+from file_format_detector import FileFormatDetector
 
 class StreamlinedCalculatorService:
-    """Professional metabolomics calculator with 3-step formula"""
+    """Professional metabolomics calculator with 3-step formula + intelligent format detection"""
 
     def __init__(self):
         self.ratio_database = self._load_ratio_database()
         self.sample_index = self._load_sample_index()
         self.compound_index = self._load_compound_index()
+        self.format_detector = FileFormatDetector()  # NEW: Intelligent format detection
 
         # Create normalized compound mapping for fast lookups
         self._compound_name_map = self._create_compound_name_map()
@@ -89,8 +97,34 @@ class StreamlinedCalculatorService:
             return None
 
     def _load_compound_index(self):
-        """Load compound index with ISTD mappings from compound-index.xlsx"""
+        """
+        Load compound index with ISTD mappings - DATABASE FIRST PRIORITY
+
+        Order of priority:
+        1. PostgreSQL database (891 compounds) - PREFERRED
+        2. Excel file fallback (807 compounds) - OUTDATED, only for offline use
+        """
         try:
+            # 🔥 PRIORITY 1: Try database first (complete data)
+            try:
+                compounds = CompoundIndex.query.all()
+                data = []
+                for comp in compounds:
+                    data.append({
+                        'Compound': comp.compound,
+                        'ISTD': comp.istd,
+                        'Conc. (nM)': comp.conc_nm,
+                        'Response factor': comp.response_factor
+                    })
+                df = pd.DataFrame(data) if data else None
+                if df is not None and len(df) > 0:
+                    print(f"✅ Loaded {len(df)} compounds from PostgreSQL database")
+                    return df
+            except Exception as db_error:
+                print(f"⚠️ Database not accessible: {db_error}")
+                print("   Falling back to Excel file (may be outdated)")
+
+            # 🔶 FALLBACK: Try Excel file (outdated, missing 84 compounds)
             possible_paths = [
                 "/mnt/c/Users/T14/Desktop/metabolomics-project/compound-index.xlsx",
                 "/mnt/c/Users/T14/Desktop/compound-index.xlsx",
@@ -101,30 +135,15 @@ class StreamlinedCalculatorService:
             for compound_file in possible_paths:
                 if os.path.exists(compound_file):
                     df = pd.read_excel(compound_file)
-
+                    print(f"⚠️ WARNING: Using outdated Excel file ({len(df)} compounds)")
+                    print(f"   Database has 891 compounds, Excel has {len(df)} - missing {891 - len(df)} compounds")
                     return df
 
-            print("⚠️ compound-index.xlsx not found in any location, trying database")
-            # Fallback to database
-            try:
-                compounds = CompoundIndex.query.all()
-                data = []
-                for comp in compounds:
-                    data.append({
-                        'Compound': comp.compound,
-                        'ISTD': comp.istd,  # Updated to match corrected Excel format
-                        'Conc. (nM)': comp.conc_nm,  # Updated to match corrected Excel format
-                        'Response factor': comp.response_factor  # Updated to match corrected Excel format
-                    })
-                df = pd.DataFrame(data) if data else None
-                if df is not None:
-                    pass  # Database compounds loaded successfully
-                return df
-            except:
-                print("⚠️ Database not accessible, using defaults")
-                return None
+            print("❌ ERROR: No compound source available (neither database nor Excel)")
+            return None
+
         except Exception as e:
-            print(f"⚠️ Error loading Compound index: {e}")
+            print(f"❌ Error loading Compound index: {e}")
             return None
 
     def _normalize_compound_name(self, compound_name):
@@ -341,6 +360,32 @@ class StreamlinedCalculatorService:
                 cleaned_values.append(0.0)
 
         return np.array(cleaned_values, dtype=float)
+
+    def refresh_from_database(self):
+        """
+        🔄 Refresh compound index from PostgreSQL database
+        Call this method when you have app context to ensure latest data
+        """
+        try:
+            compounds = CompoundIndex.query.all()
+            data = []
+            for comp in compounds:
+                data.append({
+                    'Compound': comp.compound,
+                    'ISTD': comp.istd,
+                    'Conc. (nM)': comp.conc_nm,
+                    'Response factor': comp.response_factor
+                })
+            df = pd.DataFrame(data) if data else None
+            if df is not None and len(df) > 0:
+                self.compound_index = df
+                # Rebuild the compound name map with fresh data
+                self._compound_name_map = self._create_compound_name_map()
+                print(f"✅ Refreshed {len(df)} compounds from PostgreSQL database")
+                return True
+        except Exception as e:
+            print(f"⚠️ Could not refresh from database: {e}")
+            return False
 
     def _create_compound_name_map(self):
         """Create a mapping of normalized compound names to original database entries"""
@@ -691,22 +736,15 @@ class StreamlinedCalculatorService:
 
                         return compound_info
 
-            # If still no match, use defaults
+            # If still no match, return None to indicate missing compound
+            # Caller should handle missing compounds appropriately
             variations_tried = self._normalize_compound_name(substance)
-            print(f"⚠️ Compound '{substance}' not found in database after trying {len(variations_tried)} variations, using fallback defaults")
-            return {
-                'istd': 'LPC 18:1 d7',
-                'conc_nm': 90.029,
-                'response_factor': 1.0
-            }
+            print(f"❌ MISSING: Compound '{substance}' not found in database after trying {len(variations_tried)} variations")
+            return None  # Return None instead of fallback
 
         except Exception as e:
             print(f"⚠️ Error getting compound info for {substance}: {e}")
-            return {
-                'istd': 'LPC 18:1 d7',
-                'conc_nm': 90.029,
-                'response_factor': 1.0
-            }
+            return None  # Return None instead of fallback
 
     def debug_excel_structure(self, area_file):
         """Debug function to analyze Excel file structure"""
@@ -757,72 +795,31 @@ class StreamlinedCalculatorService:
         print(f"   Coefficient: {coefficient}")
 
         try:
-            # ⚡ ULTRA ENHANCED: Multi-step Excel analysis with robust header detection
+            # 🔥 REFRESH FROM DATABASE: Ensure we have latest compound data (891 compounds)
+            print("\n🔄 Refreshing compound data from PostgreSQL database...")
+            refresh_success = self.refresh_from_database()
+            if not refresh_success:
+                print("⚠️ Using cached compound data (may be from outdated Excel file)")
 
-            
-            # First read to detect full structure
-            raw_df = pd.read_excel(area_file, header=None)
+            # ⚡ INTELLIGENT FILE FORMAT DETECTION
+            print("\n🧠 Using intelligent file format detector...")
 
+            # Detect file format automatically
+            format_info = self.format_detector.analyze_file(area_file)
 
+            # Prepare clean dataframe with proper structure
+            area_data = self.format_detector.prepare_dataframe(area_file)
 
-            # STEP 1: Find the actual header row (look for PH-HC patterns)
-            header_row = 0
-            data_start_row = 1
+            # Get sample-to-NIST mapping from detector
+            sample_to_nist_map = self.format_detector.get_sample_to_nist_mapping()
 
-            print("🔎 Analyzing potential header rows...")
-            for row_idx in range(min(15, len(raw_df))):
-                row_values = [str(val) for val in raw_df.iloc[row_idx].tolist()]
-                ph_hc_count = sum(1 for val in row_values if 'PH-HC' in str(val))
-                nist_count = sum(1 for val in row_values if 'NIST' in str(val))
+            print(f"\n✅ File loaded with intelligent detection:")
+            print(f"   Pattern: {format_info['sample_pattern']}")
+            print(f"   Samples: {format_info['num_samples']}")
+            print(f"   NIST standards: {len(format_info['nist_columns'])}")
 
-                print(f"   Row {row_idx}: PH-HC columns={ph_hc_count}, NIST columns={nist_count}, First cell='{raw_df.iloc[row_idx, 0]}'")
-
-                # If this row has multiple PH-HC patterns, it's likely the header
-                if ph_hc_count >= 2:  # Need at least 2 PH-HC columns to be a proper header
-                    header_row = row_idx
-                    data_start_row = row_idx + 1  # Data starts in the next row
-
-                    break
-
-            # STEP 2: Read with proper header
-            area_data = pd.read_excel(area_file, header=header_row)
-
-
-
-            # STEP 3: Critical adjustment - remove header row data contamination
-            # Since pandas includes the header row in the data, we need to adjust indices
-            first_data_value = area_data.iloc[0, 0] if not area_data.empty else "N/A"
-
-
-            # If first row still contains header-like data, skip it
-            skip_rows = 0
-            if str(first_data_value).strip() in ['Name', 'Compound', 'Substance', 'Method', 'Chemical']:
-                skip_rows = 1
-                print(f"⚠️ Skipping first data row as it contains header artifacts")
-
-            # Apply skip if needed
-            if skip_rows > 0:
-                area_data = area_data.iloc[skip_rows:].reset_index(drop=True)
-
-                new_first_value = area_data.iloc[0, 0] if not area_data.empty else "N/A"
-
-
-            # STEP 4: Enhanced data validation
-
-            # Smart column detection - look for compound column
-            compound_column = None
-            for col in area_data.columns:
-                col_name = str(col).lower()
-                if any(keyword in col_name for keyword in ['compound', 'substance', 'lipid', 'metabolite', 'method']):
-                    compound_column = col
-                    break
-
-            # If no obvious compound column, use first column
-            if compound_column is None:
-                compound_column = area_data.columns[0]
-                print(f"⚠️ No obvious compound column found, using first column: '{compound_column}'")
-            else:
-                pass  # Compound column already found
+            # Use the detected compound column
+            compound_column = 'Compound'  # Already standardized by detector
 
             # Check if compound column has valid data
             if compound_column not in area_data.columns:
@@ -874,55 +871,38 @@ class StreamlinedCalculatorService:
 
 
 
-            sample_columns = [col for col in area_data.columns
-                            if col != compound_column and 'PH-HC' in str(col)]
+            # Use detected columns from intelligent format detector
+            sample_columns = format_info['sample_columns']
+            nist_columns = format_info['nist_columns']
 
-            # Also detect NIST columns for the new ratio calculation
-            nist_columns = [col for col in area_data.columns
-                           if col != compound_column and 'NIST' in str(col)]
+            print(f"\n✅ Detected columns:")
+            print(f"   Sample columns: {len(sample_columns)} ({sample_columns[0] if sample_columns else 'none'} ... {sample_columns[-1] if sample_columns else 'none'})")
+            print(f"   NIST columns: {nist_columns}")
 
-            # Sort sample columns numerically (not alphabetically)
-            def extract_sample_number(col_name):
-                try:
-                    if 'PH-HC_' in str(col_name):
-                        num_str = str(col_name).replace('PH-HC_', '')
-                        return int(num_str)
-                    return 999999  # Put non-numeric at end
-                except:
-                    return 999999
-
-            sample_columns = sorted(sample_columns, key=extract_sample_number)
-
-            # Sort NIST columns for consistent ordering
-            nist_columns = sorted(nist_columns)
+            # Columns are already sorted by detector in their natural file order
 
 
 
 
 
 
-            # ⚡ ULTRA ENHANCED DIAGNOSTIC: Deep analysis of AcylCarnitine 10:0 data extraction
+            # ⚡ DIAGNOSTIC: Verify data extraction for first compound
+            if len(substances) > 0:
+                first_compound = substances[0]
+                first_index = 0
 
-
-            if 'AcylCarnitine 10:0' in substances:
-                acyl_index = substances.index('AcylCarnitine 10:0')
-
-                print(f"   DataFrame row index (after header adjustment): {acyl_index}")
-
-                # Show the actual Excel row being accessed
-                actual_excel_row = header_row + 1 + skip_rows + acyl_index
-                print(f"   Actual Excel file row: {actual_excel_row}")
+                print(f"\n🔍 First compound verification: {first_compound}")
 
                 # Check the raw compound name in that row
-                actual_compound_name = area_data.iloc[acyl_index][compound_column]
+                actual_compound_name = area_data.iloc[first_index][compound_column]
                 print(f"   Actual compound name in DataFrame: '{actual_compound_name}'")
 
                 # Deep dive into area values with enhanced diagnostic
-
                 for idx, col in enumerate(sample_columns[:3]):
                     if col in area_data.columns:
-                        raw_area_val = area_data.iloc[acyl_index][col]
+                        raw_area_val = area_data.iloc[first_index][col]
                         cleaned_area_val = self._clean_area_values([raw_area_val])[0]
+                        print(f"   {col}: raw={raw_area_val}, cleaned={cleaned_area_val}")
 
                         # Enhanced diagnostic info
                         val_type = type(raw_area_val).__name__
@@ -996,9 +976,21 @@ class StreamlinedCalculatorService:
             # Pre-compute ISTD index mappings to avoid nested loops
             istd_index_map = {}
             compound_info_map = {}
+            missing_compounds = []  # Track compounds not found in database
 
             for i, substance in enumerate(substances):
                 compound_info = self.get_compound_info(substance)
+
+                # Check if compound was found in database
+                if compound_info is None:
+                    missing_compounds.append(substance)
+                    # Use minimal defaults to allow processing to continue
+                    compound_info = {
+                        'istd': 'MISSING',
+                        'conc_nm': 0.0,
+                        'response_factor': 0.0
+                    }
+
                 compound_info_map[substance] = compound_info
                 istd_name = compound_info['istd']
 
@@ -1010,10 +1002,9 @@ class StreamlinedCalculatorService:
                 else:
                     istd_index_map[substance] = -1  # ISTD not found
 
-            # Pre-compute NIST column mappings for all PH-HC samples
-            nist_mapping_cache = {}
-            for sample_col in sample_columns:
-                nist_mapping_cache[sample_col] = self.find_matching_nist_column(sample_col, nist_columns)
+            # Use intelligent detector's sample-to-NIST mapping (already computed)
+            nist_mapping_cache = sample_to_nist_map
+            print(f"\n✅ Using intelligent sample-to-NIST mapping ({len(nist_mapping_cache)} mappings)")
 
 
 
@@ -1224,8 +1215,36 @@ class StreamlinedCalculatorService:
                     print(f"   Available substances: {list(nist_df['Substance'].head())}")
             else:
 
-            
+
                 pass  # Fixed empty block
+
+            # ⚠️ REPORT MISSING COMPOUNDS
+            if missing_compounds:
+                print("\n" + "="*80)
+                print("❌ ERROR: COMPOUNDS NOT FOUND IN DATABASE")
+                print("="*80)
+                print(f"\n{len(missing_compounds)} compounds were not found in the database:")
+                print("\nMissing compounds list:")
+                for idx, compound in enumerate(missing_compounds[:100], 1):  # Show first 100
+                    print(f"  {idx}. {compound}")
+                if len(missing_compounds) > 100:
+                    print(f"\n  ... and {len(missing_compounds) - 100} more")
+
+                print(f"\n⚠️ These compounds have been processed with placeholder values:")
+                print(f"   - ISTD: MISSING")
+                print(f"   - Concentration: 0.0 nM")
+                print(f"   - Response Factor: 0.0")
+                print(f"\n💡 ACTION REQUIRED:")
+                print(f"   Add these {len(missing_compounds)} compounds to the database with correct ISTD mappings")
+                print(f"   before processing this file for production use.")
+                print("="*80 + "\n")
+
+                # Optionally raise an exception to stop processing
+                # Uncomment the line below if you want to abort on missing compounds
+                # raise ValueError(f"{len(missing_compounds)} compounds missing from database")
+            else:
+                print("\n✅ All compounds found in database - no missing entries")
+
             return {
                 'nist_data': nist_df,
                 'agilent_data': agilent_df,
@@ -1234,7 +1253,8 @@ class StreamlinedCalculatorService:
                 'numbering_info': numbering_info,
                 'substance_count': len(substances),
                 'sample_count': len(sample_columns),
-                'nist_column_count': len(nist_columns)
+                'nist_column_count': len(nist_columns),
+                'missing_compounds': missing_compounds  # Include missing compounds in results
             }
 
         except Exception as e:
