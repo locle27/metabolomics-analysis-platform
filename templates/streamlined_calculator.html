@@ -611,6 +611,160 @@
         transform: translateY(-1px);
         box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);
     }
+
+    /* Format Selection Cards */
+    .format-selection {
+        margin: 40px 0;
+    }
+
+    .format-card {
+        background: white;
+        border: 3px solid #e9ecef;
+        border-radius: 15px;
+        padding: 30px;
+        cursor: pointer;
+        transition: all 0.4s ease;
+        position: relative;
+        height: 100%;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    .format-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .format-card.selected {
+        border-width: 4px;
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        transform: translateY(-10px);
+    }
+
+    .format-card.format-1 {
+        border-color: #0066cc;
+    }
+
+    .format-card.format-1:hover,
+    .format-card.format-1.selected {
+        border-color: #0052a3;
+        background: linear-gradient(135deg, #f0f7ff, #e6f2ff);
+    }
+
+    .format-card.format-2 {
+        border-color: #28a745;
+    }
+
+    .format-card.format-2:hover,
+    .format-card.format-2.selected {
+        border-color: #218838;
+        background: linear-gradient(135deg, #f0fff4, #e6ffe6);
+    }
+
+    .format-badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: #0066cc;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        box-shadow: 0 3px 10px rgba(0, 102, 204, 0.3);
+    }
+
+    .format-2-badge {
+        background: #28a745;
+        box-shadow: 0 3px 10px rgba(40, 167, 69, 0.3);
+    }
+
+    .format-card h4 {
+        color: #2c3e50;
+        margin: 15px 0 20px 0;
+        font-weight: 700;
+        font-size: 22px;
+    }
+
+    .format-details {
+        margin-top: 15px;
+    }
+
+    .format-details p {
+        color: #495057;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+
+    .format-details ul {
+        list-style: none;
+        padding-left: 0;
+        margin: 0;
+    }
+
+    .format-details li {
+        padding: 8px 0;
+        color: #6c757d;
+        font-size: 14px;
+        position: relative;
+        padding-left: 25px;
+    }
+
+    .format-details li::before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: #28a745;
+        font-weight: 900;
+        font-size: 16px;
+    }
+
+    .format-1 .format-details li::before {
+        color: #0066cc;
+    }
+
+    /* Upload Section Styling */
+    .upload-section {
+        margin: 30px 0;
+        animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .format-1-upload {
+        border-color: #0066cc;
+    }
+
+    .format-1-upload:hover {
+        border-color: #0052a3;
+        background: #f0f7ff;
+    }
+
+    .format-2-upload {
+        border-color: #28a745;
+    }
+
+    .format-2-upload:hover {
+        border-color: #218838;
+        background: #f0fff4;
+    }
+
+    .format-2-button {
+        background: linear-gradient(135deg, #28a745, #20c997);
+    }
+
+    .format-2-button:hover {
+        box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+    }
 </style>
 {% endblock %}
 
@@ -676,22 +830,94 @@
                     </div>
                 </div>
 
-                <!-- File Upload Section -->
-                <div class="upload-zone" onclick="document.getElementById('areaFile').click()">
-                    <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: #6c757d; margin-bottom: 20px;"></i>
-                    <h4>Upload Area-Compound Excel File</h4>
-                    <p class="text-muted mb-3">
-                        Single file with compound area data<br>
-                        <strong>Required:</strong> Only the area-compound.xlsx file needed
-                    </p>
-                    
-                    <input type="file" id="areaFile" class="file-input" accept=".xlsx,.xls">
-                    <button type="button" class="upload-button">
-                        <i class="fas fa-file-excel me-2"></i>Choose Excel File
-                    </button>
-                    
-                    <div id="fileInfo" class="mt-3" style="display: none;">
-                        <!-- File info will be displayed here -->
+                <!-- 🔵 FORMAT SELECTION -->
+                <div class="format-selection mb-4">
+                    <h3 class="text-center mb-4">
+                        <i class="fas fa-list-alt me-2"></i>
+                        Select Your File Format
+                    </h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="format-card format-1" onclick="selectFormat(1)">
+                                <div class="format-badge">FORMAT 1</div>
+                                <h4><i class="fas fa-file-excel me-2"></i>PH-HC Format</h4>
+                                <div class="format-details">
+                                    <p><strong>Structure:</strong></p>
+                                    <ul>
+                                        <li>100 samples per file</li>
+                                        <li>4 NIST standards at END</li>
+                                        <li>Single-row header</li>
+                                        <li>Pattern: PH-HC_XXXX</li>
+                                        <li>Fixed 25 samples per NIST</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="format-card format-2" onclick="selectFormat(2)">
+                                <div class="format-badge format-2-badge">FORMAT 2</div>
+                                <h4><i class="fas fa-file-excel me-2"></i>ALZ/SL Format</h4>
+                                <div class="format-details">
+                                    <p><strong>Structure:</strong></p>
+                                    <ul>
+                                        <li>Variable samples (40/50)</li>
+                                        <li>Variable NIST (1-2) INTERLEAVED</li>
+                                        <li>Multi-row header</li>
+                                        <li>Pattern: Alz_X or SL_X</li>
+                                        <li>Transition column present</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 📤 FORMAT 1: PH-HC UPLOAD SECTION -->
+                <div id="format1Upload" class="upload-section" style="display: none;">
+                    <div class="upload-zone format-1-upload" onclick="document.getElementById('areaFile').click()">
+                        <div class="format-badge">FORMAT 1</div>
+                        <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: #0066cc; margin-bottom: 20px;"></i>
+                        <h4>Upload PH-HC Format File</h4>
+                        <p class="text-muted mb-3">
+                            <strong>Expected Structure:</strong><br>
+                            • 100 samples (PH-HC_XXXX)<br>
+                            • 4 NIST standards at end<br>
+                            • Single-row header<br>
+                            • Fixed 25 samples per NIST
+                        </p>
+
+                        <input type="file" id="areaFile" class="file-input" accept=".xlsx,.xls">
+                        <button type="button" class="upload-button">
+                            <i class="fas fa-file-excel me-2"></i>Choose PH-HC File
+                        </button>
+
+                        <div id="fileInfo" class="mt-3" style="display: none;">
+                            <!-- File info will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 📤 FORMAT 2: ALZ/SL UPLOAD SECTION -->
+                <div id="format2Upload" class="upload-section" style="display: none;">
+                    <div class="upload-zone format-2-upload" onclick="document.getElementById('areaFile').click()">
+                        <div class="format-badge format-2-badge">FORMAT 2</div>
+                        <i class="fas fa-cloud-upload-alt" style="font-size: 48px; color: #28a745; margin-bottom: 20px;"></i>
+                        <h4>Upload ALZ/SL Format File</h4>
+                        <p class="text-muted mb-3">
+                            <strong>Expected Structure:</strong><br>
+                            • Variable samples (40 in ALZ, 50 in SL)<br>
+                            • Variable NIST (1-2) interleaved<br>
+                            • Multi-row header (Area/Transition)<br>
+                            • Transition column with mass spec data
+                        </p>
+
+                        <button type="button" class="upload-button format-2-button">
+                            <i class="fas fa-file-excel me-2"></i>Choose ALZ/SL File
+                        </button>
+
+                        <div id="fileInfo2" class="mt-3" style="display: none;">
+                            <!-- File info will be displayed here -->
+                        </div>
                     </div>
                 </div>
 
@@ -868,6 +1094,32 @@
 let calculationResults = null;
 let currentFileName = null;
 
+// Format Selection Handler
+function selectFormat(formatNumber) {
+    console.log(`📋 Selected format: ${formatNumber}`);
+
+    // Hide all upload sections
+    document.getElementById('format1Upload').style.display = 'none';
+    document.getElementById('format2Upload').style.display = 'none';
+
+    // Show selected format upload section with animation
+    const selectedSection = document.getElementById(`format${formatNumber}Upload`);
+    selectedSection.style.display = 'block';
+
+    // Update visual selection state on cards
+    document.querySelectorAll('.format-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    document.querySelector(`.format-${formatNumber}`).classList.add('selected');
+
+    // Smooth scroll to upload section
+    setTimeout(() => {
+        selectedSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 200);
+
+    console.log(`✅ Format ${formatNumber} upload section displayed`);
+}
+
 // File upload handling
 document.getElementById('areaFile').addEventListener('change', function(e) {
     const file = e.target.files[0];
@@ -890,29 +1142,36 @@ document.getElementById('areaFile').addEventListener('change', function(e) {
     }
 });
 
-// Drag and drop functionality
-const uploadZone = document.querySelector('.upload-zone');
+// Drag and drop functionality - attach to both upload zones
+function setupDragAndDrop() {
+    const uploadZones = document.querySelectorAll('.upload-zone');
 
-uploadZone.addEventListener('dragover', function(e) {
-    e.preventDefault();
-    this.classList.add('dragover');
-});
+    uploadZones.forEach(zone => {
+        zone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
 
-uploadZone.addEventListener('dragleave', function(e) {
-    e.preventDefault();
-    this.classList.remove('dragover');
-});
+        zone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        });
 
-uploadZone.addEventListener('drop', function(e) {
-    e.preventDefault();
-    this.classList.remove('dragover');
-    
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-        document.getElementById('areaFile').files = files;
-        document.getElementById('areaFile').dispatchEvent(new Event('change'));
-    }
-});
+        zone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('areaFile').files = files;
+                document.getElementById('areaFile').dispatchEvent(new Event('change'));
+            }
+        });
+    });
+}
+
+// Initialize drag and drop after DOM is ready
+setupDragAndDrop();
 
 // Debug function removed for cleaner interface
 
