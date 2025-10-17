@@ -21,6 +21,7 @@ import uuid
 from datetime import datetime
 from models import db, CompoundIndex
 from file_format_detector import FileFormatDetector
+from calculation_handlers import CalculationHandlerFactory
 
 class StreamlinedCalculatorService:
     """Professional metabolomics calculator with 3-step formula + intelligent format detection"""
@@ -1015,166 +1016,40 @@ class StreamlinedCalculatorService:
             # Create column index mappings for fast lookup
             col_to_idx = {col: idx for idx, col in enumerate(area_data.columns)}
 
-            # Initialize results
-            nist_results = []
-            agilent_results = []
-            nist_ratio_results = []  # New: for NIST ratio calculations
-            detailed_calculations = {}  # Store detailed calculation breakdowns (only when needed)
+            # 🚀 NEW: Use specialized calculation handler based on format type
+            print(f"\n{'='*80}")
+            print(f"🎯 SELECTING CALCULATION HANDLER")
+            print(f"{'='*80}")
 
-            # Process each substance (optimized)
-            for i, substance in enumerate(substances):
-                if i % 100 == 0:  # Reduce logging frequency for performance
-                    pass  # Fixed empty block
+            # Get appropriate handler for this format
+            handler = CalculationHandlerFactory.get_handler(format_info, self)
 
-                # Get cached compound information
-                compound_info = compound_info_map[substance]
-                istd_name = compound_info['istd']
-                istd_row_index = istd_index_map[substance]
+            # Delegate calculation to specialized handler
+            calculation_results = handler.calculate(
+                area_data=area_data,
+                format_info=format_info,
+                sample_to_nist_map=sample_to_nist_map,
+                compound_info_map=compound_info_map,
+                istd_index_map=istd_index_map,
+                substances=substances,
+                coefficient=coefficient
+            )
 
-                # Note: We no longer use pre-calculated NIST ratios from database
-                # All NIST calculations now use only actual area values from input file
+            # Extract results from handler
+            nist_df = calculation_results['nist_data']
+            agilent_df = calculation_results['agilent_data']
+            nist_ratio_df = calculation_results['nist_ratio_data']
 
-                substance_nist_row = {'Substance': substance}
-                substance_agilent_row = {'Substance': substance}
-                substance_nist_ratio_row = {'Substance': substance}  # New: for NIST ratios
+            # 📝 OLD CALCULATION LOOP REPLACED BY HANDLER SYSTEM
+            # The old inline calculation has been moved to calculation_handlers.py
+            # for better separation of concerns and format-specific optimizations
 
-                # ⚡ OPTIMIZED: Process all samples at once using vectorized operations
-                istd_found = istd_row_index >= 0
+            detailed_calculations = {}  # Detailed calculations moved to handlers
 
-                # Get all sample areas at once (vectorized)
-                sample_col_indices = [col_to_idx[col] for col in sample_columns if col in col_to_idx]
-                raw_substance_areas = area_data.iloc[i, sample_col_indices].values
+            # ⚡ The entire calculation loop (160+ lines) has been replaced with handler.calculate()
+            # Old code removed for clarity - see calculation_handlers.py for implementation
 
-                # ⚡ CRITICAL: Clean and convert all values to numeric (handle strings, NaN, etc.)
-                substance_areas = self._clean_area_values(raw_substance_areas)
-
-                if istd_found:
-                    raw_istd_areas = area_data.iloc[istd_row_index, sample_col_indices].values
-                    istd_areas = self._clean_area_values(raw_istd_areas)
-                else:
-                    istd_areas = np.ones(len(sample_col_indices))  # Avoid division by zero
-
-                # Replace zeros with 1 to avoid division by zero
-                istd_areas = np.where(istd_areas == 0, 1.0, istd_areas)
-
-                # STEP 1: Calculate all ratios at once (vectorized)
-                ratios = substance_areas / istd_areas
-
-                # Process NIST calculations for each sample
-                nist_ratios = np.zeros(len(sample_columns))
-                nist_cols_used = []
-
-                for idx, sample_col in enumerate(sample_columns):
-                    # Get cached NIST column mapping
-                    nist_col_used = nist_mapping_cache.get(sample_col, "No NIST columns found")
-                    nist_cols_used.append(nist_col_used)
-
-                    if nist_col_used and nist_col_used != "No NIST columns found" and nist_col_used in col_to_idx:
-                        try:
-                            nist_col_idx = col_to_idx[nist_col_used]
-                            raw_nist_substance_area = area_data.iloc[i, nist_col_idx]
-
-                            # ⚡ SAFE: Use data cleaning for individual values
-                            clean_nist_substance_area = self._clean_area_values([raw_nist_substance_area])[0]
-
-                            if istd_found:
-                                raw_nist_istd_area = area_data.iloc[istd_row_index, nist_col_idx]
-                                clean_nist_istd_area = self._clean_area_values([raw_nist_istd_area])[0]
-
-                                if clean_nist_substance_area != 0 and clean_nist_istd_area != 0:
-                                    nist_ratios[idx] = clean_nist_substance_area / clean_nist_istd_area
-                        except Exception as e:
-                            print(f"⚠️ Error getting NIST areas from {nist_col_used}: {e}")
-
-                # STEP 2: Calculate NIST results (vectorized)
-                final_nist_ratios = np.where(nist_ratios != 0, nist_ratios, 1.0)  # Use 1.0 instead of 0 to avoid division issues
-                # ⚡ SAFE: Use numpy's safe division to avoid runtime warnings
-                with np.errstate(divide='ignore', invalid='ignore'):
-                    nist_results_vec = np.where(final_nist_ratios != 1.0, ratios / final_nist_ratios, 0)
-
-                # STEP 3: Calculate Agilent results (vectorized)
-                agilent_results_vec = (ratios *
-                                     compound_info['conc_nm'] *
-                                     compound_info['response_factor'] *
-                                     coefficient)
-
-                # Store results efficiently
-                for idx, sample_col in enumerate(sample_columns):
-                    nist_val = float(nist_results_vec[idx])
-                    agilent_val = float(agilent_results_vec[idx])
-
-                    # ⚡ DIAGNOSTIC: Check for zero results and log details
-                    if substance == 'AcylCarnitine 10:0' and idx < 3:  # Log first 3 samples for debugging
-                        ratio_val = float(ratios[idx]) if idx < len(ratios) else 0
-                        nist_ratio_val = float(final_nist_ratios[idx]) if idx < len(final_nist_ratios) else 0
-
-
-                    substance_nist_row[sample_col] = nist_val
-                    substance_agilent_row[sample_col] = agilent_val
-
-                    # Only create detailed calculations on-demand (saves memory and time)
-
-                # ⚡ OPTIMIZED: Process NIST columns for ratio calculation (vectorized)
-                nist_col_indices = [col_to_idx[col] for col in nist_columns if col in col_to_idx]
-                if nist_col_indices:
-                    raw_nist_substance_areas = area_data.iloc[i, nist_col_indices].values
-                    nist_substance_areas = self._clean_area_values(raw_nist_substance_areas)
-
-                    if istd_found:
-                        raw_nist_istd_areas = area_data.iloc[istd_row_index, nist_col_indices].values
-                        nist_istd_areas = self._clean_area_values(raw_nist_istd_areas)
-                        # Replace zeros with 1 to avoid division by zero
-                        nist_istd_areas = np.where(nist_istd_areas == 0, 1.0, nist_istd_areas)
-                        nist_ratios_for_substance = nist_substance_areas / nist_istd_areas
-                    else:
-                        nist_ratios_for_substance = np.zeros(len(nist_col_indices))
-
-                    # Store NIST ratio results
-                    for idx, nist_col in enumerate(nist_columns):
-                        if idx < len(nist_ratios_for_substance):
-                            substance_nist_ratio_row[nist_col] = float(nist_ratios_for_substance[idx])
-
-                # Add results to final arrays
-                nist_results.append(substance_nist_row)
-                agilent_results.append(substance_agilent_row)
-                nist_ratio_results.append(substance_nist_ratio_row)
-
-                # Generate detailed calculations for more samples (first 25 for better coverage)
-                if i < 100:  # Only for first 100 substances to avoid performance impact
-                    # ⚡ ENHANCED: Generate details for first 25 PH-HC samples
-                    for sample_idx in range(min(25, len(sample_columns))):
-                        sample = sample_columns[sample_idx]
-                        try:
-                            details = self.create_calculation_details_on_demand(
-                                area_data, substance, sample, i, istd_index_map,
-                                compound_info_map, nist_mapping_cache, coefficient
-                            )
-                            detail_key = f"{substance}_{sample}"
-                            detailed_calculations[detail_key] = details
-                        except Exception as detail_error:
-                            # Don't fail the whole calculation for detail errors
-                            print(f"⚠️ Failed to create details for {substance}_{sample}: {detail_error}")
-
-                    # ⚡ NEW: Generate details for NIST columns (first 10 to avoid performance impact)
-                    for nist_idx in range(min(10, len(nist_columns))):
-                        nist_col = nist_columns[nist_idx]
-                        try:
-                            nist_details = self.create_nist_calculation_details_on_demand(
-                                area_data, substance, nist_col, i, istd_index_map,
-                                compound_info_map, coefficient
-                            )
-                            nist_detail_key = f"{substance}_{nist_col}"
-                            detailed_calculations[nist_detail_key] = nist_details
-                        except Exception as nist_detail_error:
-                            print(f"⚠️ Failed to create NIST details for {substance}_{nist_col}: {nist_detail_error}")
-
-
-
-
-            # Convert to DataFrames
-            nist_df = pd.DataFrame(nist_results)
-            agilent_df = pd.DataFrame(agilent_results)
-            nist_ratio_df = pd.DataFrame(nist_ratio_results)
+            # DataFrames already created by handler (nist_df, agilent_df, nist_ratio_df)
 
             # Ensure column order: Substance first, then samples in numerical order
             if len(nist_df.columns) > 1:
