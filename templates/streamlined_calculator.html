@@ -838,7 +838,7 @@
                     </h3>
                     <div class="row">
                         <div class="col-md-6">
-                            <div class="format-card format-1" onclick="selectFormat(1)">
+                            <div class="format-card format-1" data-format="1">
                                 <div class="format-badge">FORMAT 1</div>
                                 <h4><i class="fas fa-file-excel me-2"></i>PH-HC Format</h4>
                                 <div class="format-details">
@@ -854,7 +854,7 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="format-card format-2" onclick="selectFormat(2)">
+                            <div class="format-card format-2" data-format="2">
                                 <div class="format-badge format-2-badge">FORMAT 2</div>
                                 <h4><i class="fas fa-file-excel me-2"></i>ALZ/SL Format</h4>
                                 <div class="format-details">
@@ -1120,32 +1120,52 @@ function selectFormat(formatNumber) {
     console.log(`✅ Format ${formatNumber} upload section displayed`);
 }
 
-// File upload handling
-document.getElementById('areaFile').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        currentFileName = file.name;
-        
-        // Show file info
-        const fileInfo = document.getElementById('fileInfo');
-        fileInfo.style.display = 'block';
-        fileInfo.innerHTML = `
-            <div class="alert alert-success">
-                <i class="fas fa-check-circle me-2"></i>
-                <strong>${file.name}</strong> selected
-                <br><small>Size: ${(file.size / 1024 / 1024).toFixed(2)} MB</small>
-            </div>
-        `;
-        
-        // Enable process button
-        document.getElementById('processButton').disabled = false;
-    }
+// Initialize format card click handlers (AFTER DOM LOADS)
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎯 Initializing format selection cards...');
+
+    // Attach event listeners to format cards
+    document.querySelectorAll('.format-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const formatNumber = parseInt(this.getAttribute('data-format'));
+            selectFormat(formatNumber);
+        });
+    });
+
+    console.log('✅ Format cards initialized');
 });
 
-// Drag and drop functionality - attach to both upload zones
-function setupDragAndDrop() {
-    const uploadZones = document.querySelectorAll('.upload-zone');
+// File upload handling
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('areaFile');
+    if (!fileInput) return;
 
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            currentFileName = file.name;
+
+            // Show file info
+            const fileInfo = document.getElementById('fileInfo');
+            if (fileInfo) {
+                fileInfo.style.display = 'block';
+                fileInfo.innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>${file.name}</strong> selected
+                        <br><small>Size: ${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+                    </div>
+                `;
+            }
+
+            // Enable process button
+            const processBtn = document.getElementById('processButton');
+            if (processBtn) processBtn.disabled = false;
+        }
+    });
+
+    // Setup drag and drop for upload zones
+    const uploadZones = document.querySelectorAll('.upload-zone');
     uploadZones.forEach(zone => {
         zone.addEventListener('dragover', function(e) {
             e.preventDefault();
@@ -1163,15 +1183,14 @@ function setupDragAndDrop() {
 
             const files = e.dataTransfer.files;
             if (files.length > 0) {
-                document.getElementById('areaFile').files = files;
-                document.getElementById('areaFile').dispatchEvent(new Event('change'));
+                fileInput.files = files;
+                fileInput.dispatchEvent(new Event('change'));
             }
         });
     });
-}
 
-// Initialize drag and drop after DOM is ready
-setupDragAndDrop();
+    console.log('✅ File upload and drag-drop initialized');
+});
 
 // Debug function removed for cleaner interface
 
@@ -1396,16 +1415,21 @@ async function downloadResults() {
 }
 
 // Initialize coefficient input validation
-document.getElementById('coefficient').addEventListener('input', function() {
-    const value = parseFloat(this.value);
-    if (isNaN(value) || value <= 0) {
-        this.style.borderColor = '#dc3545';
-    } else {
-        this.style.borderColor = '#28a745';
+document.addEventListener('DOMContentLoaded', function() {
+    const coefficientInput = document.getElementById('coefficient');
+    if (coefficientInput) {
+        coefficientInput.addEventListener('input', function() {
+            const value = parseFloat(this.value);
+            if (isNaN(value) || value <= 0) {
+                this.style.borderColor = '#dc3545';
+            } else {
+                this.style.borderColor = '#28a745';
+            }
+        });
     }
-});
 
-console.log('🚀 Streamlined Metabolomics Calculator initialized');
+    console.log('🚀 Streamlined Metabolomics Calculator initialized');
+});
 
 // Show detailed calculation breakdown
 async function showCalculationDetails(substance, sample, calculationType) {
