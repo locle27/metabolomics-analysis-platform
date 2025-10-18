@@ -1090,6 +1090,8 @@
 </div>
 
 <script>
+console.log('🔵 Streamlined Calculator Script Loading...');
+
 // Global variables
 let calculationResults = null;
 let currentFileName = null;
@@ -1122,17 +1124,29 @@ function selectFormat(formatNumber) {
 
 // Initialize format card click handlers (AFTER DOM LOADS)
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎯 Initializing format selection cards...');
+    console.log('🎯 DOM LOADED: Initializing format selection cards...');
 
     // Attach event listeners to format cards
-    document.querySelectorAll('.format-card').forEach(card => {
+    const formatCards = document.querySelectorAll('.format-card');
+    console.log(`Found ${formatCards.length} format cards:`, formatCards);
+
+    if (formatCards.length === 0) {
+        console.error('❌ ERROR: No .format-card elements found!');
+        return;
+    }
+
+    formatCards.forEach((card, index) => {
+        const formatAttr = card.getAttribute('data-format');
+        console.log(`  Card ${index}: data-format="${formatAttr}", classes="${card.className}"`);
+
         card.addEventListener('click', function() {
             const formatNumber = parseInt(this.getAttribute('data-format'));
+            console.log(`🖱️ CLICK EVENT: Format card ${formatNumber} clicked`);
             selectFormat(formatNumber);
         });
     });
 
-    console.log('✅ Format cards initialized');
+    console.log('✅ Format cards initialized successfully');
 });
 
 // File upload handling
@@ -2588,7 +2602,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+{% endblock %}
 
+{% block extra_js %}
 <!-- Preload hint for better performance -->
 <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
 <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js" as="script" crossorigin="anonymous">

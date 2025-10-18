@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Format Selection Test</title>
+    <style>
+        .format-card {
+            border: 2px solid #ccc;
+            padding: 20px;
+            margin: 10px;
+            cursor: pointer;
+            display: inline-block;
+            width: 300px;
+        }
+        .format-card:hover {
+            background: #f0f0f0;
+        }
+        .format-card.selected {
+            border-color: #007bff;
+            background: #e7f3ff;
+        }
+        .upload-section {
+            border: 2px dashed #28a745;
+            padding: 30px;
+            margin: 20px 0;
+            display: none;
+        }
+        .upload-section.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Format Selection Test</h1>
+
+    <div class="format-selection">
+        <div class="format-card format-1" data-format="1">
+            <h3>FORMAT 1</h3>
+            <p>PH-HC Format</p>
+            <ul>
+                <li>100 samples</li>
+                <li>4 NIST at END</li>
+            </ul>
+        </div>
+
+        <div class="format-card format-2" data-format="2">
+            <h3>FORMAT 2</h3>
+            <p>ALZ/SL Format</p>
+            <ul>
+                <li>Variable samples (40/50)</li>
+                <li>Variable NIST (1-2)</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="format1Upload" class="upload-section">
+        <h2>Format 1 Upload</h2>
+        <input type="file" id="file1" accept=".xlsx">
+        <p>Upload PH-HC format file here</p>
+    </div>
+
+    <div id="format2Upload" class="upload-section">
+        <h2>Format 2 Upload</h2>
+        <input type="file" id="file2" accept=".xlsx">
+        <p>Upload ALZ/SL format file here</p>
+    </div>
+
+    <div id="log" style="margin-top: 20px; padding: 10px; background: #f5f5f5; font-family: monospace;"></div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${time}] ${message}<br>`;
+            console.log(message);
+        }
+
+        function selectFormat(formatNumber) {
+            log(`📋 selectFormat(${formatNumber}) called`);
+
+            // Hide all upload sections
+            document.getElementById('format1Upload').style.display = 'none';
+            document.getElementById('format2Upload').style.display = 'none';
+
+            // Show selected format upload section
+            const selectedSection = document.getElementById(`format${formatNumber}Upload`);
+            selectedSection.style.display = 'block';
+
+            // Update visual selection state
+            document.querySelectorAll('.format-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            document.querySelector(`.format-${formatNumber}`).classList.add('selected');
+
+            log(`✅ Format ${formatNumber} selected and displayed`);
+        }
+
+        // Initialize after DOM loads
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🎯 DOM loaded, initializing format cards...');
+
+            const cards = document.querySelectorAll('.format-card');
+            log(`Found ${cards.length} format cards`);
+
+            cards.forEach(card => {
+                const format = card.getAttribute('data-format');
+                log(`Attaching listener to format ${format} card`);
+
+                card.addEventListener('click', function() {
+                    const formatNumber = parseInt(this.getAttribute('data-format'));
+                    log(`🖱️ Card clicked: format ${formatNumber}`);
+                    selectFormat(formatNumber);
+                });
+            });
+
+            log('✅ All format cards initialized');
+        });
+    </script>
+</body>
+</html>
