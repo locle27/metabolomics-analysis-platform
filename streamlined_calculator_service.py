@@ -1315,13 +1315,22 @@ class StreamlinedCalculatorService:
                 # Use fresh database data (includes updated ISTDs)
                 compound_info = fresh_compound_info
                 istd_name = fresh_compound_info['istd']
+
+                # 🔥 CRITICAL: Recalculate ISTD row index based on fresh ISTD name
+                # The metadata istd_index_map is stale and points to old ISTD rows
+                substances_list = list(area_data.index)
+                istd_row_index = -1
+                for idx, comp_name in enumerate(substances_list):
+                    if istd_name in str(comp_name):
+                        istd_row_index = idx
+                        break
+                istd_found = istd_row_index >= 0
             else:
                 # Fallback to metadata if database lookup fails
                 compound_info = compound_info_map[substance]
                 istd_name = compound_info['istd']
-
-            istd_row_index = istd_index_map[substance]
-            istd_found = istd_row_index >= 0
+                istd_row_index = istd_index_map[substance]
+                istd_found = istd_row_index >= 0
 
             # Get basic area data
             substance_area_raw = area_data.loc[substance_index, sample]
@@ -1441,13 +1450,22 @@ class StreamlinedCalculatorService:
                 # Use fresh database data (includes updated ISTDs)
                 compound_info = fresh_compound_info
                 istd_name = fresh_compound_info['istd']
+
+                # 🔥 CRITICAL: Recalculate ISTD row index based on fresh ISTD name
+                # The metadata istd_index_map is stale and points to old ISTD rows
+                substances_list = list(area_data.index)
+                istd_row_index = -1
+                for idx, comp_name in enumerate(substances_list):
+                    if istd_name in str(comp_name):
+                        istd_row_index = idx
+                        break
+                istd_found = istd_row_index >= 0
             else:
                 # Fallback to metadata if database lookup fails
                 compound_info = compound_info_map[substance]
                 istd_name = compound_info['istd']
-
-            istd_row_index = istd_index_map[substance]
-            istd_found = istd_row_index >= 0
+                istd_row_index = istd_index_map[substance]
+                istd_found = istd_row_index >= 0
 
             # Get NIST column area data
             nist_substance_area_raw = area_data.loc[substance_index, nist_col]
