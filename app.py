@@ -5423,12 +5423,20 @@ def api_streamlined_calculate():
                 coefficient=coefficient
             )
             
-            # Save results to temp file with detailed calculations
+            # Save results to temp file with detailed calculations AND session data for on-demand details
             temp_info = streamlined_calculator.save_temp_results(
                 results['nist_data'],
                 results['agilent_data'],
                 results.get('nist_ratio_data'),  # Include NIST ratio data
-                results['detailed_calculations']
+                results['detailed_calculations'],
+                # 🔥 NEW: Pass session data for on-demand calculation details
+                area_data=results.get('area_data'),
+                substances=results.get('substances'),
+                coefficient=coefficient,
+                format_info=results.get('format_info'),
+                sample_to_nist_map=results.get('sample_to_nist_map'),
+                compound_info_map=results.get('compound_info_map'),
+                istd_index_map=results.get('istd_index_map')
             )
             
             # Convert DataFrames to JSON for preview (first 50 rows)

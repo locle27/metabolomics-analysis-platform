@@ -1171,7 +1171,15 @@ class StreamlinedCalculatorService:
                 'substance_count': len(substances),
                 'sample_count': len(sample_columns),
                 'nist_column_count': len(nist_columns),
-                'missing_compounds': missing_compounds  # Include missing compounds in results
+                'missing_compounds': missing_compounds,  # Include missing compounds in results
+                # 🔥 NEW: Session data for on-demand calculation details
+                'area_data': area_data,
+                'substances': substances,
+                'coefficient': coefficient,
+                'format_info': format_info,
+                'sample_to_nist_map': sample_to_nist_map,
+                'compound_info_map': compound_info_map,
+                'istd_index_map': istd_index_map
             }
 
         except Exception as e:
@@ -1212,7 +1220,9 @@ class StreamlinedCalculatorService:
         output.seek(0)
         return output
 
-    def save_temp_results(self, nist_data, agilent_data, nist_ratio_data=None, detailed_calculations=None):
+    def save_temp_results(self, nist_data, agilent_data, nist_ratio_data=None, detailed_calculations=None,
+                          area_data=None, substances=None, coefficient=500, format_info=None,
+                          sample_to_nist_map=None, compound_info_map=None, istd_index_map=None):
         """Save results to temporary file and return session info"""
         try:
             session_id = str(uuid.uuid4())
@@ -1231,7 +1241,7 @@ class StreamlinedCalculatorService:
             with open(excel_path, 'wb') as f:
                 f.write(excel_output.getvalue())
 
-            # Save detailed calculations as JSON
+            # Save detailed calculations as JSON (legacy - usually empty now)
             if detailed_calculations:
                 details_path = os.path.join(session_dir, f"details_{session_id}.json")
                 with open(details_path, 'w') as f:
@@ -1242,8 +1252,32 @@ class StreamlinedCalculatorService:
 
                     json.dump(json_safe_details, f, indent=2)
 
+            # 🔥 NEW: Save session data for on-demand calculation details
+            if area_data is not None and substances is not None:
+                print(f"💾 Saving session data for on-demand calculation details...")
 
+                # Save area data as Excel
+                area_path = os.path.join(session_dir, f"area_{session_id}.xlsx")
+                area_data.to_excel(area_path)
+                print(f"✅ Saved area data: {area_path}")
 
+                # Save metadata as JSON
+                meta_path = os.path.join(session_dir, f"meta_{session_id}.json")
+                metadata = {
+                    'substances': substances if substances else [],
+                    'coefficient': coefficient,
+                    'format_info': format_info if format_info else {},
+                    'sample_to_nist_map': sample_to_nist_map if sample_to_nist_map else {},
+                    'compound_info_map': self._make_json_safe(compound_info_map) if compound_info_map else {},
+                    'istd_index_map': self._make_json_safe(istd_index_map) if istd_index_map else {},
+                    'session_id': session_id,
+                    'timestamp': timestamp
+                }
+
+                with open(meta_path, 'w') as f:
+                    json.dump(metadata, f, indent=2)
+                print(f"✅ Saved metadata: {meta_path}")
+                print(f"📊 Metadata includes: {len(substances)} substances, {len(compound_info_map)} compound mappings")
 
             return {
                 'session_id': session_id,
@@ -1253,7 +1287,8 @@ class StreamlinedCalculatorService:
             }
 
         except Exception as e:
-
+            import traceback
+            traceback.print_exc()
             raise e
 
     def _make_json_safe(self, obj):
@@ -1459,12 +1494,76 @@ class StreamlinedCalculatorService:
             session_dir = os.path.join(temp_dir, f"streamlined_{session_id}")
             details_path = os.path.join(session_dir, f"details_{session_id}.json")
 
-
-
-
+            # 🔥 NEW: If details file doesn't exist, check if we have session data for on-demand creation
             if not os.path.exists(details_path):
+                print(f"⚠️ Details file not found: {details_path}")
+                print(f"🔄 Attempting on-demand calculation detail generation...")
 
-                return {'error': 'Calculation details not found'}
+                # Check if session directory and Excel files exist
+                if not os.path.exists(session_dir):
+                    return {'error': f'Session directory not found: {session_dir}'}
+
+                # Try to load area data and metadata for on-demand creation
+                try:
+                    area_path = os.path.join(session_dir, f"area_{session_id}.xlsx")
+                    meta_path = os.path.join(session_dir, f"meta_{session_id}.json")
+
+                    if not os.path.exists(area_path) or not os.path.exists(meta_path):
+                        return {
+                            'error': 'Session data not found for on-demand calculation',
+                            'debug': {
+                                'session_dir': session_dir,
+                                'area_file_exists': os.path.exists(area_path),
+                                'meta_file_exists': os.path.exists(meta_path)
+                            }
+                        }
+
+                    # Load metadata
+                    with open(meta_path, 'r') as f:
+                        metadata = json.load(f)
+
+                    # Load area data
+                    area_data = pd.read_excel(area_path, index_col=0)
+
+                    # Get required parameters from metadata
+                    substances = metadata.get('substances', [])
+                    coefficient = metadata.get('coefficient', 500)
+                    format_info = metadata.get('format_info', {})
+                    sample_to_nist_map = metadata.get('sample_to_nist_map', {})
+                    compound_info_map = metadata.get('compound_info_map', {})
+                    istd_index_map = metadata.get('istd_index_map', {})
+
+                    # Find substance index
+                    if substance not in substances:
+                        return {
+                            'error': f'Substance "{substance}" not found in session data',
+                            'available_substances': substances[:20]
+                        }
+
+                    substance_index = substances.index(substance)
+
+                    # Create calculation details on-demand
+                    details = self.create_calculation_details_on_demand(
+                        area_data=area_data,
+                        substance=substance,
+                        sample=sample,
+                        substance_index=substance_index,
+                        istd_index_map=istd_index_map,
+                        compound_info_map=compound_info_map,
+                        nist_mapping_cache=sample_to_nist_map,
+                        coefficient=coefficient
+                    )
+
+                    print(f"✅ On-demand calculation details created successfully")
+                    return details
+
+                except Exception as on_demand_error:
+                    print(f"❌ On-demand creation failed: {on_demand_error}")
+                    import traceback
+                    traceback.print_exc()
+                    return {
+                        'error': f'Failed to create calculation details on-demand: {str(on_demand_error)}'
+                    }
 
             with open(details_path, 'r') as f:
                 all_details = json.load(f)
