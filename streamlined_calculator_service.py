@@ -1339,7 +1339,12 @@ class StreamlinedCalculatorService:
 
                 # 🔥 CRITICAL: Recalculate ISTD row index based on fresh ISTD name
                 # The metadata istd_index_map is stale and points to old ISTD rows
-                substances_list = list(area_data.index)
+                # Get compound names from 'Compound' column, not from index (which is just 0,1,2,...)
+                if 'Compound' in area_data.columns:
+                    substances_list = area_data['Compound'].tolist()
+                else:
+                    substances_list = list(area_data.index)  # Fallback
+
                 istd_row_index = -1
                 for idx, comp_name in enumerate(substances_list):
                     if istd_name in str(comp_name):
@@ -1474,7 +1479,12 @@ class StreamlinedCalculatorService:
 
                 # 🔥 CRITICAL: Recalculate ISTD row index based on fresh ISTD name
                 # The metadata istd_index_map is stale and points to old ISTD rows
-                substances_list = list(area_data.index)
+                # Get compound names from 'Compound' column, not from index (which is just 0,1,2,...)
+                if 'Compound' in area_data.columns:
+                    substances_list = area_data['Compound'].tolist()
+                else:
+                    substances_list = list(area_data.index)  # Fallback
+
                 istd_row_index = -1
                 for idx, comp_name in enumerate(substances_list):
                     if istd_name in str(comp_name):
