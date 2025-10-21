@@ -5439,18 +5439,18 @@ def api_streamlined_calculate():
                 istd_index_map=results.get('istd_index_map')
             )
             
-            # Convert DataFrames to JSON for preview (first 50 rows)
-            nist_df_preview = results['nist_data'].head(50).fillna(0)
-            agilent_df_preview = results['agilent_data'].head(50).fillna(0)
-            
+            # Convert DataFrames to JSON for preview - 🔥 SEND ALL ROWS (was limited to 50)
+            nist_df_preview = results['nist_data'].fillna(0)
+            agilent_df_preview = results['agilent_data'].fillna(0)
+
             nist_preview = nist_df_preview.to_dict('records')
             agilent_preview = agilent_df_preview.to_dict('records')
-            
+
             # Add NIST ratio preview if available
             nist_ratio_preview = []
             nist_ratio_column_order = []
             if 'nist_ratio_data' in results and results['nist_ratio_data'] is not None:
-                nist_ratio_df_preview = results['nist_ratio_data'].head(50).fillna(0)
+                nist_ratio_df_preview = results['nist_ratio_data'].fillna(0)  # All rows
                 nist_ratio_preview = nist_ratio_df_preview.to_dict('records')
                 nist_ratio_column_order = list(results['nist_ratio_data'].columns)
             

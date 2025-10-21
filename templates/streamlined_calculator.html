@@ -1327,16 +1327,16 @@ function createPreviewTable(data, type, columnOrder = null) {
     
     // Use explicit column order if provided, otherwise fall back to Object.keys
     const headers = columnOrder || Object.keys(data[0]);
-    const maxRows = Math.min(data.length, 20); // Show first 20 rows
-    
+    const maxRows = data.length; // 🔥 FIXED: Show ALL rows (was limited to 20)
+
     let html = `
         <div class="mb-3">
             <h5>
                 <i class="fas fa-table me-2"></i>
-                ${type} Results Preview (First ${maxRows} of ${data.length} rows)
+                ${type} Results Preview (${data.length} rows)
             </h5>
         </div>
-        <div class="table-responsive">
+        <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
             <table class="preview-table">
                 <thead>
                     <tr>
