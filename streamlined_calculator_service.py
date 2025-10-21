@@ -1309,8 +1309,17 @@ class StreamlinedCalculatorService:
     def create_calculation_details_on_demand(self, area_data, substance, sample, substance_index, istd_index_map, compound_info_map, nist_mapping_cache, coefficient):
         """Create detailed calculation breakdown on-demand for performance"""
         try:
-            compound_info = compound_info_map[substance]
-            istd_name = compound_info['istd']
+            # 🔥 FIX: Get FRESH compound info from database instead of stale metadata
+            fresh_compound_info = self.get_compound_info(substance)
+            if fresh_compound_info:
+                # Use fresh database data (includes updated ISTDs)
+                compound_info = fresh_compound_info
+                istd_name = fresh_compound_info['istd']
+            else:
+                # Fallback to metadata if database lookup fails
+                compound_info = compound_info_map[substance]
+                istd_name = compound_info['istd']
+
             istd_row_index = istd_index_map[substance]
             istd_found = istd_row_index >= 0
 
@@ -1426,8 +1435,17 @@ class StreamlinedCalculatorService:
     def create_nist_calculation_details_on_demand(self, area_data, substance, nist_col, substance_index, istd_index_map, compound_info_map, coefficient):
         """Create detailed NIST calculation breakdown on-demand for NIST columns"""
         try:
-            compound_info = compound_info_map[substance]
-            istd_name = compound_info['istd']
+            # 🔥 FIX: Get FRESH compound info from database instead of stale metadata
+            fresh_compound_info = self.get_compound_info(substance)
+            if fresh_compound_info:
+                # Use fresh database data (includes updated ISTDs)
+                compound_info = fresh_compound_info
+                istd_name = fresh_compound_info['istd']
+            else:
+                # Fallback to metadata if database lookup fails
+                compound_info = compound_info_map[substance]
+                istd_name = compound_info['istd']
+
             istd_row_index = istd_index_map[substance]
             istd_found = istd_row_index >= 0
 
