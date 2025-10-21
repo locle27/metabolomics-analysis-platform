@@ -157,6 +157,7 @@ class StreamlinedCalculatorService:
         - Lipid class prefixes: (O-), (P-), etc.
         - Position indicators: [a], [b], [sn1], [sn2]
         - Multiple separators: /, -, space
+        - Lipid class abbreviations: AcylCarnitine ↔ AC, etc.
         """
         if not compound_name or pd.isna(compound_name):
             return [""]
@@ -164,6 +165,47 @@ class StreamlinedCalculatorService:
         import re
         name = str(compound_name).strip()
         variations = [name]
+
+        # === STEP 0: Handle lipid class abbreviation expansions/contractions ===
+        # CRITICAL: Excel files use full names, database uses abbreviations
+        lipid_class_mappings = [
+            ('AcylCarnitine ', 'AC('),  # "AcylCarnitine 10:0" → "AC(10:0)"
+            ('AcylCarnitine(', 'AC('),  # "AcylCarnitine(10:0)" → "AC(10:0)"
+            ('Acyl Carnitine ', 'AC('), # "Acyl Carnitine 10:0" → "AC(10:0)"
+            ('AC(', 'AcylCarnitine '),  # Reverse: "AC(10:0)" → "AcylCarnitine 10:0"
+            ('AC ', 'AcylCarnitine '),  # "AC 10:0" → "AcylCarnitine 10:0"
+        ]
+
+        abbreviation_variations = []
+        for variant in variations[:]:
+            for full_form, abbrev_form in lipid_class_mappings:
+                # Try replacing full form with abbreviation
+                if full_form in variant:
+                    new_variant = variant.replace(full_form, abbrev_form)
+                    # If we added opening parenthesis, we need closing too
+                    if abbrev_form.endswith('(') and ')' not in new_variant:
+                        # Find the end of the fatty acid notation (before space or end)
+                        match = re.search(r'AC\(([^\s)]+)', new_variant)
+                        if match:
+                            fatty_acid = match.group(1)
+                            new_variant = new_variant.replace(f'AC({fatty_acid}', f'AC({fatty_acid})')
+                    abbreviation_variations.append(new_variant)
+
+                # Try replacing abbreviation with full form
+                if abbrev_form in variant:
+                    # Need to be careful with parentheses
+                    if abbrev_form.endswith('('):
+                        # Extract fatty acid from AC(10:0) format
+                        match = re.search(r'AC\(([^)]+)\)', variant)
+                        if match:
+                            fatty_acid = match.group(1)
+                            new_variant = variant.replace(f'AC({fatty_acid})', f'{full_form.rstrip("(")}{fatty_acid}')
+                            abbreviation_variations.append(new_variant)
+                    else:
+                        new_variant = variant.replace(abbrev_form, full_form)
+                        abbreviation_variations.append(new_variant)
+
+        variations.extend(abbreviation_variations)
 
         # === STEP 1: Generate bracket variations ===
         bracket_variations = []
