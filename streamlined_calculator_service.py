@@ -746,6 +746,21 @@ class StreamlinedCalculatorService:
 
     def get_compound_info(self, substance):
         """Get compound information (ISTD, concentration, response factor)"""
+
+        # 🔥 PRIORITY: Try fresh database query FIRST (always has latest ISTDs)
+        try:
+            compound = CompoundIndex.query.filter_by(compound=substance).first()
+            if compound:
+                return {
+                    'istd': compound.istd,
+                    'conc_nm': float(compound.conc_nm),
+                    'response_factor': float(compound.response_factor)
+                }
+        except Exception as db_error:
+            # Database not available or compound not found - fall through to DataFrame
+            pass
+
+        # Fallback to DataFrame if database query fails
         if self.compound_index is None:
             return {
                 'istd': 'LPC 18:1 d7',
