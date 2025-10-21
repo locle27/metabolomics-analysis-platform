@@ -745,7 +745,13 @@ class StreamlinedCalculatorService:
             return 0.1769
 
     def get_compound_info(self, substance):
-        """Get compound information (ISTD, concentration, response factor)"""
+        """
+        Get compound information (ISTD, concentration, response factor)
+
+        PRIORITY ORDER:
+        1. Fresh PostgreSQL database query (ALWAYS has latest ISTD updates)
+        2. Cached DataFrame (fallback only if database unavailable)
+        """
 
         # 🔥 PRIORITY: Try fresh database query FIRST (always has latest ISTDs)
         try:
